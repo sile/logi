@@ -1,0 +1,13 @@
+%%%  vim: set ft=erlang : -*- erlang -*-
+{application, logi,
+ [
+  {description, "A Logger Interface Library"},
+  {vsn, "0.0.1"},
+  {registered, [logi_sup, logi_event_manager_sup, logi_default_event_manager]},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { logi_app, []}},
+  {env, []}
+ ]}.
