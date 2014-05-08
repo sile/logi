@@ -29,6 +29,11 @@
               event_manager_ref/0,
               event_handler/0,
 
+              header_entry/0,
+              header_scope/0,
+              set_header_option/0,
+              header_state/0,
+
               exception_reason/0,
               exception_class/0,
               stacktrace/0]).
@@ -40,11 +45,16 @@
                             | {global, GlobalName::term()}
                             | {via, module(), ViaName::term()}.
 
+%% TODO: atom() | pid() に限定する
 -type event_manager_ref() :: atom()
                            | {atom(), node()}
                            | {global, term()}
                            | {via, module(), term()}
                            | pid().
+
+-type header_entry() :: {HeaderKey::atom(), HeaderValue::term()}.
+-type set_header_option() :: {scope, ScopeId::term()}. %% NOTE: functionスコープはmacroで実装する ?LOGI_WITH_HEADER
+-opaque header_state() :: logi_client:whole_header_state().
 
 -type event_handler() :: module()
                        | {module(), Id::term()}.
