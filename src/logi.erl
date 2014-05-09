@@ -15,7 +15,11 @@
 
          add_handler/2, add_handler/3,
          delete_handler/1, delete_handler/2,
-         which_handlers/0, which_handlers/1
+         which_handlers/0, which_handlers/1,
+
+         set_header/2, set_header/3,
+         unset_header/2, unset_header/3,
+         get_header/1, get_header/2
 
          %% set_header/1, set_header/2,
          %% add_header/1, add_header/2,
@@ -30,9 +34,15 @@
               event_handler/0,
 
               header_entry/0,
+              header_entry_key/0,
               header_scope/0,
               set_header_option/0,
+              unset_header_option/0,
+              get_header_option/0,
               header_state/0,
+
+              metadata/0,
+              metadata_entry/0,
 
               exception_reason/0,
               exception_class/0,
@@ -52,9 +62,19 @@
                            | {via, module(), term()}
                            | pid().
 
--type header_entry() :: {HeaderKey::atom(), HeaderValue::term()}.
--type set_header_option() :: {scope, ScopeId::term()}. %% NOTE: functionスコープはmacroで実装する ?LOGI_WITH_HEADER
+-type header_entry() :: {header_entry_key(), HeaderValue::term()}.
+-type header_entry_key() :: atom().
+-type set_header_option() :: {scope, header_scope()}. %% NOTE: functionスコープはmacroで実装する ?LOGI_WITH_HEADER
+-type unset_header_option() :: set_header_option().
+-type get_header_option() :: {metadata, [metadata_entry()]}.
+
+-type header_scope() :: {MetaDataKey::atom(), MetaDataValue::term()}.
+
 -opaque header_state() :: logi_client:whole_header_state().
+
+-opaque metadata() :: todo.
+
+-type metadata_entry() :: {atom(), term()}.
 
 -type event_handler() :: module()
                        | {module(), Id::term()}.
@@ -120,3 +140,33 @@ which_handlers() ->
 -spec which_handlers(event_manager_ref()) -> [event_handler()].
 which_handlers(ManagerRef) ->
     logi_event_manager:which_handlers(ManagerRef).
+
+%% @equiv set_header(?LOGI_DEFAULT_EVENT_MANAGER, HeaderEntries, Options)
+-spec set_header([header_entry()], [set_header_option()]) -> ok.
+set_header(HeaderEntries, Options) ->
+    set_header(?LOGI_DEFAULT_EVENT_MANAGER, HeaderEntries, Options).
+
+%% @doc TODO
+-spec set_header(event_manager_ref(), [header_entry()], [set_header_option()]) -> ok.
+set_header(ManagerRef, HeaderEntries, Options) ->
+    logi_msg_header:set_header(ManagerRef, HeaderEntries, Options).
+
+%% @equiv unset_header(?LOGI_DEFAULT_EVENT_MANAGER, HeaderEntries, Options)
+-spec unset_header([header_entry_key()], [unset_header_option()]) -> ok.
+unset_header(HeaderEntryKeys, Options) ->
+    unset_header(?LOGI_DEFAULT_EVENT_MANAGER, HeaderEntryKeys, Options).
+
+%% @doc TODO
+-spec unset_header(event_manager_ref(), [header_entry_key()], [unset_header_option()]) -> ok.
+unset_header(ManagerRef, HeaderEntryKeys, Options) ->
+    logi_msg_header:unset_header(ManagerRef, HeaderEntryKeys, Options).
+
+%% @equiv get_header(?LOGI_DEFAULT_EVENT_MANAGER, Options) -> ok.
+-spec get_header([get_header_option()]) -> [header_entry()].
+get_header(Options) ->
+    get_header(?LOGI_DEFAULT_EVENT_MANAGER, Options).
+
+%% @doc TODO
+-spec get_header(event_manager_ref(), [get_header_option()]) -> [header_entry()].
+get_header(ManagerRef, Options) ->
+    logi_msg_header:get_header(ManagerRef, Options).
