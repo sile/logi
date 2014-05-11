@@ -107,8 +107,8 @@ get_entries(ScopeList, Header) ->
             {value, ProcessEntries0} -> ProcessEntries0
         end,
     case {gb_trees:size(ScopeToEntries), ProcessEntries} of
-        {0, _}     -> [];
-        {1, [_|_]} -> ProcessEntries;
+        {0, _}     -> [];             % よくあるケースを最適化(1)
+        {1, [_|_]} -> ProcessEntries; % よくあるケースを最適化(2)
         _          ->
             lists:foldr(
               fun (Scope, Acc) ->
@@ -122,7 +122,7 @@ get_entries(ScopeList, Header) ->
     end.
 
 %%------------------------------------------------------------------------------------------------------------------------
-%% Internal API
+%% Internal Function
 %%------------------------------------------------------------------------------------------------------------------------
 -spec is_valid_scope(scope()) -> true;
                     (term())  -> false.
