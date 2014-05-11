@@ -156,8 +156,12 @@ set_header(HeaderEntries) ->
 
 %% @doc TODO
 -spec set_header([header_entry()], [set_header_option()]) -> ok.
-set_header(HeaderEntries, Options) ->
-    logi_msg_header:set_header(HeaderEntries, Options).
+set_header(HeaderEntries, _Options) ->
+    ManagerRef = todo,
+    Scope = process,
+    Fun = fun (Header) -> logi_msg_header:set_entries(Scope, HeaderEntries, Header) end,
+    _ = logi_msg_context:update_info(ManagerRef, Fun, logi_msg_header),
+    ok.
 
 %% @equiv unset_header(HeaderEntries, [])
 -spec unset_header([header_entry_key()]) -> ok.
@@ -166,8 +170,12 @@ unset_header(HeaderEntryKeys) ->
 
 %% @doc TODO
 -spec unset_header([header_entry_key()], [unset_header_option()]) -> ok.
-unset_header(HeaderEntryKeys, Options) ->
-    logi_msg_header:unset_header(HeaderEntryKeys, Options).
+unset_header(HeaderEntryKeys, _Options) ->
+    ManagerRef = todo,
+    Scope = process,
+    Fun = fun (Header) -> logi_msg_header:unset_entries(Scope, HeaderEntryKeys, Header) end,
+    _ = logi_msg_context:update_info(ManagerRef, Fun, logi_msg_header),
+    ok.
 
 %% @equiv get_header([]) -> ok.
 -spec get_header() -> [header_entry()].
