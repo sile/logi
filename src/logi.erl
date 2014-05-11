@@ -15,45 +15,42 @@
 
          add_handler/2, add_handler/3,
          delete_handler/1, delete_handler/2,
-         which_handlers/0, which_handlers/1,
+         which_handlers/0, which_handlers/1
 
-         set_header/1, set_header/2,
-         unset_header/1, unset_header/2,
-         get_header/0, get_header/1
-
-         %% set_metadata/1, set_metadata/2,
-         %% unset_metadta/1, unset_metadta/2,
-         %% get_metadata/0, get_metadata/1
-
-         %% set_local_header/1, set_local_header/2,
-         %% add_local_header/1, add_local_header/2,
          %% log/3, log/4,
          %% set_loglevel/2, set_loglevel/3
         ]).
 
+-export([load_context/0, save_context/1]).
+-export([set_header/1, set_header/2,
+         unset_header/1, unset_header/2,
+         erase_header/0, erase_header/1,
+         get_header/0, get_header/1]).
+-export([set_metadata/1, set_metadata/2,
+         unset_metadata/1, unset_metadata/2,
+         erase_metadata/0, erase_metadata/1,
+         get_metadata/0, get_metadata/1]).
+
 -export_type([event_manager_name/0, % XXX: event
               event_manager_ref/0,
-              event_handler/0,
+              event_handler/0]).
 
-              header_entry/0,
-              header_entry_key/0,
-              header_scope/0,
-              set_header_option/0,
-              unset_header_option/0,
-              get_header_option/0,
-              header_state/0,
+-export_type([context/0]).
 
-              metadata/0,
-              metadata_entry/0,
-              metadata_option/0,
+-export_type([header_entry/0, header_entry_key/0, header_entry_value/0,
+              header_scope/0, header_option/0]).
+              
+-export_type([metadata_entry/0, metadata_entry_key/0, metadata_entry_value/0,
+              metadata_option/0]).
 
-              exception_reason/0,
-              exception_class/0,
-              stacktrace/0]).
+-export_type([exception_reason/0, exception_class/0, stacktrace/0]).
 
 %%------------------------------------------------------------------------------------------------------------------------
-%% Types
+%% Macros & Types
 %%------------------------------------------------------------------------------------------------------------------------
+-define(FOREACH_HEADER_SCOPE_FUN(Fun, Options),
+        fun (_Header) -> lists:foldl(Fun, _Header, logi_util_assoc:fetch(scope, Options, [process])) end).
+
 -type event_manager_name() :: {local, Name::atom()}
                             | {global, GlobalName::term()}
                             | {via, module(), ViaName::term()}.
@@ -65,26 +62,25 @@
                            | {via, module(), term()}
                            | pid().
 
--type header_entry() :: {header_entry_key(), HeaderValue::term()}.
--type header_entry_key() :: atom().
--type set_header_option() :: {scope, header_scope()}
-                           | {manager, logi:event_manager_ref()}.
--type unset_header_option() :: set_header_option().
--type get_header_option() :: {metadata, [metadata_entry()]}
-                           | {manager, event_manager_ref()}.
-
--type header_scope() :: {MetaDataKey::term(), MetaDataValue::term()}.
-
--opaque header_state() :: logi_client:whole_header_state().
-
--opaque metadata() :: todo.
-
--type metadata_entry() :: {atom(), term()}.
-
--type metadata_option() :: {manager, event_manager_ref()}.
-
 -type event_handler() :: module()
                        | {module(), Id::term()}.
+
+-opaque context() :: [{'LOGI_MSG_HEADER_CONTEXT',   log_msg_context:context()} |
+                      {'LOGI_MSG_METADATA_CONTEXT', log_msg_context:context()}].
+
+-type header_entry()       :: {header_entry_key(), header_entry_value()}.
+-type header_entry_key()   :: term().
+-type header_entry_value() :: term().
+-type header_scope()       :: metadata_entry().
+
+-type header_option() :: {scope, [header_scope()]}
+                       | {manager, logi:event_manager_ref()}.
+
+-type metadata_entry()       :: {metadata_entry_key(), metadata_entry_value()}.
+-type metadata_entry_key()   :: term().
+-type metadata_entry_value() :: term().
+
+-type metadata_option() :: {manager, event_manager_ref()}.
 
 -type exception_reason() :: {'EXCEPTION', exception_class(), stacktrace()}.
 -type exception_class() :: exit | error | throw.
@@ -148,44 +144,116 @@ which_handlers() ->
 which_handlers(ManagerRef) ->
     logi_event_manager:which_handlers(ManagerRef).
 
-%% TODO: event_manager指定はOptionsの中に含めて、set_header/1を用意する
+%% @doc 現在のプロセスのログ出力のコンテキスト情報を取得する
+-spec load_context() -> context().
+load_context() ->
+    [
+     {'LOGI_MSG_HEADER_CONTEXT',   logi_msg_context:load_context(logi_msg_header)},
+     {'LOGI_MSG_METADATA_CONTEXT', logi_msg_context:load_context(logi_msg_metadata)}
+    ].
+
+%% @doc 現在のプロセスにログ出力のコンテキスト情報を保存(上書き)する
+-spec save_context(context()) -> ok.
+save_context(Context) when is_list(Context) ->
+    ok = logi_msg_context:save_context(logi_msg_header, logi_util_assoc:fetch('LOGI_MSG_HEADER_CONTEXT', Context, [])),
+    ok = logi_msg_context:save_context(logi_msg_metadata, logi_util_assoc:fetch('LOGI_MSG_METADATA_CONTEXT', Context, [])),
+    ok.
+
 %% @equiv set_header(HeaderEntries, [])
 -spec set_header([header_entry()]) -> ok.
-set_header(HeaderEntries) ->
-    set_header(HeaderEntries, []).
+set_header(HeaderEntries) -> set_header(HeaderEntries, []).
 
-%% @doc TODO
--spec set_header([header_entry()], [set_header_option()]) -> ok.
-set_header(HeaderEntries, _Options) ->
-    ManagerRef = todo,
-    Scope = process,
-    Fun = fun (Header) -> logi_msg_header:set_entries(Scope, HeaderEntries, Header) end,
-    _ = logi_msg_context:update_info(ManagerRef, Fun, logi_msg_header),
+%% @doc ヘッダ情報を設定する
+%%
+%% 既に存在するキーが指定された場合は、値が上書きされる
+-spec set_header([header_entry()], [header_option()]) -> ok.
+set_header(HeaderEntries, Options) ->
+    Fun = ?FOREACH_HEADER_SCOPE_FUN(fun (Scope, Header) -> logi_msg_header:set_entries(Scope, HeaderEntries, Header) end, Options),
+    _ = logi_msg_context:update_info(get_event_manager(Options), Fun, logi_msg_header),
     ok.
 
 %% @equiv unset_header(HeaderEntries, [])
 -spec unset_header([header_entry_key()]) -> ok.
-unset_header(HeaderEntryKeys) ->
-    unset_header(HeaderEntryKeys, []).
+unset_header(HeaderEntryKeys) -> unset_header(HeaderEntryKeys, []).
 
-%% @doc TODO
--spec unset_header([header_entry_key()], [unset_header_option()]) -> ok.
-unset_header(HeaderEntryKeys, _Options) ->
-    ManagerRef = todo,
-    Scope = process,
-    Fun = fun (Header) -> logi_msg_header:unset_entries(Scope, HeaderEntryKeys, Header) end,
-    _ = logi_msg_context:update_info(ManagerRef, Fun, logi_msg_header),
+%% @doc ヘッダ情報から指定されたエントリを削除する
+-spec unset_header([header_entry_key()], [header_option()]) -> ok.
+unset_header(HeaderEntryKeys, Options) ->
+    Fun = ?FOREACH_HEADER_SCOPE_FUN(fun (Scope, Header) -> logi_msg_header:unset_entries(Scope, HeaderEntryKeys, Header) end, Options),
+    _ = logi_msg_context:update_info(get_event_manager(Options), Fun, logi_msg_header),
+    ok.
+
+%% @equiv erase_header([])
+-spec erase_header() -> ok.
+erase_header() -> erase_header([]).
+
+%% @doc ヘッダ情報を削除する
+-spec erase_header([header_option()]) -> ok.
+erase_header(Options) ->
+    Fun = ?FOREACH_HEADER_SCOPE_FUN(fun (Scope, Header) -> logi_msg_header:erase_entries(Scope, Header) end, Options),
+    _ = logi_msg_context:update_info(get_event_manager(Options), Fun, logi_msg_header),
     ok.
 
 %% @equiv get_header([]) -> ok.
 -spec get_header() -> [header_entry()].
-get_header() ->
-    get_header([]).
+get_header() -> get_header([]).
 
-%% @doc TODO
--spec get_header([get_header_option()]) -> [header_entry()].
-get_header(_Options) ->
-    ManagerRef = todo,
-    ScopeList = [],
-    Header = logi_msg_context:get_info(ManagerRef, logi_msg_header),
+%% @doc ヘッダ情報を取得する
+-spec get_header([header_option()]) -> [header_entry()].
+get_header(Options) ->
+    ScopeList = lists:ukeymerge(1, lists:ukeysort(1, logi_util_assoc:fetch(scope, Options, [])), get_metadata(Options)),
+    Header = logi_msg_context:get_info(get_event_manager(Options), logi_msg_header),
     logi_msg_header:get_entries(ScopeList, Header).
+
+%% @equiv set_metadata(MetaDataEntries, [])
+-spec set_metadata([metadata_entry()]) -> ok.
+set_metadata(MetaDataEntries) -> set_metadata(MetaDataEntries, []).
+
+%% @doc メタデータ情報を設定する
+%%
+%% 既に存在するキーが指定された場合は、値が上書きされる
+-spec set_metadata([metadata_entry()], [metadata_option()]) -> ok.
+set_metadata(MetaDataEntries, Options) ->
+    Fun = fun (MetaData) -> logi_msg_metadata:set_entries(MetaDataEntries, MetaData) end,
+    _ = logi_msg_context:update_info(get_event_manager(Options), Fun, logi_msg_metadata),
+    ok.
+
+%% @equiv unset_metadata(MetaDataEntries, [])
+-spec unset_metadata([metadata_entry_key()]) -> ok.
+unset_metadata(MetaDataEntryKeys) -> unset_metadata(MetaDataEntryKeys, []).
+
+%% @doc メタデータ情報から指定されたエントリを削除する
+-spec unset_metadata([metadata_entry_key()], [metadata_option()]) -> ok.
+unset_metadata(MetaDataEntryKeys, Options) ->
+    Fun = fun (MetaData) -> logi_msg_metadata:unset_entries(MetaDataEntryKeys, MetaData) end,
+    _ = logi_msg_context:update_info(get_event_manager(Options), Fun, logi_msg_metadata),
+    ok.
+
+%% @equiv erase_metadata([])
+-spec erase_metadata() -> ok.
+erase_metadata() -> erase_metadata([]).
+
+%% @doc メタデータ情報を削除する
+-spec erase_metadata([metadata_option()]) -> ok.
+erase_metadata(Options) ->
+    Fun = fun (_MetaData) -> logi_msg_metadata:empty() end,
+    _ = logi_msg_context:update_info(get_event_manager(Options), Fun, logi_msg_metadata),
+    ok.
+
+%% @equiv get_metadata([]) -> ok.
+-spec get_metadata() -> [metadata_entry()].
+get_metadata() -> get_metadata([]).
+
+%% @doc メタデータ情報を取得する
+-spec get_metadata([metadata_option()]) -> [metadata_entry()].
+get_metadata(Options) ->
+    MetaData = logi_msg_context:get_info(get_event_manager(Options), logi_msg_metadata),
+    logi_msg_metadata:get_entries(MetaData).
+
+%%------------------------------------------------------------------------------------------------------------------------
+%% Internal Functions
+%%------------------------------------------------------------------------------------------------------------------------
+-spec get_event_manager(Options) -> event_manager_ref() when
+      Options :: [{manager, event_manager_ref()}].
+get_event_manager(Options) ->
+    logi_util_assoc:fetch(manager, Options, ?LOGI_DEFAULT_EVENT_MANAGER).

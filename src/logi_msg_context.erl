@@ -94,7 +94,7 @@ delete_info(ManagerRef, _InfoModule, Context) ->
     lists:keydelete(ManagerRef, 1, Context).
 
 %%------------------------------------------------------------------------------------------------------------------------
-%% Internal API
+%% Internal Functions
 %%------------------------------------------------------------------------------------------------------------------------
 -spec validate_context(module(), context() | term()) -> ok.
 validate_context(_InfoModule, []) ->
