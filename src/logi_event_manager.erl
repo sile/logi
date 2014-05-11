@@ -10,7 +10,8 @@
 %% Exported API
 %%------------------------------------------------------------------------------------------------------------------------
 -export([start_link/0, start_link/1,
-         stop/1]).
+         stop/1,
+         is_event_manager_ref/1]).
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% 'gen_server' Callback API
@@ -42,6 +43,10 @@ start_link(ManagerName) ->
 -spec stop(logi:event_manager_ref()) -> ok.
 stop(ManagerRef) ->
     gen_server:cast(ManagerRef, stop).
+
+-spec is_event_manager_ref(logi:event_manager_ref() | term()) -> boolean().
+is_event_manager_ref(MaybeManagerRef) ->
+    is_atom(MaybeManagerRef) orelse is_pid(MaybeManagerRef).
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% 'gen_server' Callback Functions

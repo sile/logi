@@ -17,12 +17,14 @@
          delete_handler/1, delete_handler/2,
          which_handlers/0, which_handlers/1,
 
-         set_header/2, set_header/3,
-         unset_header/2, unset_header/3,
-         get_header/1, get_header/2
+         set_header/1, set_header/2,
+         unset_header/1, unset_header/2,
+         get_header/0, get_header/1
 
-         %% set_header/1, set_header/2,
-         %% add_header/1, add_header/2,
+         %% set_metadata/1, set_metadata/2,
+         %% unset_metadta/1, unset_metadta/2,
+         %% get_metadata/0, get_metadata/1
+
          %% set_local_header/1, set_local_header/2,
          %% add_local_header/1, add_local_header/2,
          %% log/3, log/4,
@@ -43,6 +45,7 @@
 
               metadata/0,
               metadata_entry/0,
+              metadata_option/0,
 
               exception_reason/0,
               exception_class/0,
@@ -64,17 +67,21 @@
 
 -type header_entry() :: {header_entry_key(), HeaderValue::term()}.
 -type header_entry_key() :: atom().
--type set_header_option() :: {scope, header_scope()}. %% NOTE: functionスコープはmacroで実装する ?LOGI_WITH_HEADER
+-type set_header_option() :: {scope, header_scope()}
+                           | {manager, logi:event_manager_ref()}.
 -type unset_header_option() :: set_header_option().
--type get_header_option() :: {metadata, [metadata_entry()]}.
+-type get_header_option() :: {metadata, [metadata_entry()]}
+                           | {manager, event_manager_ref()}.
 
--type header_scope() :: {MetaDataKey::atom(), MetaDataValue::term()}.
+-type header_scope() :: {MetaDataKey::term(), MetaDataValue::term()}.
 
 -opaque header_state() :: logi_client:whole_header_state().
 
 -opaque metadata() :: todo.
 
 -type metadata_entry() :: {atom(), term()}.
+
+-type metadata_option() :: {manager, event_manager_ref()}.
 
 -type event_handler() :: module()
                        | {module(), Id::term()}.
@@ -141,32 +148,36 @@ which_handlers() ->
 which_handlers(ManagerRef) ->
     logi_event_manager:which_handlers(ManagerRef).
 
-%% @equiv set_header(?LOGI_DEFAULT_EVENT_MANAGER, HeaderEntries, Options)
+%% TODO: event_manager指定はOptionsの中に含めて、set_header/1を用意する
+%% @equiv set_header(HeaderEntries, [])
+-spec set_header([header_entry()]) -> ok.
+set_header(HeaderEntries) ->
+    set_header(HeaderEntries, []).
+
+%% @doc TODO
 -spec set_header([header_entry()], [set_header_option()]) -> ok.
 set_header(HeaderEntries, Options) ->
-    set_header(?LOGI_DEFAULT_EVENT_MANAGER, HeaderEntries, Options).
+    logi_msg_header:set_header(HeaderEntries, Options).
+
+%% @equiv unset_header(HeaderEntries, [])
+-spec unset_header([header_entry_key()]) -> ok.
+unset_header(HeaderEntryKeys) ->
+    unset_header(HeaderEntryKeys, []).
 
 %% @doc TODO
--spec set_header(event_manager_ref(), [header_entry()], [set_header_option()]) -> ok.
-set_header(ManagerRef, HeaderEntries, Options) ->
-    logi_msg_header:set_header(ManagerRef, HeaderEntries, Options).
-
-%% @equiv unset_header(?LOGI_DEFAULT_EVENT_MANAGER, HeaderEntries, Options)
 -spec unset_header([header_entry_key()], [unset_header_option()]) -> ok.
 unset_header(HeaderEntryKeys, Options) ->
-    unset_header(?LOGI_DEFAULT_EVENT_MANAGER, HeaderEntryKeys, Options).
+    logi_msg_header:unset_header(HeaderEntryKeys, Options).
+
+%% @equiv get_header([]) -> ok.
+-spec get_header() -> [header_entry()].
+get_header() ->
+    get_header([]).
 
 %% @doc TODO
--spec unset_header(event_manager_ref(), [header_entry_key()], [unset_header_option()]) -> ok.
-unset_header(ManagerRef, HeaderEntryKeys, Options) ->
-    logi_msg_header:unset_header(ManagerRef, HeaderEntryKeys, Options).
-
-%% @equiv get_header(?LOGI_DEFAULT_EVENT_MANAGER, Options) -> ok.
 -spec get_header([get_header_option()]) -> [header_entry()].
-get_header(Options) ->
-    get_header(?LOGI_DEFAULT_EVENT_MANAGER, Options).
-
-%% @doc TODO
--spec get_header(event_manager_ref(), [get_header_option()]) -> [header_entry()].
-get_header(ManagerRef, Options) ->
-    logi_msg_header:get_header(ManagerRef, Options).
+get_header(_Options) ->
+    ManagerRef = todo,
+    ScopeList = [],
+    Header = logi_msg_context:get_info(ManagerRef, logi_msg_header),
+    logi_msg_header:get_entries(ScopeList, Header).
