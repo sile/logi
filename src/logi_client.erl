@@ -3,51 +3,41 @@
 %% @private
 -module(logi_client).
 
--include("logi.hrl"). % TODO: logi.hrl => logi_internal.hrl
+-include("logi.hrl").
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%------------------------------------------------------------------------------------------------------------------------
--export([log/6]).
-
--export_type([log_option/0, frequency/0]).
-
-%%------------------------------------------------------------------------------------------------------------------------
-%% Types
-%%------------------------------------------------------------------------------------------------------------------------
--type log_option() :: {manager, logi:event_manager_ref()}
-                    | {header, [logi:header_entry()]}
-                    | {metadata, [logi:metadata_entry()]}
-                    | {frequency, frequency()}
-                    | {owner, pid()}.
-
--type frequency()  :: once
-                    | {interval_count, non_neg_integer()}
-                    | {interval_time, timeout()}.
+-export([log/7]).
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%------------------------------------------------------------------------------------------------------------------------
--spec log(logi:severity(), module(), pos_integer(), iolist(), [term()], [log_option()]) -> ok.
-log(Severity, Module, Line, Format, Args, Options) ->
-    ManagerRef = logi_util_assoc:fetch(manager, Options, ?LOGI_DEFAULT_EVENT_MANAGER),
-    MetaData = make_full_metadata(ManagerRef, Module, Line, logi_util_assoc:fetch(metadata, Options, [])),
-    case logi_event_manager:get_handlers(ManagerRef, MetaData) of
+-spec log(logi:severity(), atom(), module(), pos_integer(), iodata(), [term()], #logi_log_option{}) -> ok.
+log(Severity, Application, Module, Line, Format, Args, Options) ->
+    MetaData = make_full_metadata(Application, Module, Line, Options),
+    case logi_event_manager:get_handlers(Options#logi_log_option.manager, MetaData) of
         []       -> ok;
         Handlers ->
             case frequency_check(Module, Line, Options) of % XXX: name
                 false             -> ok;
                 {true, OmitCount} ->
-                    MetaData2 = [{omit_count, OmitCount} | MetaData], % XXX:
-                    Header = make_full_header(ManagerRef, MetaData2, logi_util_assoc:fetch(header, Options, [])),
+                    FormatOptions =
+                        #logi_format_option{
+                           severity      = Severity,
+                           metadata      = MetaData,
+                           header        = make_full_header(MetaData, Options),
+                           omitted_count = OmitCount
+                          },
                     lists:foreach(
-                      fun (Handler) ->
+                      fun ({Handler, HandlerArg}) ->
                               try
-                                  Msg = Handler:format(MetaData2, Header, Format, Args),
-                                  Handler:write(Msg)
+                                  Msg = Handler:format(HandlerArg, Format, Args, FormatOptions),
+                                  Handler:write(HandlerArg, Msg)
                               catch
                                   _ExClass:_ExReason ->
                                       %% TODO: log
+                                      ok
                               end
                       end,
                       Handlers)
@@ -57,36 +47,52 @@ log(Severity, Module, Line, Format, Args, Options) ->
 %%------------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
 %%------------------------------------------------------------------------------------------------------------------------
--spec make_full_header(logi:event_manager_ref(), [logi:metadata_entry()], [logi:header_entry()]) -> [logi:header_entry()].
-make_full_header(ManagerRef, ScopeList, PriorEntries) ->
-    DefaultEntries = logi:get_header([{manager, ManagerRef}, {scope, ScopeList}]),
-    lists:ukeymerge(1, lists:ukeysort(1, PriorEntries), DefaultEntries).
+-spec make_full_header([logi:metadata_entry()], #logi_log_option{}) -> [logi:header_entry()].
+make_full_header(ScopeList, Options) ->
+    DefaultEntries = logi:get_header([{manager, Options#logi_log_option.manager}, {scope, ScopeList}]),
+    lists:ukeymerge(1, lists:ukeysort(1, Options#logi_log_option.header), DefaultEntries).
 
--spec make_full_metadata(logi:event_manager_ref(), module(), pos_integer(), [logi:metadata_entry()]) -> [logi:metadata_entry()].
-make_full_metadata(ManagerRef, Module, Line, PriorEntries) ->
-    DefaultEntries0 = [{line, Line},
+-spec make_full_metadata(atom(), module(), pos_integer(), #logi_log_option{}) -> [logi:metadata_entry()].
+make_full_metadata(Application, Module, Line, Options) ->
+    DefaultEntries0 = [{application, Application},
+                       {line, Line},
                        {module, Module},
-                       %% TODO: {application, application:get_application(Module)}
                        {node, node()},
                        {pid, self()}],
-    StoredEntries   = logi:get_metadata([{manager, ManagerRef}]),
+    StoredEntries   = logi:get_metadata([{manager, Options#logi_log_option.manager}]),
     DefaultEntries1 = lists:ukeymerge(1, StoredEntries, DefaultEntries0),
-    lists:ukeymerge(1, lists:ukeysort(1, PriorEntries), DefaultEntries1).
+    lists:ukeymerge(1, lists:ukeysort(1, Options#logi_log_option.metadata), DefaultEntries1).
 
--spec frequency_check(module(), pos_integer(), [log_option()]) -> {true, non_neg_integer()} | false.
-frequency_check(Module, Line, Options) ->
-    case logi_util_assoc:fetch(frequency, Options, undefined) of
-        undefined       -> {true, 0};
-        FrequencyPolicy ->
-            Owner = logi_util_assoc:fetch(owner, Options, self()),
-            frequency_check(Module, Line, Owner, FrequencyPolicy)
+%% XXX: name
+-spec frequency_check(module(), pos_integer(), #logi_log_option{}) -> {true, non_neg_integer()} | false.
+frequency_check(Module, Line, #logi_log_option{frequency = Policy, frequency_id = Id}) ->
+    frequency_check(Policy, Module, Line, Id).
+
+-spec frequency_check(logi:frequency_policy(), module(), pos_integer(), term()) -> {ok, non_neg_integer()} | false.
+frequency_check(always, _, _, _) ->
+    {true, 0};
+frequency_check(once, Module, Line, Id) ->
+    case logi_frequency_manager:get_frequency_count(Id, Module, Line) of
+        0 -> {true, 0};
+        _ -> false
+    end;
+frequency_check({interval_count, Interval}, Module, Line, Id) ->
+    Count = logi_frequency_manager:get_frequency_count(Id, Module, Line),
+    case Count rem Interval of
+        0 ->
+            ok = logi_frequency_manager:increment_omitted_count(Id, Module, Line),
+            {true, case Count of 0 -> 0; _ -> Interval - 1 end};
+        _ -> false
+    end;
+frequency_check({interval_time, Interval}, Module, Line, Id) ->
+    Prevous = logi_frequency_manager:get_previous_time(Id, Module, Line),
+    Now = os:timestamp(),
+    case timer:now_diff(Now, Prevous) div 1000 < Interval of
+        true  ->
+            ok = logi_frequency_manager:increment_omitted_count(Id, Module, Line),
+            false;
+        false ->
+            ok = logi_frequency_manager:set_logged_timestamp(Id, Module, Line, Now),
+            OmittedCount = logi_frequency_manager:reset_ommited_count(Id, Module, Line),
+            {true, OmittedCount}
     end.
-
--spec frequency_check(module(), pos_integer(), pid(), frequency()) -> {true, non_neg_integer()} | false.
-frequency_check(Module, Line, Owner, once) ->
-    todo;
-frequency_check(Module, Line, Owner, {interval_count, Count}) ->
-    todo;
-frequency_check(Module, Line, Owner, {interval_time, Time}) ->
-    todo.
-

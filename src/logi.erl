@@ -45,11 +45,20 @@
 
 -export_type([exception_reason/0, exception_class/0, stacktrace/0]).
 
+-export_type([frequency_policy/0, severity/0]).
+
 %%------------------------------------------------------------------------------------------------------------------------
 %% Macros & Types
 %%------------------------------------------------------------------------------------------------------------------------
 -define(FOREACH_HEADER_SCOPE_FUN(Fun, Options),
         fun (_Header) -> lists:foldl(Fun, _Header, logi_util_assoc:fetch(scope, Options, [process])) end).
+
+-type severity() :: debug | verbose | info | warning | alert. % TODO:
+
+-type frequency_policy() :: always
+                          | once
+                          | {interval_count, non_neg_integer()}
+                          | {interval_time, timeout()}.
 
 -type event_manager_name() :: {local, Name::atom()}
                             | {global, GlobalName::term()}
