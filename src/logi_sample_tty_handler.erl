@@ -7,8 +7,8 @@
 format(_State, Format, Args, _Options) ->
     io_lib:format(Format, Args).
 
-write(dummy, Msg) ->
-    ok.
+write(dummy, _Msg) ->
+    ok;
 write(_State, Msg) ->
     io:format([Msg, "\n"]).
 

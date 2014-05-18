@@ -31,6 +31,15 @@
          erase_metadata/0, erase_metadata/1,
          get_metadata/0, get_metadata/1]).
 
+-export([log_levels/0, log_level_to_int/1, upper_log_levels/1]).
+
+-export_type([backend/0,
+              backend_ref/0,
+              backend_id/0,
+              backend_options/0,
+              log_level/0,
+              conditions/0]).
+
 -export_type([event_manager_name/0, % XXX: event
               event_manager_ref/0,
               event_handler/0]).
@@ -47,11 +56,25 @@
 
 -export_type([frequency_policy/0, severity/0]).
 
+-export_type([condition_spec/0, condition_clause/0, condition/0]).
+
 %%------------------------------------------------------------------------------------------------------------------------
 %% Macros & Types
 %%------------------------------------------------------------------------------------------------------------------------
 -define(FOREACH_HEADER_SCOPE_FUN(Fun, Options),
         fun (_Header) -> lists:foldl(Fun, _Header, logi_util_assoc:fetch(scope, Options, [process])) end).
+
+-type condition_spec() :: condition_clause() | [condition_clause()].
+-type condition_clause() :: log_level() | {log_level(), condition()}.
+-type condition() :: always
+                   | {match, {module(), Function::atom(), Pattern::term()}}.
+
+-type backend() :: #logi_backend{}.
+-type backend_ref() :: pid() | atom().
+-type backend_id() :: term().
+-type backend_options() :: term().
+-type log_level() :: severity().
+-type conditions() :: [metadata_entry()].
 
 -type severity() :: debug | verbose | info | warning | alert. % TODO:
 
@@ -98,6 +121,20 @@
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%------------------------------------------------------------------------------------------------------------------------
+-spec log_levels() -> [log_level()].
+log_levels() -> [debug, verbose, info, warning, alert].
+
+-spec upper_log_levels(log_level()) -> [log_level()].
+upper_log_levels(Level) -> 
+    lists:dropwhile(fun (L) -> L =/= Level end, log_levels()).
+
+-spec log_level_to_int(log_level()) -> non_neg_integer().
+log_level_to_int(debug) -> 0;
+log_level_to_int(verbose) -> 1;
+log_level_to_int(info) ->  2;
+log_level_to_int(warning) ->  3;
+log_level_to_int(alert) -> 4.
+
 %% @doc TODO
 -spec start_event_manager() -> {ok, pid()} | {error, Reason::term()}.
 start_event_manager() ->

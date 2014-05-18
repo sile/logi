@@ -25,3 +25,12 @@
           metadata = [] :: [logi:metadata_entry()],
           omitted_count = 0 :: non_neg_integer()
         }).
+
+-record(logi_backend,
+        {
+          id        :: logi:backend_id(),
+          ref       :: logi:backend_ref(),
+          module    :: module(),
+          options   :: logi:backend_options(),
+          condition :: logi:condition_spec() 
+        }).
