@@ -16,10 +16,10 @@
 -spec log(logi:severity(), atom(), module(), pos_integer(), iodata(), [term()], #logi_log_option{}) -> ok.
 log(Severity, Application, Module, Line, Format, Args, Options) ->
     MetaData = make_full_metadata(Application, Module, Line, Options),
-    case logi_event_manager:get_handlers(Options#logi_log_option.manager, MetaData) of
+    case logi_event_manager:get_handlers(Options#logi_log_option.manager, Severity, MetaData) of
         []       -> ok;
         Handlers ->
-            case frequency_check(Module, Line, Options) of % XXX: name
+            case frequency_check(Module, Line, Options) of % XXX: name, TODO: get_handlersと順序を逆転
                 false             -> ok;
                 {true, OmitCount} ->
                     FormatOptions =
