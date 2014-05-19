@@ -10,11 +10,10 @@
 
 -record(logi_log_option,
         {
-          manager      = ?LOGI_DEFAULT_EVENT_MANAGER :: logi:event_manager_ref(),
-          header       = []                          :: [logi:header_entry()],
-          metadata     = []                          :: [logi:metadata_entry()],
-          frequency    = always                      :: logi:frequency_policy(),
-          frequency_id = self()                      :: term()
+          manager   = ?LOGI_DEFAULT_EVENT_MANAGER :: logi:event_manager_ref(),
+          header    = []                          :: [logi:header_entry()],
+          metadata  = []                          :: [logi:metadata_entry()],
+          frequency = always                      :: logi:frequency_policy()
         }).
 
 -record(logi_format_option,
@@ -24,13 +23,4 @@
           header = [] :: [logi:header_entry()],
           metadata = [] :: [logi:metadata_entry()],
           omitted_count = 0 :: non_neg_integer()
-        }).
-
--record(logi_backend,
-        {
-          id        :: logi:backend_id(),
-          ref       :: logi:backend_ref(),
-          module    :: module(),
-          options   :: logi:backend_options(),
-          condition :: logi:condition_spec() 
         }).

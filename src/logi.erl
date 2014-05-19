@@ -73,7 +73,7 @@
 -type condition() :: always
                    | {match, {module(), Function::atom(), Pattern::term()}}.
 
--type backend() :: #logi_backend{}.
+-type backend() :: logi_backend:backend().
 -type backend_ref() :: pid() | atom().
 -type backend_id() :: term().
 -type backend_options() :: term().

@@ -16,31 +16,27 @@
 -spec log(logi:severity(), atom(), module(), pos_integer(), iodata(), [term()], #logi_log_option{}) -> ok.
 log(Severity, Application, Module, Line, Format, Args, Options) ->
     MetaData = make_full_metadata(Application, Module, Line, Options),
-    case logi_event_manager:get_handlers(Options#logi_log_option.manager, Severity, MetaData) of
+    case logi_backend_manager:select_backends(Options#logi_log_option.manager, Severity, MetaData) of
         []       -> ok;
-        Handlers ->
-            case frequency_check(Module, Line, Options) of % XXX: name, TODO: get_handlersと順序を逆転
-                false             -> ok;
-                {true, OmitCount} ->
+        Backends ->
+            case logi_frequency_control:is_logging_turn(Module, Line, Options) of
+                false                -> ok;
+                {true, OmittedCount} ->
                     FormatOptions =
                         #logi_format_option{
                            severity      = Severity,
                            metadata      = MetaData,
                            header        = make_full_header(MetaData, Options),
-                           omitted_count = OmitCount
+                           omitted_count = OmittedCount
                           },
                     lists:foreach(
-                      fun ({Handler, HandlerArg}) ->
-                              try
-                                  Msg = Handler:format(HandlerArg, Format, Args, FormatOptions),
-                                  Handler:write(HandlerArg, Msg)
-                              catch
-                                  _ExClass:_ExReason ->
-                                      %% TODO: log
-                                      ok
-                              end
+                      fun (Backend) ->
+                              %% TODO: try-catch
+                              Module = logi_backend:get_module(Backend),
+                              Message = Module:format(Backend, Format, Args, FormatOptions),
+                              Module:write(Backend, Message)
                       end,
-                      Handlers)
+                      Backends)
             end
     end.
         
@@ -62,37 +58,3 @@ make_full_metadata(Application, Module, Line, Options) ->
     StoredEntries   = logi:get_metadata([{manager, Options#logi_log_option.manager}]),
     DefaultEntries1 = lists:ukeymerge(1, StoredEntries, DefaultEntries0),
     lists:ukeymerge(1, lists:ukeysort(1, Options#logi_log_option.metadata), DefaultEntries1).
-
-%% XXX: name
--spec frequency_check(module(), pos_integer(), #logi_log_option{}) -> {true, non_neg_integer()} | false.
-frequency_check(Module, Line, #logi_log_option{frequency = Policy, frequency_id = Id}) ->
-    frequency_check(Policy, Module, Line, Id).
-
--spec frequency_check(logi:frequency_policy(), module(), pos_integer(), term()) -> {ok, non_neg_integer()} | false.
-frequency_check(always, _, _, _) ->
-    {true, 0};
-frequency_check(once, Module, Line, Id) ->
-    case logi_frequency_manager:get_frequency_count(Id, Module, Line) of
-        0 -> {true, 0};
-        _ -> false
-    end;
-frequency_check({interval_count, Interval}, Module, Line, Id) ->
-    Count = logi_frequency_manager:get_frequency_count(Id, Module, Line),
-    case Count rem Interval of
-        0 ->
-            ok = logi_frequency_manager:increment_omitted_count(Id, Module, Line),
-            {true, case Count of 0 -> 0; _ -> Interval - 1 end};
-        _ -> false
-    end;
-frequency_check({interval_time, Interval}, Module, Line, Id) ->
-    Prevous = logi_frequency_manager:get_previous_time(Id, Module, Line),
-    Now = os:timestamp(),
-    case timer:now_diff(Now, Prevous) div 1000 < Interval of
-        true  ->
-            ok = logi_frequency_manager:increment_omitted_count(Id, Module, Line),
-            false;
-        false ->
-            ok = logi_frequency_manager:set_logged_timestamp(Id, Module, Line, Now),
-            OmittedCount = logi_frequency_manager:reset_ommited_count(Id, Module, Line),
-            {true, OmittedCount}
-    end.

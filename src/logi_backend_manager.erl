@@ -4,7 +4,6 @@
 -module(logi_backend_manager).
 
 -behaviour(gen_server).
--include("logi.hrl"). % TODO: delete
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported API
