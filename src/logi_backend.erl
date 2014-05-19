@@ -14,6 +14,7 @@
 %%------------------------------------------------------------------------------------------------------------------------
 -export([
          make/4, make/5,
+         update/2,
          is_backend/1,
          get_id/1,
          get_ref/1,
@@ -36,8 +37,8 @@
           id        :: logi:backend_id(),
           ref       :: logi:backend_ref(),
           module    :: module(),
-          options   :: logi:backend_options(),
-          condition :: logi:condition()
+          condition :: logi:condition(),
+          options   :: logi:backend_options()
         }).
 
 -opaque backend() :: #?BACKEND{}.
@@ -64,6 +65,19 @@ make(Id, Ref, Module, Condition, Options) ->
                 options   = Options
                }
     end.
+
+%% @doc バックエンドオブジェクトを更新する
+-spec update(UpdateList, backend()) -> backend() when
+      UpdateList  :: [UpdateEntry],
+      UpdateEntry :: {id, logi:backend_id()} | {ref, logi:backend_ref()} | {module, module()}
+                   | {options, logi:backend_options()} | {condition, logi:condition()}.
+update(UpdateList, #?BACKEND{} = Backend) when is_list(UpdateList) ->
+    make(logi_util_assoc:fetch(id, UpdateList, Backend#?BACKEND.id),
+         logi_util_assoc:fetch(ref, UpdateList, Backend#?BACKEND.ref),
+         logi_util_assoc:fetch(module, UpdateList, Backend#?BACKEND.module),
+         logi_util_assoc:fetch(condition, UpdateList, Backend#?BACKEND.condition),
+         logi_util_assoc:fetch(options, UpdateList, Backend#?BACKEND.options));
+update(UpdateList, Backend) -> error(badarg, [UpdateList, Backend]).
 
 %% @doc 引数の値がbackend()型かどうかを判定する
 -spec is_backend(backend() | term()) -> boolean().

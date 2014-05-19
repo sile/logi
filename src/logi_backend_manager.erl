@@ -4,7 +4,7 @@
 -module(logi_backend_manager).
 
 -behaviour(gen_server).
--include("logi.hrl").
+-include("logi.hrl"). % TODO: delete
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported API
@@ -16,8 +16,7 @@
          find_backend/2,
          which_backends/1,
          select_backends/3,
-         update_backend_condition_spec/3,
-         update_backend_options/3
+         update_backend/2
         ]).
 
 %%------------------------------------------------------------------------------------------------------------------------
@@ -30,7 +29,6 @@
 %%------------------------------------------------------------------------------------------------------------------------
 -record(state,
         {
-          name   :: atom(),
           parent :: pid(),
           table  :: logi_backend_table:table()
         }).
@@ -45,10 +43,15 @@ start_link(Name) ->
     gen_server:start_link({local, Name}, ?MODULE, [Name, self()], []).
 
 %% @doc バックエンドを追加する
--spec add_backend(logi:backend_manager_ref(), #logi_backend{}) -> ok | {error, Reason} when
-      Reason :: {already_exists, #logi_backend{}}.
+-spec add_backend(logi:backend_manager_ref(), logi:backend()) -> ok | {error, Reason} when
+      Reason :: {already_exists, logi:backend()}.
 add_backend(ManagerRef, Backend) ->
     gen_server:call(ManagerRef, {add_backend, Backend}).
+
+%% @doc バックエンドを更新する
+-spec update_backend(logi:backend_manager_ref(), logi:backend()) -> ok | {error, not_found}.
+update_backend(ManagerRef, Backend) ->
+    gen_server:call(ManagerRef, {update_backend, Backend}).
 
 %% @doc バックエンドを削除する
 -spec delete_backend(logi:backend_manager_ref(), logi:backend_id()) -> ok | {error, not_found}.
@@ -66,19 +69,9 @@ which_backends(ManagerRef) ->
     logi_backend_table:which_backends(ManagerRef).
 
 %% @doc 条件に合致するバックエンド群を選択する
--spec select_backends(logi:backend_manager_ref(), logi:severity(), logi:conditions()) -> [logi:backend()].
-select_backends(ManagerRef, Severity, Conditions) ->
-    logi_backend_table:select_backends(ManagerRef, Severity, Conditions).
-
--spec update_backend_condition_spec(logi:backend_manager_ref(), logi:backend_id(), logi:condition_spec()) ->
-                                           ok | {error, not_found}.
-update_backend_condition_spec(ManagerRef, BackendId, ConditionSpec) ->
-    gen_server:call(ManagerRef, {update_backend_condition_spec, {BackendId, ConditionSpec}}).
-
--spec update_backend_options(logi:backend_manager_ref(), logi:backend_id(), logi:condition_spec()) ->
-                                    ok | {error, not_found}.
-update_backend_options(ManagerRef, BackendId, BackendOptions) ->
-    gen_server:call(ManagerRef, {update_backend_options, {BackendId, BackendOptions}}).
+-spec select_backends(logi:backend_manager_ref(), logi:severity(), [logi:metadata_entry()]) -> [logi:backend()].
+select_backends(ManagerRef, Severity, MetaData) ->
+    logi_backend_table:select_backends(ManagerRef, Severity, MetaData).
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% 'gen_server' Callback Functions
@@ -88,19 +81,15 @@ init([Name, Parent]) ->
     _ = process_flag(trap_exit, true),
     State =
         #state{
-           name   = Name,
            parent = Parent,
-           table  = logi_backend_table:table(Name)
+           table  = logi_backend_table:new(Name)
           },
     {ok, State}.
 
 %% @private
-handle_call({add_backend, Arg}, _From, State)    -> {reply, do_add_backend(Arg, State), State};
+handle_call({add_backend, Arg},    _From, State) -> {reply, do_add_backend(Arg, State), State};
 handle_call({delete_backend, Arg}, _From, State) -> {reply, do_delete_backend(Arg, State), State};
-handle_call({update_backend_condition_spec, Arg}, _From, State) ->
-    {reply, do_update_backend_condition_spec(Arg, State), State};
-handle_call({update_backend_options, Arg}, _From, State) ->
-    {reply, do_update_backend_options(Arg, State), State};
+handle_call({update_backend, Arg}, _From, State) -> {reply, do_update_backend(Arg, State), State};
 handle_call(_, _, State) ->
     %% TODO: log
     {noreply, State}.
@@ -115,7 +104,7 @@ handle_cast(_, State) ->
 handle_info({'EXIT', Pid, Reason}, State = #state{parent = Pid}) ->
     {stop, Reason, State};
 handle_info({'EXIT', Pid, _}, State) ->
-    ok = logi_backend_table:delete_backends_by_ref(State#state.table, Pid),
+    ok = do_delete_backends_by_ref(Pid, State),
     {noreply, State};
 handle_info(_, State) ->
     %% TODO: log
@@ -134,14 +123,14 @@ code_change(_OldVsn, State, _Extra) ->
 %%------------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
 %%------------------------------------------------------------------------------------------------------------------------
--spec do_add_backend(#logi_backend{}, #state{}) -> ok | {error, Reason} when
-      Reason :: {already_exists, #logi_backend{}}.
+-spec do_add_backend(logi:backend(), #state{}) -> ok | {error, Reason} when
+      Reason :: {already_exists, logi:backend()}.
 do_add_backend(Backend, State) ->
     #state{table = Table} = State,
-    case logi_backend_table:find_backend(Table, Backend#logi_backend.id) of
+    case logi_backend_table:find_backend(Table, logi_backend:get_id(Backend)) of
         {ok, ExistingBackend} -> {error, {already_exists, ExistingBackend}};
         error                 ->
-            ok = logi_util_process:link_if_pid(Backend#logi_backend.ref),
+            ok = logi_util_process:link_if_pid(logi_backend:get_ref(Backend)),
             ok = logi_backend_table:register_backend(Table, Backend)
     end.
 
@@ -149,20 +138,24 @@ do_add_backend(Backend, State) ->
 do_delete_backend(BackendId, State) ->
     #state{table = Table} = State,
     case logi_backend_table:find_backend(Table, BackendId) of
-        error         -> {error, not_found};
-        {ok, Backend} -> logi_backend_table:deregister_backend(Table, Backend) % TODO: unlink process
+        error   -> {error, not_found};
+        {ok, _} -> logi_backend_table:deregister_backend(Table, BackendId) % TODO: unlink process
     end.
 
--spec do_update_backend_options({logi:backend_id(), logi:backend_options()}, #state{}) -> ok | {error, not_found}.
-do_update_backend_options({BackendId, BackendOptions}, State) ->
-    case logi_backend_table:find_backend(State#state.table, BackendId) of
+-spec do_update_backend(logi:backend(), #state{}) -> ok | {error, not_found}.
+do_update_backend(Backend, State) ->
+    case logi_backend_table:find_backend(State#state.table, logi_backend:get_id(Backend)) of
         error   -> {error, not_found};
-        {ok, _} -> logi_backend_table:update_backend_options(State#state.table, BackendId, BackendOptions)
+        {ok, _} -> logi_backend_table:register_backend(State#state.table, Backend)
     end.
 
--spec do_update_backend_condition_spec({logi:backend_id(), logi:condition_spec()}, #state{}) -> ok | {error, not_found}.
-do_update_backend_condition_spec({BackendId, ConditionSpec}, State) ->
-    case logi_backend_table:find_backend(State#state.table, BackendId) of
-        error   -> {error, not_found};
-        {ok, _} -> logi_backend_table:update_backend_condition_spec(State#state.table, BackendId, ConditionSpec)
-    end.
+-spec do_delete_backends_by_ref(pid(), #state{}) -> ok.
+do_delete_backends_by_ref(Pid, State) ->
+    lists:foreach(
+      fun (B) ->
+              case logi_backend:get_ref(B) of
+                  Pid -> logi_backend_table:deregister_backend(State#state.table, logi_backend:get_id(B));
+                  _   -> ok
+              end
+      end,
+      logi_backend_table:which_backends(State#state.table)).

@@ -23,7 +23,8 @@
          find_backend/2,
          register_backend/2,
          deregister_backend/2,
-         select_backends/3
+         select_backends/3,
+         which_backends/1
         ]).
 
 -export_type([
@@ -86,6 +87,11 @@ select_backends(Table, Severity, MetaData) ->
     BackendIds = [ BackendId || {ConditionClause, BackendId} <- load_conditional_backends(Table, Severity),
                                 logi_condition:is_satisfied(ConditionClause, MetaData)],
     [load_backend(Table, BackendId) || BackendId <- lists:usort(BackendIds)].
+
+%% @doc 登録済みバックエンド一覧を取得する
+-spec which_backends(table()) -> [logi:backend()].
+which_backends(Table) ->
+    [Backend || {{backend, _}, Backend} <- ets:tab2list(Table)].
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
