@@ -12,8 +12,6 @@
 %% '''
 -module(logi_backend_table).
 
--include("logi.hrl").
-
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%------------------------------------------------------------------------------------------------------------------------
@@ -58,34 +56,47 @@ find_backend(Table, BackendId) ->
 %% @doc バックエンドを登録する
 -spec register_backend(table(), logi:backend()) -> ok.
 register_backend(Table, Backend) ->
-    true = ets:insert(Table, {{backend, Backend#logi_backend.id}, Backend}),
-    add_condition(Table, Backend#logi_backend.id, Backend#logi_backend.condition).
+    ok = add_backend(Table, Backend),
+    ok = add_condition(Table, Backend),
+    ok.
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
 %%------------------------------------------------------------------------------------------------------------------------
--spec add_condition(table(), logi:backend_id(), logi:condition_clause()) -> ok.
-add_condition(Table, BackendId, Conditions) when is_list(Conditions) ->
-    lists:foreach(fun (Condition) -> add_condition(Table, BackendId, Condition) end, Conditions);
-add_condition(Table, BackendId, {Level, Condition}) ->
-    lists:foreach(
-      fun (UpperLevel) ->
-              ConditionalBackends = find_conditions(Table, UpperLevel),
-              ConditionalBackends2 = [{Condition, BackendId} | ConditionalBackends],
-              store_conditions(Table, UpperLevel, ConditionalBackends2)
-      end,
-      logi:upper_log_levels(Level));
-add_condition(Table, BackendId, Level) ->
-    add_condition(Table, BackendId, {Level, always}).
+-spec add_condition(table(), logi:backend()) -> ok.
+add_condition(Table, Backend) ->
+    Condition = logi_backend:get_condition(Backend),
+    add_condition_clauses(Table, logi_backend:get_id(Backend), logi_condition:get_normalized_spec(Condition)).
 
--spec find_conditions(table(), logi:log_level()) -> [{logi:condition_clause(), logi:backend_id()}].
-find_conditions(Table, Level) ->
-    case ets:lookup(Table, {severity, Level}) of
-        []                         -> [];
-        [{_, ConditionalBackends}] -> ConditionalBackends
+-spec add_condition_clauses(table(), logi:backend_id(), [logi_condition:condition_clause()]) -> ok.
+add_condition_clauses(_Table, _BackendId, [])                         -> ok;
+add_condition_clauses(Table, BackendId, [{Level, Constraint} | Rest]) ->
+    ok = lists:foreach(
+           fun (Severity) ->
+                   Backends0 = load_conditional_backends(Table, Severity),
+                   Backends1 = lists:umerge([{Constraint, BackendId}], Backends0),
+                   save_conditional_backends(Table, Severity, Backends1)
+           end,
+           target_severities(Level)),
+    add_condition_clauses(Table, BackendId, Rest).
+
+-spec load_conditional_backends(table(), logi:severity()) -> [{logi:condition_clause(), logi:backend_id()}].
+load_conditional_backends(Table, Severity) ->
+    case ets:lookup(Table, {severity, Severity}) of
+        []              -> [];
+        [{_, Backends}] -> Backends
     end.
 
--spec store_conditions(table(), logi:log_level(), [{logi:condition_clause(), logi:backend_id()}]) -> ok.
-store_conditions(Table, Level, ConditionalBackends) ->
-    true = ets:insert(Table, {{severity, Level}, ConditionalBackends}),
+-spec save_conditional_backends(table(), logi:severity(), [{logi:condition_clause(), logi:backend_id()}]) -> ok.
+save_conditional_backends(Table, Severity, Backends) ->
+    true = ets:insert(Table, {{severity, Severity}, Backends}),
     ok.
+
+-spec add_backend(table(), logi:backend()) -> ok.
+add_backend(Table, Backend) ->
+    true = ets:insert(Table, {{backend, logi_backend:get_id(Backend)}, Backend}),
+    ok.
+
+-spec target_severities(logi:log_level()) -> [logi:log_level()].
+target_severities(Level) ->
+    lists:dropwhile(fun (L) -> L =/= Level end, logi:log_levels()).
