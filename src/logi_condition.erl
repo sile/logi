@@ -10,7 +10,8 @@
          make/1,
          is_condition/1,
          get_spec/1,
-         get_normalized_spec/1
+         get_normalized_spec/1,
+         is_satisfied/2
         ]).
 
 -export_type([
@@ -65,6 +66,11 @@ get_normalized_spec(#?CONDITION{spec = Spec}) ->
 %% @doc 出力指定を取得する
 -spec get_spec(condition()) -> condition_spec().
 get_spec(#?CONDITION{spec = Spec}) -> Spec.
+
+%% @doc メタデータが指定の制約を満たしているかどうかを判定する
+-spec is_satisfied(constraint(), [logi:metadata_entry()]) -> boolean().
+is_satisfied(none, _MetaData)                    -> true;
+is_satisfied({match, {M, F, Pattern}}, MetaData) -> M:F(Pattern, MetaData). % TODO: error-handling
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
