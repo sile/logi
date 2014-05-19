@@ -9,6 +9,10 @@
 %% Exported API
 %%------------------------------------------------------------------------------------------------------------------------
 -export([
+         is_log_level/1
+        ]).
+
+-export([
          start_event_manager/0, start_event_manager/1,
          stop_event_manager/1,
          which_event_managers/0,
@@ -121,6 +125,9 @@
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%------------------------------------------------------------------------------------------------------------------------
+-spec is_log_level(log_level() | term()) -> boolean().
+is_log_level(X) -> lists:member(X, log_levels()).
+
 -spec log_levels() -> [log_level()].
 log_levels() -> [debug, verbose, info, warning, alert].
 

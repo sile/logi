@@ -1,6 +1,15 @@
 %% @copyright 2014 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc logiのバックエンド管理用ETSに対する簡便なインタフェースを提供するモジュール
+%%
+%% ETSに格納されるデータの構造:
+%% ```
+%% %% バックエンドID => バックエンド
+%% {{backend, logi:backend_id()}, logi:backend()}
+%%
+%% %% severity => 条件付きバックエンド
+%% {{severity, logi:severity()}, [logi:conditional_backend()]}
+%% '''
 -module(logi_backend_table).
 
 -include("logi.hrl").
@@ -10,6 +19,7 @@
 %%------------------------------------------------------------------------------------------------------------------------
 -export([
          new/1,
+         delete/1,
          find_backend/2,
          register_backend/2
         ]).
@@ -23,11 +33,6 @@
 %%------------------------------------------------------------------------------------------------------------------------
 -type table() :: ets:tab().
 
-%% -type entry() :: {{backend, logi:backend_id()}, #logi_backend{}}
-%%                | {{severity, logi:severity()}, [logi:backend_id()], conditional_backends()}.
-
-%% -type conditional_backends() :: [{logi:condition_clause(), logi:backend_id()}].
-
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%------------------------------------------------------------------------------------------------------------------------
@@ -35,6 +40,12 @@
 -spec new(atom()) -> ets:tab().
 new(TableName) ->
     ets:new(TableName, [set, protected, {read_concurrency, true}, named_table]).
+
+%% @doc バックエンド群管理用ETSテーブルを破棄する
+-spec delete(table()) -> ok.
+delete(Table) ->
+    true = ets:delete(Table),
+    ok.
 
 %% @doc バックエンドを検索する
 -spec find_backend(table(), logi:backend_id()) -> {ok, logi:backend()} | error.
