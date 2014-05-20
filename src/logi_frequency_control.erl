@@ -4,13 +4,11 @@
 %% @private
 -module(logi_frequency_control).
 
--include("logi.hrl").
-
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%------------------------------------------------------------------------------------------------------------------------
 -export([
-         is_logging_turn/3
+         is_logging_turn/2
         ]).
 
 %%------------------------------------------------------------------------------------------------------------------------
@@ -22,24 +20,17 @@
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%------------------------------------------------------------------------------------------------------------------------
--spec is_logging_turn(module(), pos_integer(), #logi_log_option{}) -> false | {true, non_neg_integer()}.
-is_logging_turn(Module, Line, Options) ->
-    is_logging_turn(Options#logi_log_option.frequency, {Module, Line}).
-
-%%------------------------------------------------------------------------------------------------------------------------
-%% Internal Functions
-%%------------------------------------------------------------------------------------------------------------------------
 -spec is_logging_turn(logi:frequency_policy(), term()) -> false | {true, non_neg_integer()}.
 is_logging_turn(always, _Id) ->
     {true, 0};
 is_logging_turn(once, Id) ->
     case load_count(Id) of
-        0 -> {true, 0};
+        0 -> set_count(Id, 1), {true, 0};
         _ -> false
     end;
 is_logging_turn({interval_count, N}, Id) ->
     Count = load_count(Id),
-    case Count rem N of
+    case Count rem (N + 1) of
         0 ->
             ok = set_count(Id, 1),
             {true, max(0, Count - 1)};
@@ -61,6 +52,9 @@ is_logging_turn({interval_time, T}, Id) ->
             {true, Count}
     end.
 
+%%------------------------------------------------------------------------------------------------------------------------
+%% Internal Functions
+%%------------------------------------------------------------------------------------------------------------------------
 -spec load_count(term()) -> non_neg_integer().
 load_count(Id) ->
     case get(?COUNT_KEY(Id)) of

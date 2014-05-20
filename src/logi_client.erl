@@ -19,7 +19,7 @@ log(Severity, Application, Module, Line, Format, Args, Options) ->
     case logi_backend_manager:select_backends(Options#logi_log_option.manager, Severity, MetaData) of
         []       -> ok;
         Backends ->
-            case logi_frequency_control:is_logging_turn(Module, Line, Options) of
+            case logi_frequency_control:is_logging_turn(Options#logi_log_option.frequency, {Module, Line}) of
                 false                -> ok;
                 {true, OmittedCount} ->
                     FormatOptions =
