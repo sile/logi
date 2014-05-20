@@ -2,18 +2,17 @@
 %%
 %% @doc TODO
 %% @private
--module(logi_event_manager_sup).
+-module(logi_backend_manager_sup).
 
--include("logi.hrl").
 -behaviour(supervisor).
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%------------------------------------------------------------------------------------------------------------------------
 -export([start_link/0,
-         start_event_manager/0, start_event_manager/1,
-         stop_event_manager/1,
-         which_event_managers/0]).
+         start_manager/1,
+         stop_manager/1,
+         which_managers/0]).
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% 'supervisor' Callback API
@@ -29,25 +28,20 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 %% @doc TODO
--spec start_event_manager() -> {ok, pid()} | {error, Reason::term()}.
-start_event_manager() ->
-    supervisor:start_child(?MODULE, []).
-
-%% @doc TODO
--spec start_event_manager(logi:event_manager_name()) -> {ok, pid()} | {error, Reason} when
+-spec start_manager(logi:backend_manager_id()) -> {ok, pid()} | {error, Reason} when
       Reason :: {already_started, pid()} | term().
-start_event_manager(ManagerName) ->
-    supervisor:start_child(?MODULE, [ManagerName]).
+start_manager(ManagerId) ->
+    supervisor:start_child(?MODULE, [ManagerId]).
 
 %% @doc TODO
--spec stop_event_manager(logi:event_manager_ref()) -> ok.
-stop_event_manager(ManagerRef) ->
-    logi_event_manager:stop(ManagerRef).
+-spec stop_manager(logi:backend_manager_id()) -> ok.
+stop_manager(ManagerId) ->
+    logi_backend_manager:stop(ManagerId).
 
 %% @doc TODO
--spec which_event_managers() -> [pid()].
-which_event_managers() ->
-    [Pid || {_, Pid, _, _} <- supervisor:which_children(?MODULE), is_pid(Pid)].
+-spec which_managers() -> [pid()].
+which_managers() ->
+    [logi_backend_manager:get_id(Pid) || {_, Pid, _, _} <- supervisor:which_children(?MODULE), is_pid(Pid)].
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% 'supervisor' Callback Functions
@@ -56,6 +50,6 @@ which_event_managers() ->
 init([]) ->
     Children =
         [
-         {logi_event_manager, {logi_event_manager, start_link, []}, transient, 3000, worker, [logi_event_manager]}
+         {logi_backend_manager, {logi_backend_manager, start_link, []}, transient, 3000, worker, [logi_backend_manager]}
         ],
     {ok, {{simple_one_for_one, 5, 10}, Children}}.

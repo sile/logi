@@ -10,6 +10,8 @@
 %%------------------------------------------------------------------------------------------------------------------------
 -export([
          start_link/1,
+         stop/1,
+         get_id/1,
          add_backend/2,
          delete_backend/2,
          find_backend/2,
@@ -28,6 +30,7 @@
 %%------------------------------------------------------------------------------------------------------------------------
 -record(state,
         {
+          id     :: logi:backend_manager_id(),
           parent :: pid(),
           table  :: logi_backend_table:table()
         }).
@@ -35,12 +38,22 @@
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%------------------------------------------------------------------------------------------------------------------------
-%% @doc 名前付きのマネージャを起動する
+%% @doc マネージャを起動する
 -spec start_link(atom()) -> {ok, pid()} | {error, Reason} when
       Reason :: {already_started, pid()} | term().
 start_link(Name) ->
     gen_server:start_link({local, Name}, ?MODULE, [Name, self()], []).
 
+%% @doc マネージャを停止する
+-spec stop(logi:backend_manager_id()) -> ok.
+stop(ManagerId) ->
+    gen_server:cast(ManagerId, stop).
+
+%% @doc マネージャのIDを取得する
+-spec get_id(pid() | logi:backend_manager_id()) -> logi:backend_manager_id().
+get_id(ManagerRef) ->
+    gen_server:call(ManagerRef, get_id).
+    
 %% @doc バックエンドを追加する
 -spec add_backend(logi:backend_manager_ref(), logi:backend()) -> ok | {error, Reason} when
       Reason :: {already_exists, logi:backend()}.
@@ -80,6 +93,7 @@ init([Name, Parent]) ->
     _ = process_flag(trap_exit, true),
     State =
         #state{
+           id     = Name,
            parent = Parent,
            table  = logi_backend_table:new(Name)
           },
@@ -89,11 +103,14 @@ init([Name, Parent]) ->
 handle_call({add_backend, Arg},    _From, State) -> {reply, do_add_backend(Arg, State), State};
 handle_call({delete_backend, Arg}, _From, State) -> {reply, do_delete_backend(Arg, State), State};
 handle_call({update_backend, Arg}, _From, State) -> {reply, do_update_backend(Arg, State), State};
+handle_call(get_id, _From, State)                -> {reply, State#state.id, State};
 handle_call(_, _, State) ->
     %% TODO: log
     {noreply, State}.
 
 %% @private
+handle_cast(stop, State) ->
+    {stop, normal, State};
 handle_cast(_, State) ->
     %% TODO: log
     {noreply, State}.

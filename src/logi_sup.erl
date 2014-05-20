@@ -36,6 +36,6 @@ start_link() ->
 init([]) ->
     Children =
         [
-         ?SUPERVISOR_CHILD(logi_event_manager_sup)
+         ?SUPERVISOR_CHILD(logi_backend_manager_sup)
         ],
     {ok, {{one_for_one, 5, 10}, Children}}.    

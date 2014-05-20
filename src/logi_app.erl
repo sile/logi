@@ -20,9 +20,9 @@ start(_StartType, _StartArgs) ->
     SupResult = logi_sup:start_link(),
     case SupResult of
         {ok, _} ->
-            case logi:start_event_manager({local, ?LOGI_DEFAULT_EVENT_MANAGER}) of
+            case logi:start_backend_manager(?LOGI_DEFAULT_BACKEND_MANAGER) of
                 {ok, _}         -> SupResult;
-                {error, Reason} -> {error, {cannot_start_default_event_manager, Reason}}
+                {error, Reason} -> {error, {cannot_start_default_backend_manager, Reason}}
             end;
         Other -> Other
     end.
