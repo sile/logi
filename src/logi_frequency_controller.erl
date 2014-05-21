@@ -1,6 +1,7 @@
 %% @copyright 2014 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc TODO
+%% @private
 -module(logi_frequency_controller).
 
 %%------------------------------------------------------------------------------------------------------------------------

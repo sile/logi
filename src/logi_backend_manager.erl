@@ -1,6 +1,7 @@
 %% @copyright 2014 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc logiのバックエンドを管理するためのモジュール
+%% @private
 -module(logi_backend_manager).
 
 -behaviour(gen_server).
