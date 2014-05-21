@@ -3,6 +3,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+-export([metadata_member/3]).
+
 %%------------------------------------------------------------------------------------------------------------------------
 %% Macros
 %%------------------------------------------------------------------------------------------------------------------------
@@ -111,52 +113,60 @@ select_backends_test_() ->
                ok = logi_backend_table:register_backend(test, Backend1),
 
                %% warning以上 かつ メタデータ内に`{module, hoge}'が含まれている なら対象
-               Condition2 = logi_condition:make({warning, {match, {lists, member, {module, hoge}}}}),
+               Condition2 = logi_condition:make({warning, {match, {?MODULE, metadata_member, {module, hoge}}}}),
                Backend2 = logi_backend:make(backend2, self(), ?MODULE, Condition2, []),
                ok = logi_backend_table:register_backend(test, Backend2),
 
                %% 以下のいずれかなら対象:
                %% - debug以上 かつ メタデータ内に`{module, hoge}'が含まれている
                %% - info以上 かつ メタデータ内に`{module, fuga}'が含まれている
-               Condition3 = logi_condition:make([{debug, {match, {lists, member, {module, hoge}}}},
-                                                 {info,  {match, {lists, member, {module, fuga}}}}]),
+               Condition3 = logi_condition:make([{debug, {match, {?MODULE, metadata_member, {module, hoge}}}},
+                                                 {info,  {match, {?MODULE, metadata_member, {module, fuga}}}}]),
                Backend3 = logi_backend:make(backend2, self(), ?MODULE, Condition3, []),
                ok = logi_backend_table:register_backend(test, Backend3),
 
-
+               Location = logi_location:make(logi, log, 100),
+               
                %%%% 選択
                
                %% severity=info, metadata=[]
                ?assertEqual([Backend1],
-                            logi_backend_table:select_backends(test, info, [])),
+                            logi_backend_table:select_backends(test, info, Location, [])),
 
                %% severity=warning, metadata=[]
                ?assertEqual([Backend1],
-                            logi_backend_table:select_backends(test, warning, [])),
+                            logi_backend_table:select_backends(test, warning, Location, [])),
 
                %% severity=warning, metadata=[{module, hoge}]
                ?assertEqual([Backend1, Backend3],
-                            logi_backend_table:select_backends(test, warning, [{module, hoge}])),
+                            logi_backend_table:select_backends(test, warning, Location, [{module, hoge}])),
 
                %% severity=info, metadata=[{module, hoge}]
                ?assertEqual([Backend1, Backend3],
-                            logi_backend_table:select_backends(test, info, [{module, hoge}])),
+                            logi_backend_table:select_backends(test, info, Location, [{module, hoge}])),
 
                %% severity=verbose, metadata=[{module, hoge}]
                ?assertEqual([Backend3],
-                            logi_backend_table:select_backends(test, verbose, [{module, hoge}]))
+                            logi_backend_table:select_backends(test, verbose, Location, [{module, hoge}]))
        end},
       {"IDが重複したバックエンドを登録した場合は、後のものの内容が優先される",
        fun () ->
+               Location = logi_location:make(logi, log, 100),
+
                Condition1 = logi_condition:make(debug),
                Backend1 = logi_backend:make(backend1, self(), ?MODULE, Condition1, []),
                ok = logi_backend_table:register_backend(test, Backend1),
-               ?assertEqual([Backend1], logi_backend_table:select_backends(test, info, [])), % infoでヒットする
+               ?assertEqual([Backend1], logi_backend_table:select_backends(test, info, Location, [])), % infoでヒットする
                             
                Condition2 = logi_condition:make(alert),
                Backend2 = logi_backend:make(backend1, self(), ?MODULE, Condition2, []),
                ok = logi_backend_table:register_backend(test, Backend2),
-               ?assertEqual([], logi_backend_table:select_backends(test, info, [])), % infoではヒットしない
-               ?assertEqual([Backend2], logi_backend_table:select_backends(test, alert, [])) % alertでヒットする
+               ?assertEqual([], logi_backend_table:select_backends(test, info, Location, [])), % infoではヒットしない
+               ?assertEqual([Backend2], logi_backend_table:select_backends(test, alert, Location, [])) % alertでヒットする
        end}
      ]}.
+
+%%------------------------------------------------------------------------------------------------------------------------
+%% Internal Functions
+%%------------------------------------------------------------------------------------------------------------------------
+metadata_member(X, _, MetaData) -> lists:member(X, MetaData).

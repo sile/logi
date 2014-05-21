@@ -17,7 +17,7 @@
          delete_backend/2,
          find_backend/2,
          which_backends/1,
-         select_backends/3,
+         select_backends/4,
          update_backend/2
         ]).
 
@@ -82,9 +82,9 @@ which_backends(ManagerRef) ->
     logi_backend_table:which_backends(ManagerRef).
 
 %% @doc 条件に合致するバックエンド群を選択する
--spec select_backends(logi:backend_manager_ref(), logi:severity(), [logi:metadata_entry()]) -> [logi:backend()].
-select_backends(ManagerRef, Severity, MetaData) ->
-    logi_backend_table:select_backends(ManagerRef, Severity, MetaData).
+-spec select_backends(logi:backend_manager_ref(), logi:severity(), logi:location(), logi:metadata()) -> [logi:backend()].
+select_backends(ManagerRef, Severity, Location, MetaData) ->
+    logi_backend_table:select_backends(ManagerRef, Severity, Location, MetaData).
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% 'gen_server' Callback Functions

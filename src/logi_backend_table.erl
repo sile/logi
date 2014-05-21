@@ -24,7 +24,7 @@
          find_backend/2,
          register_backend/2,
          deregister_backend/2,
-         select_backends/3,
+         select_backends/4,
          which_backends/1
         ]).
 
@@ -83,10 +83,10 @@ deregister_backend(Table, BackendId) ->
     end.
 
 %% @doc 条件に一致するバックエンド群を選択する
--spec select_backends(table(), logi:severity(), [logi:metadata_entry()]) -> [logi:backend()].
-select_backends(Table, Severity, MetaData) ->
+-spec select_backends(table(), logi:severity(), logi:location(), logi:metadata()) -> [logi:backend()].
+select_backends(Table, Severity, Location, MetaData) ->
     BackendIds = [ BackendId || {ConditionClause, BackendId} <- load_conditional_backends(Table, Severity),
-                                logi_condition:is_satisfied(ConditionClause, MetaData)],
+                                logi_condition:is_satisfied(ConditionClause, Location, MetaData)],
     [load_backend(Table, BackendId) || BackendId <- lists:usort(BackendIds)].
 
 %% @doc 登録済みバックエンド一覧を取得する

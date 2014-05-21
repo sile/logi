@@ -55,7 +55,7 @@
 -export_type([context/0, context_id/0, context_ref/0]).
 -export_type([header_entry/0, header_entry_key/0, header_entry_value/0]).
 -export_type([metadata_entry/0, metadata_entry_key/0, metadata_entry_value/0]).
--export_type([exception_reason/0, exception_class/0, stacktrace/0]).
+-export_type([stacktrace/0]).
 -export_type([frequency_policy/0, severity/0]).
 
 %%------------------------------------------------------------------------------------------------------------------------
@@ -122,8 +122,6 @@
 -type metadata_entry_key()   :: term().
 -type metadata_entry_value() :: term().
 
--type exception_reason() :: {'EXCEPTION', exception_class(), stacktrace()}.
--type exception_class() :: exit | error | throw.
 -type stacktrace() :: [erlang:stack_item()].
 
 %%------------------------------------------------------------------------------------------------------------------------

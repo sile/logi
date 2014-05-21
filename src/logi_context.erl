@@ -10,7 +10,7 @@
 -export([
          make/0, make/2,
          is_context/1,
-         get_full_metadata/3,
+         get_full_metadata/2,
          get_full_headers/2,
          is_output_allowed/3,
          set_headers/2,
@@ -62,25 +62,23 @@ make(Headers, MetaData) ->
 is_context(X) -> is_record(X, logi_context).
 
 %% @doc 完全なメタデータ情報を取得する
--spec get_full_metadata(logi:metadata(), logi:location(), logi:context()) -> logi:metadata().
-get_full_metadata(LocalMetaData, Location, Context) ->
-    MetaData1 = lists:ukeysort(1, LocalMetaData),
-    MetaData2 = Context#logi_context.metadata,
-    MetaData3 = logi_location:to_list(Location),
-    lists:ukeymerge(1, MetaData1, lists:ukeymerge(1, MetaData2, MetaData3)).
+-spec get_full_metadata(logi:metadata(), logi:context()) -> logi:metadata().
+get_full_metadata(LocalMetaData, Context) ->
+    LocalMetaData ++ Context#logi_context.metadata.
 
 %% @doc 完全なヘッダ情報を取得する
 -spec get_full_headers(logi:headers(), logi:context()) -> logi:headers().
 get_full_headers(LocalHeaders, Context) ->
-    lists:ukeymerge(1, lists:ukeysort(1, LocalHeaders), Context#logi_context.headers).
+    LocalHeaders ++ Context#logi_context.headers.
 
 %% @doc 出力が許可されているかどうかを判定する
--spec is_output_allowed(logi:frequency_policy_spec(), logi:location(), context()) -> {boolean(), context()}.
+-spec is_output_allowed(logi:frequency_policy_spec(), logi:location(), context()) -> {{true, non_neg_integer()} | false, context()}.
 is_output_allowed(Policy, Location, Context) ->
-    {IsAllowed, Controller} =
+    {Result, Controller} =
         logi_frequency_controller:is_output_allowed(Policy, Location, Context#logi_context.frequency_controller),
-    {IsAllowed, Context#logi_context{frequency_controller = Controller}}.
+    {Result, Context#logi_context{frequency_controller = Controller}}.
 
+%% 注意: Headersがソート済みであることは呼び出し元が保証する
 -spec set_headers(logi:headers(), context()) -> context().
 set_headers(Headers, Context) ->
     Context#logi_context{headers = lists:keymerge(1, Headers, Context#logi_context.headers)}.
@@ -89,6 +87,7 @@ set_headers(Headers, Context) ->
 get_headers(Context) ->
     Context#logi_context.headers.
 
+%% 注意: MetaDataがソート済みであることは呼び出し元が保証する
 -spec set_metadata(logi:metadata(), context()) -> context().
 set_metadata(MetaData, Context) ->
     Context#logi_context{metadata = lists:keymerge(1, MetaData, Context#logi_context.metadata)}.
