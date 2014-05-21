@@ -76,8 +76,8 @@ is_satisfied({match, {M, F, Pattern}}, MetaData) -> M:F(Pattern, MetaData). % TO
 %% Internal Functions
 %%------------------------------------------------------------------------------------------------------------------------
 -spec is_condition_spec(condition_spec()) -> boolean().
-is_condition_spec(Level) when is_atom(Level) -> logi:is_log_level(Level);
-is_condition_spec({Level, Constraint})       -> logi:is_log_level(Level) andalso is_constraint(Constraint);
+is_condition_spec(Level) when is_atom(Level) -> is_log_level(Level);
+is_condition_spec({Level, Constraint})       -> is_log_level(Level) andalso is_constraint(Constraint);
 is_condition_spec(List) when is_list(List)   -> lists:all(fun (X) -> not is_list(X) andalso is_condition_spec(X) end, List);
 is_condition_spec(_)                         -> false.
 
@@ -85,3 +85,6 @@ is_condition_spec(_)                         -> false.
 is_constraint({match, {M, F, _}}) -> is_atom(M) andalso is_atom(F);
 is_constraint(none)               -> true;
 is_constraint(_)                  -> false.
+
+-spec is_log_level(logi:log_level() | term()) -> boolean().
+is_log_level(X) -> lists:member(X, logi:log_levels()).

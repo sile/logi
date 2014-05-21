@@ -3,60 +3,61 @@
 %% @private
 -module(logi_client).
 
--include("logi.hrl").
-
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%------------------------------------------------------------------------------------------------------------------------
--export([log/5]).
+-export([log/7]).
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%------------------------------------------------------------------------------------------------------------------------
-%%-spec log(logi:severity(), atom(), module(), pos_integer(), iodata(), [term()], #logi_log_option{}) -> ok.
-log(Severity, Format, Args, Context, Options) ->
-    MetaData = make_full_metadata(Context, Options),
-    case logi_backend_manager:select_backends(Context#logi_log_context.manager, Severity, MetaData) of
-        []       -> ok;
+-spec log(logi:backend_manager(), logi:severity(), logi:location(),
+          io:format(), [term()], logi:log_options(), logi:context()) -> logi:context().
+log(Manager, Severity, Location, Format, Args, Options, Context) ->
+    MetaData = logi_context:get_full_metadata(logi_util_assoc:fetch(metadata, Options, []), Location, Context),
+    case logi_backend_manager:select_backends(Manager, Severity, MetaData) of
+        []       -> Context;
         Backends ->
-            FrequencyId = {Context#logi_log_context.module, Context#logi_log_context.line},
-            case logi_frequency_control:is_logging_turn(Options#logi_log_option.frequency, FrequencyId) of
-                false                -> ok;
-                {true, OmittedCount} ->
-                    FormatOptions =
-                        #logi_format_option{
-                           severity      = Severity,
-                           metadata      = MetaData,
-                           header        = make_full_header(Context, MetaData, Options),
-                           omitted_count = OmittedCount
-                          },
-                    lists:foreach(
-                      fun (Backend) ->
-                              %% TODO: try-catch
-                              Module = logi_backend:get_module(Backend),
-                              Message = Module:format(Backend, Format, Args, FormatOptions),
-                              Module:write(Backend, Message)
-                      end,
-                      Backends)
+            case logi_context:is_output_allowed(logi_util_assoc:fetch(frequency, Options, always), Location, Context) of
+                {false, Context2} -> Context2;
+                {true,  Context2} ->
+                    Headers = logi_context:get_full_headers(logi_util_assoc:fetch(headers, Options, []), Context2),
+                    MsgInfo = logi_msg_info:make(Severity, os:timestamp(), Headers, MetaData, Context2),
+                    ok = lists:foreach(
+                           fun (Backend) ->
+                                   Module = logi_backend:get_module(Backend),
+                                   case format_message(Module, Backend, Format, Args, MsgInfo) of
+                                       error         -> ok;
+                                       {ok, Message} -> write_message(Module, Backend, Message)
+                                   end
+                           end,
+                           Backends),
+                    Context2
             end
     end.
         
 %%------------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
 %%------------------------------------------------------------------------------------------------------------------------
--spec make_full_header(#logi_log_context{}, [logi:metadata_entry()], #logi_log_option{}) -> [logi:header_entry()].
-make_full_header(Context, MetaData, Options) ->
-    DefaultEntries = logi:get_header([{manager, Context#logi_log_context.manager}, {scope, MetaData}]),
-    lists:ukeymerge(1, lists:ukeysort(1, Options#logi_log_option.header), DefaultEntries).
+-spec format_message(module(), logi:backend(), io:format(), [term()], logi:msg_info()) -> {ok, iodata()} | error.
+format_message(Module, Backend, Format, Args, MsgInfo) ->
+    try 
+        {ok, Module:format(Backend, Format, Args, MsgInfo)}
+    catch
+        Class:Reason ->
+            ok = error_logger:error_msg(
+                   logi_io_lib:format_error(Class, Reason, erlang:get_stacktrace(),
+                                            "~p:format/4 error: args=~p", [Module, [Backend, Format, Args, MsgInfo]])),
+            error
+    end.
 
--spec make_full_metadata(#logi_log_context{}, #logi_log_option{}) -> [logi:metadata_entry()].
-make_full_metadata(Context, Options) ->
-    #logi_log_context{manager = Manager, application = Application, module = Module, line = Line} = Context,
-    DefaultEntries0 = [{application, Application},
-                       {line, Line},
-                       {module, Module},
-                       {node, node()},
-                       {pid, self()}],
-    StoredEntries   = logi:get_metadata([{manager, Manager}]),
-    DefaultEntries1 = lists:ukeymerge(1, StoredEntries, DefaultEntries0),
-    lists:ukeymerge(1, lists:ukeysort(1, Options#logi_log_option.metadata), DefaultEntries1).
+-spec write_message(module(), logi:backend(), iodata()) -> any().
+write_message(Module, Backend, Message) ->
+    try
+        Module:write(Backend, Message)
+    catch
+        Class:Reason ->
+            error_logger:error_msg(
+              logi_io_lib:format_error(Class, Reason, erlang:get_stacktrace(),
+                                       "~p:write/2 error: args=~p", [Module, [Backend, Message]]))
+    end.

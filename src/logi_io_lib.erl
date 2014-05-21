@@ -1,27 +1,18 @@
 %% @copyright 2014 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc
--module(logi_lib).
-
--include("logi.hrl").
+%% @doc TODO: doc
+-module(logi_io_lib).
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%------------------------------------------------------------------------------------------------------------------------
 -export([
-         get_default_backend_manager/0,
-         get_log_levels/0,
-         is_log_level/1
+         format_error/5
         ]).
 
 %%------------------------------------------------------------------------------------------------------------------------
-%% Exported Function
+%% Exported Functions
 %%------------------------------------------------------------------------------------------------------------------------
--spec get_default_backend_manager() -> logi:backend_manager_id().
-get_default_backend_manager() -> ?LOGI_DEFAULT_BACKEND_MANAGER.
-
--spec get_log_levels() -> [logi:log_level()].
-get_log_levels() -> [debug, verbose, info, notice, warning, error, critical, alert, emergency].
-
--spec is_log_level(logi:log_level()|term()) -> boolean().
-is_log_level(Level) -> lists:member(Level, get_log_levels()).
+-spec format_error(atom(), term(), [erlang:stack_item()], io:format(), [term()]) -> iodata().
+format_error(Class, Reason, StackTrace, Format, Args) ->
+    error(badarg, [Class, Reason, StackTrace, Format, Args]).

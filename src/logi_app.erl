@@ -4,7 +4,6 @@
 %% @private
 -module(logi_app).
 
--include("logi.hrl").
 -behaviour(application).
 
 %%------------------------------------------------------------------------------------------------------------------------
@@ -20,7 +19,7 @@ start(_StartType, _StartArgs) ->
     SupResult = logi_sup:start_link(),
     case SupResult of
         {ok, _} ->
-            case logi:start_backend_manager(?LOGI_DEFAULT_BACKEND_MANAGER) of
+            case logi:start_backend_manager(logi:default_backend_manager()) of
                 {ok, _}         -> SupResult;
                 {error, Reason} -> {error, {cannot_start_default_backend_manager, Reason}}
             end;

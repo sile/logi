@@ -3,12 +3,11 @@
 %% @doc TODO
 -module(logi).
 
--include("logi.hrl").
-
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%------------------------------------------------------------------------------------------------------------------------
 -export([
+         default_backend_manager/0,
          start_backend_manager/1,
          stop_backend_manager/1,
          which_backend_managers/0,
@@ -17,50 +16,72 @@
          delete_backend/1, delete_backend/2,
          which_backends/0, which_backends/1,
 
-         log/5,
+         log_levels/0,
+         log/5, log/6,
 
-         load_process_state/0,
-         save_process_state/1,
-         copy_process_state/1
+         make_context/0, make_context/1,
+         save_context/1, save_context/2,
+         load_context/0, load_context/1,
+         which_contexts/0,
+
+         set_headers/2,
+         get_headers/1,
+         update_headers/2,
+         delete_headers/2,
+         set_metadata/2,
+         get_metadata/1,
+         update_metadata/2,
+         delete_metadata/2
         ]).
 
--export([set_header/1, set_header/2,
-         unset_header/1, unset_header/2,
-         erase_header/0, erase_header/1,
-         get_header/0, get_header/1]).
--export([set_metadata/1, set_metadata/2,
-         unset_metadata/1, unset_metadata/2,
-         erase_metadata/0, erase_metadata/1,
-         get_metadata/0, get_metadata/1]).
+-export_type([
+              backend_manager/0,
+              location/0,
+              metadata/0,
+              headers/0,
+              log_options/0,
+              log_option/0,
+              frequency_policy_spec/0
+             ]).
 
 -export_type([backend/0,
               backend_ref/0,
               backend_id/0,
-              backend_options/0,
-              log_level/0,
-              conditions/0]).
-
--export_type([context/0]).
-
--export_type([header_entry/0, header_entry_key/0, header_entry_value/0,
-              header_scope/0, header_option/0]).
-              
--export_type([metadata_entry/0, metadata_entry_key/0, metadata_entry_value/0,
-              metadata_option/0]).
-
--export_type([exception_reason/0, exception_class/0, stacktrace/0]).
-
--export_type([frequency_policy/0, severity/0]).
+              backend_data/0,
+              log_level/0]).
 
 -export_type([condition_spec/0, condition_clause/0, condition/0]).
+-export_type([context/0, context_id/0, context_ref/0]).
+-export_type([header_entry/0, header_entry_key/0, header_entry_value/0]).
+-export_type([metadata_entry/0, metadata_entry_key/0, metadata_entry_value/0]).
+-export_type([exception_reason/0, exception_class/0, stacktrace/0]).
+-export_type([frequency_policy/0, severity/0]).
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Macros & Types
 %%------------------------------------------------------------------------------------------------------------------------
--define(FOREACH_HEADER_SCOPE_FUN(Fun, Options),
-        fun (_Header) -> lists:foldl(Fun, _Header, logi_util_assoc:fetch(scope, Options, [process])) end).
+-define(LOGI_DEFAULT_BACKEND_MANAGER, logi_default_backend_manager).
+-define(LOGI_CONTEXT_TAG, '__LOGI_CONTEXT__').
 
--type process_state() :: term(). % TODO:
+-type backend_manager()          :: atom().
+-type context()                  :: logi:context().
+-type context_id()               :: term().
+-type context_ref()              :: context() | context_id().
+-type location()                 :: logi_location:location().
+-type metadata() :: [metadata_entry()].
+-type headers()  :: [header_entry()].
+
+-type log_options() :: [log_option()].
+-type log_option() :: {context, context_ref()}
+                    | {headers, headers()}
+                    | {metadata, metadata()}
+                    | {frequency, frequency_policy_spec()}.
+
+-type frequency_policy_spec() :: always
+                               | once
+                               | {once_in_times, Times::pos_integer()}
+                               | {interval, MilliSeconds::non_neg_integer()}.
+
 
 -type backend_data() :: term().
 -type backend_spec() :: {backend_ref(), module(), backend_data()}
@@ -74,35 +95,23 @@
 -type backend() :: logi_backend:backend().
 -type backend_ref() :: pid() | atom().
 -type backend_id() :: term().
--type backend_options() :: term().
--type log_level() :: severity().
--type conditions() :: [metadata_entry()].
+-type log_level() :: debug | verbose | info | notice | warning | error | critical | alert | emergency.
 
--type severity() :: debug | verbose | info | warning | alert. % TODO:
+-type severity() :: log_level().
 
 -type frequency_policy() :: always
                           | once
                           | {interval_count, non_neg_integer()}
                           | {interval_time, timeout()}.
 
--type backend_manager_id() :: atom().
-
--opaque context() :: [{'LOGI_MSG_HEADER_CONTEXT',   log_msg_context:context()} |
-                      {'LOGI_MSG_METADATA_CONTEXT', log_msg_context:context()}].
 
 -type header_entry()       :: {header_entry_key(), header_entry_value()}.
 -type header_entry_key()   :: term().
 -type header_entry_value() :: term().
--type header_scope()       :: metadata_entry().
-
--type header_option() :: {scope, [header_scope()]}
-                       | {manager, backend_manager_id()}.
 
 -type metadata_entry()       :: {metadata_entry_key(), metadata_entry_value()}.
 -type metadata_entry_key()   :: term().
 -type metadata_entry_value() :: term().
-
--type metadata_option() :: {manager, backend_manager_id()}.
 
 -type exception_reason() :: {'EXCEPTION', exception_class(), stacktrace()}.
 -type exception_class() :: exit | error | throw.
@@ -111,16 +120,20 @@
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%------------------------------------------------------------------------------------------------------------------------
--spec start_backend_manager(backend_manager_id()) -> {ok, pid()} | {error, Reason} when
+-spec default_backend_manager() -> backend_manager().
+default_backend_manager() ->
+    ?LOGI_DEFAULT_BACKEND_MANAGER.
+    
+-spec start_backend_manager(backend_manager()) -> {ok, pid()} | {error, Reason} when
       Reason :: {already_started, pid()} | term().
 start_backend_manager(ManagerId) when is_atom(ManagerId) -> logi_backend_manager_sup:start_manager(ManagerId);
 start_backend_manager(ManagerId)                         -> error(badarg, [ManagerId]).
 
--spec stop_backend_manager(backend_manager_id()) -> ok.
+-spec stop_backend_manager(backend_manager()) -> ok.
 stop_backend_manager(ManagerId) when is_atom(ManagerId) -> logi_backend_manager_sup:stop_manager(ManagerId);
 stop_backend_manager(ManagerId)                         -> error(badarg, [ManagerId]).
 
--spec which_backend_managers() -> [backend_manager_id()].
+-spec which_backend_managers() -> [backend_manager()].
 which_backend_managers() -> logi_backend_manager_sup:which_managers().
 
 -spec add_backend(backend_spec(), condition_spec()) -> ok | {error, Reason} when
@@ -128,7 +141,7 @@ which_backend_managers() -> logi_backend_manager_sup:which_managers().
 add_backend(BackendSpec, ConditionSpec) ->
     add_backend(?LOGI_DEFAULT_BACKEND_MANAGER, BackendSpec, ConditionSpec).
 
--spec add_backend(backend_manager_id(), backend_spec(), condition_spec()) -> ok | {error, Reason} when
+-spec add_backend(backend_manager(), backend_spec(), condition_spec()) -> ok | {error, Reason} when
       Reason :: {already_exists, backend()}.
 add_backend(ManagerId, BackendSpec, ConditionSpec) ->
     Condition = logi_condition:make(ConditionSpec),
@@ -143,7 +156,7 @@ add_backend(ManagerId, BackendSpec, ConditionSpec) ->
 delete_backend(BackendId) ->
     delete_backend(?LOGI_DEFAULT_BACKEND_MANAGER, BackendId).
 
--spec delete_backend(backend_manager_id(), backend_id()) -> ok | {error, not_found}.
+-spec delete_backend(backend_manager(), backend_id()) -> ok | {error, not_found}.
 delete_backend(ManagerId, BackendId) ->
     logi_backend_manager:delete_backend(ManagerId, BackendId).
 
@@ -151,126 +164,104 @@ delete_backend(ManagerId, BackendId) ->
 which_backends() ->
     which_backends(?LOGI_DEFAULT_BACKEND_MANAGER).
 
--spec which_backends(backend_manager_id()) -> [logi:backend()].
+-spec which_backends(backend_manager()) -> [logi:backend()].
 which_backends(ManagerId) ->
     logi_backend_manager:which_backends(ManagerId).
 
--spec log(severity(), string()|binary()|atom(), [term()], #logi_log_context{}, #logi_log_option{}) -> ok.
-log(Severity, Format, Args, Context, Options) ->
-    logi_client:log(Severity, Format, Args, Context, Options).
+-spec log_levels() -> [log_level()].
+log_levels() -> [debug, verbose, info, notice, warning, error, critical, alert, emergency].
 
--spec load_process_state() -> process_state().
-load_process_state() ->
-    [
-     {'LOGI_MSG_HEADER_CONTEXT',   logi_msg_context:load_context(logi_msg_header)},
-     {'LOGI_MSG_METADATA_CONTEXT', logi_msg_context:load_context(logi_msg_metadata)}
-    ].
+-spec log(severity(), location(), io:format(), [term()], log_options()) -> context().
+log(Severity, Location, Format, Args, Options) ->
+    log(?LOGI_DEFAULT_BACKEND_MANAGER, Severity, Location, Format, Args, Options).
 
--spec save_process_state(process_state()) -> ok.
-save_process_state(ProcessState) ->
-    ok = logi_msg_context:save_context(logi_msg_header, logi_util_assoc:fetch('LOGI_MSG_HEADER_CONTEXT', ProcessState, [])),
-    ok = logi_msg_context:save_context(logi_msg_metadata, logi_util_assoc:fetch('LOGI_MSG_METADATA_CONTEXT', ProcessState, [])),
-    ok.
+-spec log(backend_manager(), severity(), location(), io:format(), [term()], log_options()) -> context().
+log(Manager, Severity, Location, Format, Args, Options) ->
+    ContextRef = logi_util_assoc:fetch(context, Options, Manager),
+    case logi_context:is_context(ContextRef) of
+        true  -> logi_client:log(Manager, Severity, Location, Format, Args, Options, ContextRef);
+        false ->
+            Context0 = load_context(ContextRef),
+            Context1 = logi_client:log(Manager, Severity, Location, Format, Args, Options, Context0),
+            ok = save_context(ContextRef, Context1),
+            Context1
+    end.
 
--spec copy_process_state(pid()) -> ok.
-copy_process_state(Pid) ->
-    save_process_state(process_info(Pid, dictionary)).
+-spec make_context() -> context().
+make_context() ->
+    logi_context:make().
 
-%% @equiv set_header(HeaderEntries, [])
--spec set_header([header_entry()]) -> ok.
-set_header(HeaderEntries) -> set_header(HeaderEntries, []).
+-spec make_context(Options) -> context() when
+      Options :: [Option],
+      Option  :: {headers, headers()} | {metadata, metadata()}.
+make_context(Options) ->
+    logi_context:make(logi_util_assoc:fetch(headers, Options, []),
+                      logi_util_assoc:fetch(metadata, Options, [])).
 
-%% @doc ヘッダ情報を設定する
-%%
-%% 既に存在するキーが指定された場合は、値が上書きされる
--spec set_header([header_entry()], [header_option()]) -> ok.
-set_header(HeaderEntries, Options) ->
-    Fun = ?FOREACH_HEADER_SCOPE_FUN(fun (Scope, Header) -> logi_msg_header:set_entries(Scope, HeaderEntries, Header) end, Options),
-    _ = logi_msg_context:update_info(get_event_manager(Options), Fun, logi_msg_header),
-    ok.
+-spec save_context(context()) -> ok.
+save_context(Context) ->
+    save_context(?LOGI_DEFAULT_BACKEND_MANAGER, Context).
 
-%% @equiv unset_header(HeaderEntries, [])
--spec unset_header([header_entry_key()]) -> ok.
-unset_header(HeaderEntryKeys) -> unset_header(HeaderEntryKeys, []).
+-spec save_context(context_id(), context()) -> ok.
+save_context(ContextId, Context) ->
+    case logi_context:is_context(Context) of
+        false -> error(badarg, [ContextId, Context]);
+        true  -> _ = put({?LOGI_CONTEXT_TAG, ContextId}, Context), ok
+    end.
 
-%% @doc ヘッダ情報から指定されたエントリを削除する
--spec unset_header([header_entry_key()], [header_option()]) -> ok.
-unset_header(HeaderEntryKeys, Options) ->
-    Fun = ?FOREACH_HEADER_SCOPE_FUN(fun (Scope, Header) -> logi_msg_header:unset_entries(Scope, HeaderEntryKeys, Header) end, Options),
-    _ = logi_msg_context:update_info(get_event_manager(Options), Fun, logi_msg_header),
-    ok.
+-spec load_context() -> context().
+load_context() ->
+    load_context(?LOGI_DEFAULT_BACKEND_MANAGER).
 
-%% @equiv erase_header([])
--spec erase_header() -> ok.
-erase_header() -> erase_header([]).
+-spec load_context(context_id()) -> context().
+load_context(ContextId) ->
+    case get({?LOGI_CONTEXT_TAG, ContextId}) of
+        undefined -> make_context();
+        Context   -> Context
+    end.
 
-%% @doc ヘッダ情報を削除する
--spec erase_header([header_option()]) -> ok.
-erase_header(Options) ->
-    Fun = ?FOREACH_HEADER_SCOPE_FUN(fun (Scope, Header) -> logi_msg_header:erase_entries(Scope, Header) end, Options),
-    _ = logi_msg_context:update_info(get_event_manager(Options), Fun, logi_msg_header),
-    ok.
+-spec which_contexts() -> [context()].
+which_contexts() ->
+    [Context || {?LOGI_CONTEXT_TAG, Context} <- get()].
 
-%% @equiv get_header([]) -> ok.
--spec get_header() -> [header_entry()].
-get_header() -> get_header([]).
+-spec set_headers(headers(), context()) -> context().
+set_headers(Headers, Context) ->
+    ok = logi_util_assoc:assert_assoc_list(Headers),
+    logi_context:set_headers(lists:ukeysort(1, Headers), Context).
 
-%% @doc ヘッダ情報を取得する
--spec get_header([header_option()]) -> [header_entry()].
-get_header(Options) ->
-    ScopeList = lists:ukeymerge(1, lists:ukeysort(1, logi_util_assoc:fetch(scope, Options, [])), get_metadata(Options)),
-    Header = logi_msg_context:get_info(get_event_manager(Options), logi_msg_header),
-    logi_msg_header:get_entries(ScopeList, Header).
+-spec get_headers(context()) -> headers().
+get_headers(Context) ->
+    logi_context:get_headers(Context).
 
-%% @equiv set_metadata(MetaDataEntries, [])
--spec set_metadata([metadata_entry()]) -> ok.
-set_metadata(MetaDataEntries) -> set_metadata(MetaDataEntries, []).
+-spec update_headers(headers(), context()) -> context().
+update_headers(Headers, Context) ->
+    ok = logi_util_assoc:assert_assoc_list(Headers),
+    Merged = lists:ukeymerge(1, lists:ukeysort(1, Headers), get_headers(Context)),
+    logi_context:set_headers(Merged, Context).
 
-%% @doc メタデータ情報を設定する
-%%
-%% 既に存在するキーが指定された場合は、値が上書きされる
--spec set_metadata([metadata_entry()], [metadata_option()]) -> ok.
-set_metadata(MetaDataEntries, Options) ->
-    Fun = fun (MetaData) -> logi_msg_metadata:set_entries(MetaDataEntries, MetaData) end,
-    _ = logi_msg_context:update_info(get_event_manager(Options), Fun, logi_msg_metadata),
-    ok.
+-spec delete_headers([header_entry_key()], context()) -> context().
+delete_headers(Keys, Context) ->
+    Headers0 = get_headers(Context),
+    Headers1 = lists:foldl(fun (Key, Acc) -> lists:keydelete(Key, 1, Acc) end, Keys, Headers0),
+    logi_context:set_headers(Headers1, Context).
 
-%% @equiv unset_metadata(MetaDataEntries, [])
--spec unset_metadata([metadata_entry_key()]) -> ok.
-unset_metadata(MetaDataEntryKeys) -> unset_metadata(MetaDataEntryKeys, []).
+-spec set_metadata(metadata(), context()) -> context().
+set_metadata(MetaData, Context) ->
+    ok = logi_util_assoc:assert_assoc_list(MetaData),
+    logi_context:set_metadata(lists:ukeysort(1, MetaData), Context).
 
-%% @doc メタデータ情報から指定されたエントリを削除する
--spec unset_metadata([metadata_entry_key()], [metadata_option()]) -> ok.
-unset_metadata(MetaDataEntryKeys, Options) ->
-    Fun = fun (MetaData) -> logi_msg_metadata:unset_entries(MetaDataEntryKeys, MetaData) end,
-    _ = logi_msg_context:update_info(get_event_manager(Options), Fun, logi_msg_metadata),
-    ok.
+-spec get_metadata(context()) -> metadata().
+get_metadata(Context) ->
+    logi_context:get_metadata(Context).
 
-%% @equiv erase_metadata([])
--spec erase_metadata() -> ok.
-erase_metadata() -> erase_metadata([]).
+-spec update_metadata(metadata(), context()) -> context().
+update_metadata(MetaData, Context) ->
+    ok = logi_util_assoc:assert_assoc_list(MetaData),
+    Merged = lists:ukeymerge(1, lists:ukeysort(1, MetaData), get_metadata(Context)),
+    logi_context:set_metadata(Merged, Context).
 
-%% @doc メタデータ情報を削除する
--spec erase_metadata([metadata_option()]) -> ok.
-erase_metadata(Options) ->
-    Fun = fun (_MetaData) -> logi_msg_metadata:empty() end,
-    _ = logi_msg_context:update_info(get_event_manager(Options), Fun, logi_msg_metadata),
-    ok.
-
-%% @equiv get_metadata([]) -> ok.
--spec get_metadata() -> [metadata_entry()].
-get_metadata() -> get_metadata([]).
-
-%% @doc メタデータ情報を取得する
--spec get_metadata([metadata_option()]) -> [metadata_entry()].
-get_metadata(Options) ->
-    MetaData = logi_msg_context:get_info(get_event_manager(Options), logi_msg_metadata),
-    logi_msg_metadata:get_entries(MetaData).
-
-%%------------------------------------------------------------------------------------------------------------------------
-%% Internal Functions
-%%------------------------------------------------------------------------------------------------------------------------
--spec get_event_manager(Options) -> backend_manager_id() when
-      Options :: [{manager, backend_manager_id()}].
-get_event_manager(Options) ->
-    logi_util_assoc:fetch(manager, Options, ?LOGI_DEFAULT_BACKEND_MANAGER).
+-spec delete_metadata([header_entry_key()], context()) -> context().
+delete_metadata(Keys, Context) ->
+    MetaData0 = get_metadata(Context),
+    MetaData1 = lists:foldl(fun (Key, Acc) -> lists:keydelete(Key, 1, Acc) end, Keys, MetaData0),
+    logi_context:set_metadata(MetaData1, Context).
