@@ -74,6 +74,6 @@ get_test_() ->
               ?assertEqual(self(), logi_backend:get_ref(Backend)),
               ?assertEqual(?MODULE, logi_backend:get_module(Backend)),
               ?assertEqual(?INFO, logi_backend:get_condition(Backend)),
-              ?assertEqual([], logi_backend:get_options(Backend))
+              ?assertEqual([], logi_backend:get_data(Backend))
       end}
     ].

@@ -143,14 +143,14 @@ stop_backend_manager(ManagerId)                         -> error(badarg, [Manage
 -spec which_backend_managers() -> [backend_manager()].
 which_backend_managers() -> logi_backend_manager_sup:which_managers().
 
--spec add_backend(backend_spec(), condition_spec()) -> ok | {error, Reason} when
+-spec add_backend(condition_spec(), backend_spec()) -> ok | {error, Reason} when
       Reason :: {already_exists, backend()}.
-add_backend(BackendSpec, ConditionSpec) ->
-    add_backend(?LOGI_DEFAULT_BACKEND_MANAGER, BackendSpec, ConditionSpec).
+add_backend(ConditionSpec, BackendSpec) ->
+    add_backend(?LOGI_DEFAULT_BACKEND_MANAGER, ConditionSpec, BackendSpec).
 
--spec add_backend(backend_manager(), backend_spec(), condition_spec()) -> ok | {error, Reason} when
+-spec add_backend(backend_manager(), condition_spec(), backend_spec()) -> ok | {error, Reason} when
       Reason :: {already_exists, backend()}.
-add_backend(ManagerId, BackendSpec, ConditionSpec) ->
+add_backend(ManagerId, ConditionSpec, BackendSpec) ->
     Condition = logi_condition:make(ConditionSpec),
     Backend =
         case BackendSpec of

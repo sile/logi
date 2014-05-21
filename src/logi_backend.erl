@@ -20,7 +20,7 @@
          get_ref/1,
          get_module/1,
          get_condition/1,
-         get_options/1
+         get_data/1
         ]).
 
 -export_type([
@@ -38,7 +38,7 @@
           ref       :: logi:backend_ref(),
           module    :: module(),
           condition :: logi:condition(),
-          options   :: logi:backend_options()
+          data      :: logi:backend_data()
         }).
 
 -opaque backend() :: #?BACKEND{}.
@@ -46,23 +46,23 @@
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%------------------------------------------------------------------------------------------------------------------------
-%% @equiv make(Ref, Ref, Module, Conditions, Options)
--spec make(logi:backend_ref(), module(), logi:condition(), logi:backend_options()) -> backend().
-make(Ref, Module, Condition, Options) ->
-    make(Ref, Ref, Module, Condition, Options).
+%% @equiv make(Ref, Ref, Module, Conditions, Data)
+-spec make(logi:backend_ref(), module(), logi:condition(), logi:backend_data()) -> backend().
+make(Ref, Module, Condition, Data) ->
+    make(Ref, Ref, Module, Condition, Data).
 
 %% @doc バックエンドオブジェクトを生成する
--spec make(logi:backend_id(), logi:backend_ref(), module(), logi:condition(), logi:backend_options()) -> backend().
-make(Id, Ref, Module, Condition, Options) ->
+-spec make(logi:backend_id(), logi:backend_ref(), module(), logi:condition(), logi:backend_data()) -> backend().
+make(Id, Ref, Module, Condition, Data) ->
     case is_backend_ref(Ref) andalso is_atom(Module) andalso logi_condition:is_condition(Condition) of
-        false -> error(badarg, [Id, Ref, Module, Condition, Options]);
+        false -> error(badarg, [Id, Ref, Module, Condition, Data]);
         true  ->
             #?BACKEND{
                 id        = Id,
                 ref       = Ref,
                 module    = Module,
                 condition = Condition,
-                options   = Options
+                data      = Data
                }
     end.
 
@@ -70,13 +70,13 @@ make(Id, Ref, Module, Condition, Options) ->
 -spec update(UpdateList, backend()) -> backend() when
       UpdateList  :: [UpdateEntry],
       UpdateEntry :: {id, logi:backend_id()} | {ref, logi:backend_ref()} | {module, module()}
-                   | {options, logi:backend_options()} | {condition, logi:condition()}.
+                   | {data, logi:backend_data()} | {condition, logi:condition()}.
 update(UpdateList, #?BACKEND{} = Backend) when is_list(UpdateList) ->
     make(logi_util_assoc:fetch(id, UpdateList, Backend#?BACKEND.id),
          logi_util_assoc:fetch(ref, UpdateList, Backend#?BACKEND.ref),
          logi_util_assoc:fetch(module, UpdateList, Backend#?BACKEND.module),
          logi_util_assoc:fetch(condition, UpdateList, Backend#?BACKEND.condition),
-         logi_util_assoc:fetch(options, UpdateList, Backend#?BACKEND.options));
+         logi_util_assoc:fetch(data, UpdateList, Backend#?BACKEND.data));
 update(UpdateList, Backend) -> error(badarg, [UpdateList, Backend]).
 
 %% @doc 引数の値がbackend()型かどうかを判定する
@@ -99,9 +99,8 @@ get_module(#?BACKEND{module = Module}) -> Module.
 -spec get_condition(backend()) -> logi:condition().
 get_condition(#?BACKEND{condition = Condition}) -> Condition.
 
-%% @doc バックエンドに指定されているオプションを取得する
--spec get_options(backend()) -> logi:backend_options().
-get_options(#?BACKEND{options = Options}) -> Options.
+-spec get_data(backend()) -> logi:backend_data().
+get_data(#?BACKEND{data = Data}) -> Data.
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
