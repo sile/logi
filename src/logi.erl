@@ -38,6 +38,7 @@
               backend_manager/0,
               location/0,
               metadata/0,
+              format_metadata/0,
               headers/0,
               log_options/0,
               log_option/0,
@@ -69,6 +70,14 @@
 -type context_ref()              :: context() | context_id().
 -type location()                 :: logi_location:location().
 -type metadata() :: [metadata_entry()].
+-type format_metadata() :: [metadata_entry() | 
+                            {process, pid()} |
+                            {node, node()} |
+                            {application, atom()} |
+                            {module, module()} |
+                            {function, atom()} |
+                            {line, pos_integer()}].
+
 -type headers()  :: [header_entry()].
 
 -type log_options() :: [log_option()].
