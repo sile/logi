@@ -31,9 +31,8 @@
 %%------------------------------------------------------------------------------------------------------------------------
 -record(state,
         {
-          id     :: logi:backend_manager_id(),
-          parent :: pid(),
-          table  :: logi_backend_table:table()
+          id    :: logi:backend_manager_id(),
+          table :: logi_backend_table:table()
         }).
 
 %%------------------------------------------------------------------------------------------------------------------------
@@ -43,7 +42,7 @@
 -spec start_link(atom()) -> {ok, pid()} | {error, Reason} when
       Reason :: {already_started, pid()} | term().
 start_link(Name) ->
-    gen_server:start_link({local, Name}, ?MODULE, [Name, self()], []).
+    gen_server:start_link({local, Name}, ?MODULE, [Name], []).
 
 %% @doc マネージャを停止する
 -spec stop(logi:backend_manager_id()) -> ok.
@@ -90,13 +89,12 @@ select_backends(ManagerRef, Severity, Location, MetaData) ->
 %% 'gen_server' Callback Functions
 %%------------------------------------------------------------------------------------------------------------------------
 %% @private
-init([Name, Parent]) ->
+init([Name]) ->
     _ = process_flag(trap_exit, true),
     State =
         #state{
-           id     = Name,
-           parent = Parent,
-           table  = logi_backend_table:new(Name)
+           id    = Name,
+           table = logi_backend_table:new(Name)
           },
     {ok, State}.
 
@@ -117,9 +115,6 @@ handle_cast(_, State) ->
     {noreply, State}.
     
 %% @private
-%% TODO: handling of 'EXIT'
-handle_info({'EXIT', Pid, Reason}, State = #state{parent = Pid}) ->
-    {stop, Reason, State};
 handle_info({'EXIT', Pid, _}, State) ->
     ok = do_delete_backends_by_ref(Pid, State),
     {noreply, State};
