@@ -24,14 +24,14 @@
          load_context/0, load_context/1,
          which_contexts/0,
 
-         set_headers/2,
-         get_headers/1,
-         update_headers/2,
-         delete_headers/2,
-         set_metadata/2,
-         get_metadata/1,
-         update_metadata/2,
-         delete_metadata/2
+         set_headers/1, set_headers/2,
+         get_headers/0, get_headers/1,
+         update_headers/1, update_headers/2,
+         delete_headers/1, delete_headers/2,
+         set_metadata/1, set_metadata/2,
+         get_metadata/0,  get_metadata/1,
+         update_metadata/1, update_metadata/2,
+         delete_metadata/1, delete_metadata/2
         ]).
 
 -export_type([
@@ -237,14 +237,26 @@ load_context(ContextId) ->
 which_contexts() ->
     [{Id, Context} || {{?LOGI_CONTEXT_TAG, Id}, Context} <- get()].
 
+-spec set_headers(headers()) -> context_id().
+set_headers(Headers) ->
+    set_headers(Headers, ?LOGI_DEFAULT_BACKEND_MANAGER).
+
 -spec set_headers(headers(), context_ref()) -> context_ref().
 set_headers(Headers, ContextRef) ->
     ok = logi_util_assoc:assert_assoc_list(Headers),
     ?WITH_CONTEXT(ContextRef, fun (Context) -> logi_context:set_headers(lists:ukeysort(1, Headers), Context) end).
 
+-spec get_headers() -> headers().
+get_headers() ->
+    get_headers(?LOGI_DEFAULT_BACKEND_MANAGER).
+
 -spec get_headers(context_ref()) -> headers().
 get_headers(ContextRef) ->
     ?WITH_READ_CONTEXT(ContextRef, fun logi_context:get_headers/1).
+
+-spec update_headers(headers()) -> context_id().
+update_headers(Headers) ->
+    update_headers(Headers, ?LOGI_DEFAULT_BACKEND_MANAGER).
 
 -spec update_headers(headers(), context_ref()) -> context_ref().
 update_headers(Headers, ContextRef) ->
@@ -255,6 +267,10 @@ update_headers(Headers, ContextRef) ->
                           logi_context:set_headers(Merged, Context)
                   end).
 
+-spec delete_headers([header_entry_key()]) -> context_id().
+delete_headers(Keys) ->
+    delete_backend(Keys, ?LOGI_DEFAULT_BACKEND_MANAGER).
+
 -spec delete_headers([header_entry_key()], context_ref()) -> context_ref().
 delete_headers(Keys, ContextRef) ->
     ?WITH_CONTEXT(ContextRef,
@@ -264,6 +280,10 @@ delete_headers(Keys, ContextRef) ->
                           logi_context:set_headers(Headers1, Context)
                   end).
 
+-spec set_metadata(metadata()) -> context_id().
+set_metadata(MetaData) ->
+    set_metadata(MetaData, ?LOGI_DEFAULT_BACKEND_MANAGER).
+
 -spec set_metadata(metadata(), context_ref()) -> context_ref().
 set_metadata(MetaData, ContextRef) ->
     ?WITH_CONTEXT(ContextRef,
@@ -272,9 +292,17 @@ set_metadata(MetaData, ContextRef) ->
                           logi_context:set_metadata(lists:ukeysort(1, MetaData), Context)
                   end).
 
+-spec get_metadata() -> metadata().
+get_metadata() ->
+    get_metadata(?LOGI_DEFAULT_BACKEND_MANAGER).
+
 -spec get_metadata(context_ref()) -> metadata().
 get_metadata(ContextRef) ->
     ?WITH_READ_CONTEXT(ContextRef, fun logi_context:get_metadata/1).
+
+-spec update_metadata(metadata()) -> context_id().
+update_metadata(MetaData) ->
+    update_metadata(MetaData, ?LOGI_DEFAULT_BACKEND_MANAGER).
 
 -spec update_metadata(metadata(), context_ref()) -> context_ref().
 update_metadata(MetaData, ContextRef) ->
@@ -284,6 +312,10 @@ update_metadata(MetaData, ContextRef) ->
                           Merged = lists:ukeymerge(1, lists:ukeysort(1, MetaData), get_metadata(Context)),
                           logi_context:set_metadata(Merged, Context)
                   end).
+
+-spec delete_metadata([header_entry_key()]) -> context_id().
+delete_metadata(Keys) ->
+    delete_metadata(Keys, ?LOGI_DEFAULT_BACKEND_MANAGER).
 
 -spec delete_metadata([header_entry_key()], context_ref()) -> context_ref().
 delete_metadata(Keys, ContextRef) ->
