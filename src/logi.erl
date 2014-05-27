@@ -64,6 +64,18 @@
 -define(LOGI_DEFAULT_BACKEND_MANAGER, logi_default_backend_manager).
 -define(LOGI_CONTEXT_TAG, '__LOGI_CONTEXT__').
 
+-define(WITH_CONTEXT(ContextRef, Fun),
+        case logi_context:is_context(ContextRef) of
+            true  -> (Fun)(ContextRef);
+            false -> ok = save_context(ContextRef, (Fun)(load_context(ContextRef))), ContextRef
+        end).
+
+-define(WITH_READ_CONTEXT(ContextRef, Fun),
+        case logi_context:is_context(ContextRef) of
+            true  -> (Fun)(ContextRef);
+            false -> (Fun)(load_context(ContextRef))
+        end).
+
 -type backend_manager()          :: atom().
 -type context()                  :: logi:context().
 -type context_id()               :: term().
@@ -178,21 +190,15 @@ which_backends(ManagerId) ->
 -spec log_levels() -> [log_level()].
 log_levels() -> [debug, verbose, info, notice, warning, error, critical, alert, emergency].
 
--spec log(severity(), location(), io:format(), [term()], log_options()) -> context().
+-spec log(severity(), location(), io:format(), [term()], log_options()) -> context_ref().
 log(Severity, Location, Format, Args, Options) ->
     log(?LOGI_DEFAULT_BACKEND_MANAGER, Severity, Location, Format, Args, Options).
 
--spec log(backend_manager(), severity(), location(), io:format(), [term()], log_options()) -> context().
+-spec log(backend_manager(), severity(), location(), io:format(), [term()], log_options()) -> context_ref().
 log(Manager, Severity, Location, Format, Args, Options) ->
     ContextRef = logi_util_assoc:fetch(context, Options, Manager),
-    case logi_context:is_context(ContextRef) of
-        true  -> logi_client:log(Manager, Severity, Location, Format, Args, Options, ContextRef);
-        false ->
-            Context0 = load_context(ContextRef),
-            Context1 = logi_client:log(Manager, Severity, Location, Format, Args, Options, Context0),
-            ok = save_context(ContextRef, Context1),
-            Context1
-    end.
+    ?WITH_CONTEXT(ContextRef,
+                  fun (Context) -> logi_client:log(Manager, Severity, Location, Format, Args, Options, Context) end).
 
 -spec make_context() -> context().
 make_context() ->
@@ -227,48 +233,63 @@ load_context(ContextId) ->
         Context   -> Context
     end.
 
--spec which_contexts() -> [context()].
+-spec which_contexts() -> [{context_id(), context()}].
 which_contexts() ->
-    [Context || {?LOGI_CONTEXT_TAG, Context} <- get()].
+    [{Id, Context} || {{?LOGI_CONTEXT_TAG, Id}, Context} <- get()].
 
--spec set_headers(headers(), context()) -> context().
-set_headers(Headers, Context) ->
+-spec set_headers(headers(), context_ref()) -> context_ref().
+set_headers(Headers, ContextRef) ->
     ok = logi_util_assoc:assert_assoc_list(Headers),
-    logi_context:set_headers(lists:ukeysort(1, Headers), Context).
+    ?WITH_CONTEXT(ContextRef, fun (Context) -> logi_context:set_headers(lists:ukeysort(1, Headers), Context) end).
 
--spec get_headers(context()) -> headers().
-get_headers(Context) ->
-    logi_context:get_headers(Context).
+-spec get_headers(context_ref()) -> headers().
+get_headers(ContextRef) ->
+    ?WITH_READ_CONTEXT(ContextRef, fun logi_context:get_headers/1).
 
--spec update_headers(headers(), context()) -> context().
-update_headers(Headers, Context) ->
+-spec update_headers(headers(), context_ref()) -> context_ref().
+update_headers(Headers, ContextRef) ->
     ok = logi_util_assoc:assert_assoc_list(Headers),
-    Merged = lists:ukeymerge(1, lists:ukeysort(1, Headers), get_headers(Context)),
-    logi_context:set_headers(Merged, Context).
+    ?WITH_CONTEXT(ContextRef,
+                  fun (Context) ->
+                          Merged = lists:ukeymerge(1, lists:ukeysort(1, Headers), get_headers(Context)),
+                          logi_context:set_headers(Merged, Context)
+                  end).
 
--spec delete_headers([header_entry_key()], context()) -> context().
-delete_headers(Keys, Context) ->
-    Headers0 = get_headers(Context),
-    Headers1 = lists:foldl(fun (Key, Acc) -> lists:keydelete(Key, 1, Acc) end, Keys, Headers0),
-    logi_context:set_headers(Headers1, Context).
+-spec delete_headers([header_entry_key()], context_ref()) -> context_ref().
+delete_headers(Keys, ContextRef) ->
+    ?WITH_CONTEXT(ContextRef,
+                  fun (Context) ->
+                          Headers0 = get_headers(Context),
+                          Headers1 = lists:foldl(fun (Key, Acc) -> lists:keydelete(Key, 1, Acc) end, Keys, Headers0),
+                          logi_context:set_headers(Headers1, Context)
+                  end).
 
--spec set_metadata(metadata(), context()) -> context().
-set_metadata(MetaData, Context) ->
+-spec set_metadata(metadata(), context_ref()) -> context_ref().
+set_metadata(MetaData, ContextRef) ->
+    ?WITH_CONTEXT(ContextRef,
+                  fun (Context) ->
+                          ok = logi_util_assoc:assert_assoc_list(MetaData),
+                          logi_context:set_metadata(lists:ukeysort(1, MetaData), Context)
+                  end).
+
+-spec get_metadata(context_ref()) -> metadata().
+get_metadata(ContextRef) ->
+    ?WITH_READ_CONTEXT(ContextRef, fun logi_context:get_metadata/1).
+
+-spec update_metadata(metadata(), context_ref()) -> context_ref().
+update_metadata(MetaData, ContextRef) ->
     ok = logi_util_assoc:assert_assoc_list(MetaData),
-    logi_context:set_metadata(lists:ukeysort(1, MetaData), Context).
+    ?WITH_CONTEXT(ContextRef,
+                  fun (Context) ->
+                          Merged = lists:ukeymerge(1, lists:ukeysort(1, MetaData), get_metadata(Context)),
+                          logi_context:set_metadata(Merged, Context)
+                  end).
 
--spec get_metadata(context()) -> metadata().
-get_metadata(Context) ->
-    logi_context:get_metadata(Context).
-
--spec update_metadata(metadata(), context()) -> context().
-update_metadata(MetaData, Context) ->
-    ok = logi_util_assoc:assert_assoc_list(MetaData),
-    Merged = lists:ukeymerge(1, lists:ukeysort(1, MetaData), get_metadata(Context)),
-    logi_context:set_metadata(Merged, Context).
-
--spec delete_metadata([header_entry_key()], context()) -> context().
-delete_metadata(Keys, Context) ->
-    MetaData0 = get_metadata(Context),
-    MetaData1 = lists:foldl(fun (Key, Acc) -> lists:keydelete(Key, 1, Acc) end, Keys, MetaData0),
-    logi_context:set_metadata(MetaData1, Context).
+-spec delete_metadata([header_entry_key()], context_ref()) -> context_ref().
+delete_metadata(Keys, ContextRef) ->
+    ?WITH_CONTEXT(ContextRef,
+                  fun (Context) ->
+                          MetaData0 = get_metadata(Context),
+                          MetaData1 = lists:foldl(fun (Key, Acc) -> lists:keydelete(Key, 1, Acc) end, Keys, MetaData0),
+                          logi_context:set_metadata(MetaData1, Context)
+                  end).
