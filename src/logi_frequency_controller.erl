@@ -67,8 +67,8 @@ get_location_id(Location) ->
       MaybePolicyState :: {value, policy_state()} | none.
 check_policy(once, MaybeState) ->
     case MaybeState =:= {value, once} of
-        true  -> {{true, 0}, once};
-        false -> {false, once}
+        false -> {{true, 0}, once};
+        true  -> {false, once}
     end;
 check_policy({once_in_times, Times}, MaybeState) ->
     Count = case MaybeState of
