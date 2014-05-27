@@ -42,7 +42,7 @@ log(Manager, Severity, Location, Format, Args, Options, Context) ->
 -spec format_message(module(), logi:backend(), logi:location(), io:format(), [term()], logi:msg_info()) -> {ok, iodata()} | error.
 format_message(Module, Backend, Location, Format, Args, MsgInfo) ->
     try 
-        {ok, Module:format(Backend, Location ,Format, Args, MsgInfo)}
+        {ok, Module:format(Backend, MsgInfo, Location ,Format, Args)}
     catch
         Class:Reason ->
             ok = error_logger:error_msg(
