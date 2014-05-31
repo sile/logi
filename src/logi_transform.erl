@@ -80,7 +80,15 @@ expand_severity(Severity) ->
 
 default_manager(Line) ->
     {atom, Line, logi:default_backend_manager()}.
-
+transform_statement({call, Line, {remote, _Line1, {atom, _Line2, logi}, {atom, _Line3, location}}, []}, Location) ->
+    {call, Line,
+     {remote, Line, {atom, Line, logi_location}, {atom, Line, make}},
+     [{call, Line, {atom, Line, node}, []},
+      {call, Line, {atom, Line, self}, []},
+      {atom, Line, Location#location.application},
+      {atom, Line, Location#location.module},
+      {atom, Line, Location#location.function},
+      {integer, Line, Line}]};
 transform_statement({call, Line, {remote, _Line1, {atom, _Line2, logi}, {atom, _Line3, Severity0}}, Args} = Stmt, Location) ->
     Location2 = Location#location{line = Line},
     case {expand_severity(Severity0), Args} of
