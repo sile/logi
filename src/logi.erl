@@ -239,10 +239,10 @@ which_contexts() ->
 
 -spec set_headers(headers()) -> context_id().
 set_headers(Headers) ->
-    set_headers(Headers, ?LOGI_DEFAULT_BACKEND_MANAGER).
+    set_headers(?LOGI_DEFAULT_BACKEND_MANAGER, Headers).
 
--spec set_headers(headers(), context_ref()) -> context_ref().
-set_headers(Headers, ContextRef) ->
+-spec set_headers(context_ref(), headers()) -> context_ref().
+set_headers(ContextRef, Headers) ->
     ok = logi_util_assoc:assert_assoc_list(Headers),
     ?WITH_CONTEXT(ContextRef, fun (Context) -> logi_context:set_headers(lists:ukeysort(1, Headers), Context) end).
 
@@ -256,10 +256,10 @@ get_headers(ContextRef) ->
 
 -spec update_headers(headers()) -> context_id().
 update_headers(Headers) ->
-    update_headers(Headers, ?LOGI_DEFAULT_BACKEND_MANAGER).
+    update_headers(?LOGI_DEFAULT_BACKEND_MANAGER, Headers).
 
--spec update_headers(headers(), context_ref()) -> context_ref().
-update_headers(Headers, ContextRef) ->
+-spec update_headers(context_ref(), headers()) -> context_ref().
+update_headers(ContextRef, Headers) ->
     ok = logi_util_assoc:assert_assoc_list(Headers),
     ?WITH_CONTEXT(ContextRef,
                   fun (Context) ->
@@ -269,10 +269,10 @@ update_headers(Headers, ContextRef) ->
 
 -spec delete_headers([header_entry_key()]) -> context_id().
 delete_headers(Keys) ->
-    delete_backend(Keys, ?LOGI_DEFAULT_BACKEND_MANAGER).
+    delete_backend(?LOGI_DEFAULT_BACKEND_MANAGER, Keys).
 
--spec delete_headers([header_entry_key()], context_ref()) -> context_ref().
-delete_headers(Keys, ContextRef) ->
+-spec delete_headers(context_ref(), [header_entry_key()]) -> context_ref().
+delete_headers(ContextRef, Keys) ->
     ?WITH_CONTEXT(ContextRef,
                   fun (Context) ->
                           Headers0 = get_headers(Context),
@@ -282,10 +282,10 @@ delete_headers(Keys, ContextRef) ->
 
 -spec set_metadata(metadata()) -> context_id().
 set_metadata(MetaData) ->
-    set_metadata(MetaData, ?LOGI_DEFAULT_BACKEND_MANAGER).
+    set_metadata(?LOGI_DEFAULT_BACKEND_MANAGER, MetaData).
 
--spec set_metadata(metadata(), context_ref()) -> context_ref().
-set_metadata(MetaData, ContextRef) ->
+-spec set_metadata(context_ref(), metadata()) -> context_ref().
+set_metadata(ContextRef, MetaData) ->
     ?WITH_CONTEXT(ContextRef,
                   fun (Context) ->
                           ok = logi_util_assoc:assert_assoc_list(MetaData),
@@ -304,8 +304,8 @@ get_metadata(ContextRef) ->
 update_metadata(MetaData) ->
     update_metadata(MetaData, ?LOGI_DEFAULT_BACKEND_MANAGER).
 
--spec update_metadata(metadata(), context_ref()) -> context_ref().
-update_metadata(MetaData, ContextRef) ->
+-spec update_metadata(context_ref(), metadata()) -> context_ref().
+update_metadata(ContextRef, MetaData) ->
     ok = logi_util_assoc:assert_assoc_list(MetaData),
     ?WITH_CONTEXT(ContextRef,
                   fun (Context) ->
@@ -315,10 +315,10 @@ update_metadata(MetaData, ContextRef) ->
 
 -spec delete_metadata([header_entry_key()]) -> context_id().
 delete_metadata(Keys) ->
-    delete_metadata(Keys, ?LOGI_DEFAULT_BACKEND_MANAGER).
+    delete_metadata(?LOGI_DEFAULT_BACKEND_MANAGER, Keys).
 
--spec delete_metadata([header_entry_key()], context_ref()) -> context_ref().
-delete_metadata(Keys, ContextRef) ->
+-spec delete_metadata(context_ref(), [header_entry_key()]) -> context_ref().
+delete_metadata(ContextRef, Keys) ->
     ?WITH_CONTEXT(ContextRef,
                   fun (Context) ->
                           MetaData0 = get_metadata(Context),
