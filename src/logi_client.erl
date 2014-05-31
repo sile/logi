@@ -45,9 +45,9 @@ format_message(Module, Backend, Location, Format, Args, MsgInfo) ->
         {ok, Module:format(Backend, MsgInfo, Location ,Format, Args)}
     catch
         Class:Reason ->
-            ok = error_logger:error_msg(
-                   logi_io_lib:format_error(Class, Reason, erlang:get_stacktrace(),
-                                            "~p:format/4 error: args=~p", [Module, [Backend, Location, Format, Args, MsgInfo]])),
+            _ = error_logger:error_msg(
+                  logi_io_lib:format_error(Class, Reason, erlang:get_stacktrace(),
+                                           "~p:format/4 error: args=~p", [Module, [Backend, Location, Format, Args, MsgInfo]])),
             error
     end.
 

@@ -31,7 +31,7 @@
 %%------------------------------------------------------------------------------------------------------------------------
 -record(state,
         {
-          id    :: logi:backend_manager_id(),
+          id    :: logi:backend_manager(),
           table :: logi_backend_table:table()
         }).
 
@@ -45,43 +45,43 @@ start_link(Name) ->
     gen_server:start_link({local, Name}, ?MODULE, [Name], []).
 
 %% @doc マネージャを停止する
--spec stop(logi:backend_manager_id()) -> ok.
+-spec stop(logi:backend_manager()) -> ok.
 stop(ManagerId) ->
     gen_server:cast(ManagerId, stop).
 
 %% @doc マネージャのIDを取得する
--spec get_id(pid() | logi:backend_manager_id()) -> logi:backend_manager_id().
+-spec get_id(pid() | logi:backend_manager()) -> logi:backend_manager().
 get_id(ManagerRef) ->
     gen_server:call(ManagerRef, get_id).
     
 %% @doc バックエンドを追加する
--spec add_backend(logi:backend_manager_ref(), logi:backend()) -> ok | {error, Reason} when
+-spec add_backend(logi:backend_manager(), logi:backend()) -> ok | {error, Reason} when
       Reason :: {already_exists, logi:backend()}.
 add_backend(ManagerRef, Backend) ->
     gen_server:call(ManagerRef, {add_backend, Backend}).
 
 %% @doc バックエンドを更新する
--spec update_backend(logi:backend_manager_ref(), logi:backend()) -> ok | {error, not_found}.
+-spec update_backend(logi:backend_manager(), logi:backend()) -> ok | {error, not_found}.
 update_backend(ManagerRef, Backend) ->
     gen_server:call(ManagerRef, {update_backend, Backend}).
 
 %% @doc バックエンドを削除する
--spec delete_backend(logi:backend_manager_ref(), logi:backend_id()) -> ok | {error, not_found}.
+-spec delete_backend(logi:backend_manager(), logi:backend_id()) -> ok | {error, not_found}.
 delete_backend(ManagerRef, BackendId) ->
     gen_server:call(ManagerRef, {delete_backend, BackendId}).
 
 %% @doc IDに対応するバックエンドを検索する
--spec find_backend(logi:backend_manager_ref(), logi:backend_id()) -> {ok, logi:backend()} | error.
+-spec find_backend(logi:backend_manager(), logi:backend_id()) -> {ok, logi:backend()} | error.
 find_backend(ManagerRef, BackendId) ->
     logi_backend_table:find_backend(ManagerRef, BackendId).
 
 %% @doc バックエンドを一覧を返す
--spec which_backends(logi:backend_manager_ref()) -> [logi:backend()].
+-spec which_backends(logi:backend_manager()) -> [logi:backend()].
 which_backends(ManagerRef) ->
     logi_backend_table:which_backends(ManagerRef).
 
 %% @doc 条件に合致するバックエンド群を選択する
--spec select_backends(logi:backend_manager_ref(), logi:severity(), logi:location(), logi:metadata()) -> [logi:backend()].
+-spec select_backends(logi:backend_manager(), logi:severity(), logi:location(), logi:metadata()) -> [logi:backend()].
 select_backends(ManagerRef, Severity, Location, MetaData) ->
     logi_backend_table:select_backends(ManagerRef, Severity, Location, MetaData).
 

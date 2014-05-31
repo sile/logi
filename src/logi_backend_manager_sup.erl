@@ -28,18 +28,18 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 %% @doc TODO
--spec start_manager(logi:backend_manager_id()) -> {ok, pid()} | {error, Reason} when
+-spec start_manager(logi:backend_manager()) -> {ok, pid()} | {error, Reason} when
       Reason :: {already_started, pid()} | term().
 start_manager(ManagerId) ->
     supervisor:start_child(?MODULE, [ManagerId]).
 
 %% @doc TODO
--spec stop_manager(logi:backend_manager_id()) -> ok.
+-spec stop_manager(logi:backend_manager()) -> ok.
 stop_manager(ManagerId) ->
     logi_backend_manager:stop(ManagerId).
 
 %% @doc TODO
--spec which_managers() -> [pid()].
+-spec which_managers() -> [logi:backend_manager()].
 which_managers() ->
     [logi_backend_manager:get_id(Pid) || {_, Pid, _, _} <- supervisor:which_children(?MODULE), is_pid(Pid)].
 

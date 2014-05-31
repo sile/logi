@@ -51,11 +51,11 @@
               backend_data/0,
               log_level/0]).
 
--export_type([condition_spec/0, condition_clause/0, condition/0]).
+-export_type([condition_spec/0, condition/0]).
 -export_type([context/0, context_id/0, context_ref/0]).
 -export_type([header_entry/0, header_entry_key/0, header_entry_value/0]).
 -export_type([metadata_entry/0, metadata_entry_key/0, metadata_entry_value/0]).
--export_type([stacktrace/0]).
+-export_type([stacktrace/0, msg_info/0]).
 -export_type([frequency_policy/0, severity/0]).
 
 %%------------------------------------------------------------------------------------------------------------------------
@@ -75,6 +75,8 @@
             true  -> (Fun)(ContextRef);
             false -> (Fun)(load_context(ContextRef))
         end).
+
+-type msg_info() :: logi_msg_info:info().
 
 -type backend_manager()          :: atom().
 -type context()                  :: logi:context().
@@ -108,10 +110,9 @@
 -type backend_spec() :: {backend_ref(), module(), backend_data()}
                       | {backend_id(), backend_ref(), module(), backend_data()}.
 
--type condition_spec() :: condition_clause() | [condition_clause()].
--type condition_clause() :: log_level() | {log_level(), condition()}.
--type condition() :: always
-                   | {match, {module(), Function::atom(), Pattern::term()}}.
+-type condition_spec() :: logi_condition:condition_spec().
+-type condition() :: logi_condition:condition().
+
 
 -type backend() :: logi_backend:backend().
 -type backend_ref() :: pid() | atom().
@@ -302,7 +303,7 @@ get_metadata(ContextRef) ->
 
 -spec update_metadata(metadata()) -> context_id().
 update_metadata(MetaData) ->
-    update_metadata(MetaData, ?LOGI_DEFAULT_BACKEND_MANAGER).
+    update_metadata(?LOGI_DEFAULT_BACKEND_MANAGER, MetaData).
 
 -spec update_metadata(context_ref(), metadata()) -> context_ref().
 update_metadata(ContextRef, MetaData) ->

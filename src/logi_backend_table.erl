@@ -135,14 +135,14 @@ delete_condition(Table, Backend) ->
       end,
       logi:log_levels()).
 
--spec load_conditional_backends(table(), logi:severity()) -> [{logi:condition_clause(), logi:backend_id()}].
+-spec load_conditional_backends(table(), logi:severity()) -> [{logi_condition:condition_clause(), logi:backend_id()}].
 load_conditional_backends(Table, Severity) ->
     case ets:lookup(Table, {severity, Severity}) of
         []              -> [];
         [{_, Backends}] -> Backends
     end.
 
--spec save_conditional_backends(table(), logi:severity(), [{logi:condition_clause(), logi:backend_id()}]) -> ok.
+-spec save_conditional_backends(table(), logi:severity(), [{logi_condition:condition_clause(), logi:backend_id()}]) -> ok.
 save_conditional_backends(Table, Severity, Backends) ->
     true = ets:insert(Table, {{severity, Severity}, Backends}),
     ok.

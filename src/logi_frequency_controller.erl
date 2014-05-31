@@ -25,7 +25,7 @@
         }).
 
 -record(once_in_times, {count :: pos_integer()}).
--record(interval,      {last :: erlang:timestamp(), omitted_count :: pos_integer()}).
+-record(interval,      {last :: erlang:timestamp(), omitted_count :: non_neg_integer()}).
 
 -opaque controller() :: #logi_frequency_controller{}.
 

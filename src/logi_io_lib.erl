@@ -28,4 +28,6 @@ format(Format, Args, Options) ->
 
 -spec format_error(atom(), term(), logi:stacktrace(), io:format(), [term()]) -> iodata().
 format_error(Class, Reason, StackTrace, Format, Args) ->
-    error(badarg, [Class, Reason, StackTrace, Format, Args]).
+    %% XXX: 暫定
+    io_lib:format("~p ~p ~p " ++ Format, [Class, Reason, StackTrace | Args]).
+%    error(badarg, [Class, Reason, StackTrace, Format, Args]).
