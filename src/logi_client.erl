@@ -11,6 +11,7 @@
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%------------------------------------------------------------------------------------------------------------------------
+%% TODO: 出力対象に含まれない場合は、そもそもArgsが評価されないようにしたい => parse_transformでの展開を工夫する
 -spec log(logi:backend_manager(), logi:severity(), logi:location(),
           io:format(), [term()], logi:log_options(), logi:context()) -> logi:context().
 log(Manager, Severity, Location, Format, Args, Options, Context) ->
