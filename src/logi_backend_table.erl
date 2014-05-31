@@ -137,9 +137,11 @@ delete_condition(Table, Backend) ->
 
 -spec load_conditional_backends(table(), logi:severity()) -> [{logi_condition:condition_clause(), logi:backend_id()}].
 load_conditional_backends(Table, Severity) ->
-    case ets:lookup(Table, {severity, Severity}) of
+    try ets:lookup(Table, {severity, Severity}) of
         []              -> [];
         [{_, Backends}] -> Backends
+    catch
+        error:badarg -> []  % おそらく Table が存在しない
     end.
 
 -spec save_conditional_backends(table(), logi:severity(), [{logi_condition:condition_clause(), logi:backend_id()}]) -> ok.
