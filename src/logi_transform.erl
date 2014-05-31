@@ -102,17 +102,15 @@ transform_statement(Stmt, _Location) ->
 
 transform_log_statement(ManagerAst, Severity, ArgsAst, Location) ->
     #location{line = Line} = Location,
-    LocationAst
-        = {tuple, Line,
-           [
-            {atom, Line, logi_location},
-            {call, Line, {atom, Line, node}, []},
-            {call, Line, {atom, Line, self}, []},
-            {atom, Line, Location#location.application},
-            {atom, Line, Location#location.module},
-            {atom, Line, Location#location.function},
-            {integer, Line, Line}
-           ]},
+    LocationAst =
+        {call, Line,
+         {remote, Line, {atom, Line, logi_location}, {atom, Line, make}},
+         [{call, Line, {atom, Line, node}, []},
+          {call, Line, {atom, Line, self}, []},
+          {atom, Line, Location#location.application},
+          {atom, Line, Location#location.module},
+          {atom, Line, Location#location.function},
+          {integer, Line, Line}]},
     {call, Line, {remote, Line, {atom, Line, logi}, {atom, Line, log}},
      [
       ManagerAst,
