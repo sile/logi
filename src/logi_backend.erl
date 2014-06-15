@@ -13,18 +13,21 @@
 %% Exported API
 %%------------------------------------------------------------------------------------------------------------------------
 -export([
-         make/4, make/5,
+         make/1, make/3, make/4,
          update/2,
          is_backend/1,
          get_id/1,
          get_ref/1,
          get_module/1,
-         get_condition/1,
          get_data/1
         ]).
 
 -export_type([
-              backend/0
+              backend/0,
+              spec/0,
+              id/0,
+              ref/0, % TODO: rename: serve
+              data/0
              ]).
 
 %%------------------------------------------------------------------------------------------------------------------------
@@ -34,48 +37,57 @@
 
 -record(?BACKEND,
         {
-          id        :: logi:backend_id(),
-          ref       :: logi:backend_ref(),
-          module    :: module(),
-          condition :: logi:condition(),
-          data      :: logi:backend_data()
+          id     :: logi:backend_id(),
+          ref    :: logi:backend_ref(),
+          module :: module(),
+          data   :: logi:backend_data()
         }).
 
 -opaque backend() :: #?BACKEND{}.
 
+-type spec() :: {ref(), module(), data()}
+              | {id(), ref(), module(), data()}.
+
+-type id() :: term().
+-type ref() :: pid() | atom(). %% TODO: {via, ...}, {global, ...}
+-type data() :: term().
+
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%------------------------------------------------------------------------------------------------------------------------
-%% @equiv make(Ref, Ref, Module, Conditions, Data)
--spec make(logi:backend_ref(), module(), logi:condition(), logi:backend_data()) -> backend().
-make(Ref, Module, Condition, Data) ->
-    make(Ref, Ref, Module, Condition, Data).
+%% @equiv make(Ref, Ref, Module, Data)
+-spec make(logi:backend_ref(), module(), logi:backend_data()) -> backend().
+make(Ref, Module, Data) ->
+    make(Ref, Ref, Module, Data). % TODO: delete
 
 %% @doc バックエンドオブジェクトを生成する
--spec make(logi:backend_id(), logi:backend_ref(), module(), logi:condition(), logi:backend_data()) -> backend().
-make(Id, Ref, Module, Condition, Data) ->
-    case is_backend_ref(Ref) andalso is_atom(Module) andalso logi_condition:is_condition(Condition) of
-        false -> error(badarg, [Id, Ref, Module, Condition, Data]);
+-spec make(logi:backend_id(), logi:backend_ref(), module(), logi:backend_data()) -> backend().
+make(Id, Ref, Module, Data) ->
+    case is_backend_ref(Ref) andalso is_atom(Module) of
+        false -> error(badarg, [Id, Ref, Module, Data]);
         true  ->
             #?BACKEND{
-                id        = Id,
-                ref       = Ref,
-                module    = Module,
-                condition = Condition,
-                data      = Data
+                id     = Id,
+                ref    = Ref,
+                module = Module,
+                data   = Data
                }
     end.
+
+%% @doc spec()をもとにbackend()を生成する
+-spec make(spec()) -> backend().
+make({Ref, Module, Data})     -> make(Ref, Ref, Module, Data);
+make({Id, Ref, Module, Data}) -> make(Id, Ref, Module, Data);
+make(Arg)                     -> error(badrag, [Arg]).
 
 %% @doc バックエンドオブジェクトを更新する
 -spec update(UpdateList, backend()) -> backend() when
       UpdateList  :: [UpdateEntry],
-      UpdateEntry :: {id, logi:backend_id()} | {ref, logi:backend_ref()} | {module, module()}
-                   | {data, logi:backend_data()} | {condition, logi:condition()}.
+      UpdateEntry :: {id, logi:backend_id()} | {ref, logi:backend_ref()} | {module, module()} | {data, logi:backend_data()}.
 update(UpdateList, #?BACKEND{} = Backend) when is_list(UpdateList) ->
     make(logi_util_assoc:fetch(id, UpdateList, Backend#?BACKEND.id),
          logi_util_assoc:fetch(ref, UpdateList, Backend#?BACKEND.ref),
          logi_util_assoc:fetch(module, UpdateList, Backend#?BACKEND.module),
-         logi_util_assoc:fetch(condition, UpdateList, Backend#?BACKEND.condition),
          logi_util_assoc:fetch(data, UpdateList, Backend#?BACKEND.data));
 update(UpdateList, Backend) -> error(badarg, [UpdateList, Backend]).
 
@@ -95,10 +107,7 @@ get_ref(#?BACKEND{ref = Ref}) -> Ref.
 -spec get_module(backend()) -> module().
 get_module(#?BACKEND{module = Module}) -> Module.
 
-%% @doc バックエンドがログ出力を担当する際の条件指定を取得する
--spec get_condition(backend()) -> logi:condition().
-get_condition(#?BACKEND{condition = Condition}) -> Condition.
-
+%% @doc バックエンドに紐付く任意データを取得する
 -spec get_data(backend()) -> logi:backend_data().
 get_data(#?BACKEND{data = Data}) -> Data.
 

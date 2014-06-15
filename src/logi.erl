@@ -1,33 +1,42 @@
 %% @copyright 2014 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc TODO
+%% @doc ログ出力用の各種機能を提供するモジュール
 -module(logi).
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%------------------------------------------------------------------------------------------------------------------------
 -export([
+         %% 定数系
          default_backend_manager/0,
+         log_levels/0,
+
+         %% バックエンドマネージャ系
          start_backend_manager/1,
          stop_backend_manager/1,
          which_backend_managers/0,
 
+         %% バックエンド系
          add_backend/2, add_backend/3,
          delete_backend/1, delete_backend/2,
          which_backends/0, which_backends/1,
 
-         log_levels/0,
+         %% ログ出力
          log/5, log/6,
 
+         %% コンテキスト系
          make_context/0, make_context/1,
          save_context/1, save_context/2,
          load_context/0, load_context/1,
          which_contexts/0,
 
+         %% ヘッダ系
          set_headers/1, set_headers/2,
          get_headers/0, get_headers/1,
          update_headers/1, update_headers/2,
          delete_headers/1, delete_headers/2,
+
+         %% メタデータ系
          set_metadata/1, set_metadata/2,
          get_metadata/0,  get_metadata/1,
          update_metadata/1, update_metadata/2,
@@ -35,31 +44,65 @@
         ]).
 
 -export_type([
+              log_level/0,
+              severity/0,
+
               backend_manager/0,
-              location/0,
+
               metadata/0,
-              format_metadata/0,
+              metadata_entry/0,
+              metadata_entry_key/0,
+              metadata_entry_value/0,
+
               headers/0,
+              header_entry/0,
+              header_entry_key/0,
+              header_entry_value/0,
+
+              context/0,
+              context_id/0,
+              context_ref/0,
+
               log_options/0,
               log_option/0,
               frequency_policy_spec/0
              ]).
 
--export_type([backend/0,
-              backend_ref/0,
-              backend_id/0,
-              backend_data/0,
-              log_level/0]).
+%%------------------------------------------------------------------------------------------------------------------------
+%% Types
+%%------------------------------------------------------------------------------------------------------------------------
+-type log_level() :: debug | verbose | info | notice | warning | error | critical | alert | emergency.
+-type severity()  :: log_level().
 
--export_type([condition_spec/0, condition/0]).
--export_type([context/0, context_id/0, context_ref/0]).
--export_type([header_entry/0, header_entry_key/0, header_entry_value/0]).
--export_type([metadata_entry/0, metadata_entry_key/0, metadata_entry_value/0]).
--export_type([stacktrace/0, msg_info/0]).
--export_type([frequency_policy/0, severity/0]).
+-type backend_manager() :: atom().
+
+-opaque context()   :: logi_context:context().
+-type context_id()  :: term().
+-type context_ref() :: context() | context_id().
+
+-type headers()            :: [header_entry()].
+-type header_entry()       :: {header_entry_key(), header_entry_value()}.
+-type header_entry_key()   :: term().
+-type header_entry_value() :: term().
+
+-type metadata()             :: [metadata_entry()].
+-type metadata_entry()       :: {metadata_entry_key(), metadata_entry_value()}.
+-type metadata_entry_key()   :: term().
+-type metadata_entry_value() :: term().
+
+-type frequency_policy_spec() :: always
+                               | once
+                               | {once_in_times, Times::pos_integer()}
+                               | {interval, MilliSeconds::non_neg_integer()}.
+
+-type log_options() :: [log_option()].
+-type log_option() :: {context, context_ref()}
+                    | {headers, headers()}
+                    | {metadata, metadata()}
+                    | {frequency, frequency_policy_spec()}.
 
 %%------------------------------------------------------------------------------------------------------------------------
-%% Macros & Types
+%% Macros
 %%------------------------------------------------------------------------------------------------------------------------
 -define(LOGI_DEFAULT_BACKEND_MANAGER, logi_default_backend_manager).
 -define(LOGI_CONTEXT_TAG, '__LOGI_CONTEXT__').
@@ -75,67 +118,6 @@
             true  -> (Fun)(ContextRef);
             false -> (Fun)(load_context(ContextRef))
         end).
-
--type msg_info() :: logi_msg_info:info().
-
--type backend_manager()          :: atom().
--type context()                  :: logi:context().
--type context_id()               :: term().
--type context_ref()              :: context() | context_id().
--type location()                 :: logi_location:location().
--type metadata() :: [metadata_entry()].
--type format_metadata() :: [metadata_entry() | 
-                            {process, pid()} |
-                            {node, node()} |
-                            {application, atom()} |
-                            {module, module()} |
-                            {function, atom()} |
-                            {line, pos_integer()}].
-
--type headers()  :: [header_entry()].
-
--type log_options() :: [log_option()].
--type log_option() :: {context, context_ref()}
-                    | {headers, headers()}
-                    | {metadata, metadata()}
-                    | {frequency, frequency_policy_spec()}.
-
--type frequency_policy_spec() :: always
-                               | once
-                               | {once_in_times, Times::pos_integer()}
-                               | {interval, MilliSeconds::non_neg_integer()}.
-
-
--type backend_data() :: term().
--type backend_spec() :: {backend_ref(), module(), backend_data()}
-                      | {backend_id(), backend_ref(), module(), backend_data()}.
-
--type condition_spec() :: logi_condition:condition_spec().
--type condition() :: logi_condition:condition().
-
-
--type backend() :: logi_backend:backend().
--type backend_ref() :: pid() | atom().
--type backend_id() :: term().
--type log_level() :: debug | verbose | info | notice | warning | error | critical | alert | emergency.
-
--type severity() :: log_level().
-
--type frequency_policy() :: always
-                          | once
-                          | {interval_count, non_neg_integer()}
-                          | {interval_time, timeout()}.
-
-
--type header_entry()       :: {header_entry_key(), header_entry_value()}.
--type header_entry_key()   :: term().
--type header_entry_value() :: term().
-
--type metadata_entry()       :: {metadata_entry_key(), metadata_entry_value()}.
--type metadata_entry_key()   :: term().
--type metadata_entry_value() :: term().
-
--type stacktrace() :: [erlang:stack_item()].
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
@@ -156,46 +138,42 @@ stop_backend_manager(ManagerId)                         -> error(badarg, [Manage
 -spec which_backend_managers() -> [backend_manager()].
 which_backend_managers() -> logi_backend_manager_sup:which_managers().
 
--spec add_backend(condition_spec(), backend_spec()) -> ok | {error, Reason} when
-      Reason :: {already_exists, backend()}.
+-spec add_backend(logi_condition:spec(), logi_backend:spec()) -> ok | {error, Reason} when
+      Reason :: {already_exists, logi_backend:backend()}.
 add_backend(ConditionSpec, BackendSpec) ->
     add_backend(?LOGI_DEFAULT_BACKEND_MANAGER, ConditionSpec, BackendSpec).
 
--spec add_backend(backend_manager(), condition_spec(), backend_spec()) -> ok | {error, Reason} when
-      Reason :: {already_exists, backend()}.
+-spec add_backend(backend_manager(), logi_condition:spec(), logi_backend:spec()) -> ok | {error, Reason} when
+      Reason :: {already_exists, logi_backend:backend()}.
 add_backend(ManagerId, ConditionSpec, BackendSpec) ->
     Condition = logi_condition:make(ConditionSpec),
-    Backend =
-        case BackendSpec of
-            {Ref, Module, Data}     -> logi_backend:make(Ref, Module, Condition, Data);
-            {Id, Ref, Module, Data} -> logi_backend:make(Id, Ref, Module, Condition, Data)
-        end,
-    logi_backend_manager:add_backend(ManagerId, Backend).
+    Backend = logi_backend:make(BackendSpec),
+    logi_backend_manager:add_backend(ManagerId, Condition, Backend).
 
--spec delete_backend(backend_id()) -> ok | {error, not_found}.
+-spec delete_backend(logi_backend:id()) -> ok | {error, not_found}.
 delete_backend(BackendId) ->
     delete_backend(?LOGI_DEFAULT_BACKEND_MANAGER, BackendId).
 
--spec delete_backend(backend_manager(), backend_id()) -> ok | {error, not_found}.
+-spec delete_backend(backend_manager(), logi_backend:id()) -> ok | {error, not_found}.
 delete_backend(ManagerId, BackendId) ->
     logi_backend_manager:delete_backend(ManagerId, BackendId).
 
--spec which_backends() -> [logi:backend()].
+-spec which_backends() -> [logi_backend:backend()].
 which_backends() ->
     which_backends(?LOGI_DEFAULT_BACKEND_MANAGER).
 
--spec which_backends(backend_manager()) -> [logi:backend()].
+-spec which_backends(backend_manager()) -> [logi_backend:backend()].
 which_backends(ManagerId) ->
     logi_backend_manager:which_backends(ManagerId).
 
 -spec log_levels() -> [log_level()].
 log_levels() -> [debug, verbose, info, notice, warning, error, critical, alert, emergency].
 
--spec log(severity(), location(), io:format(), [term()], log_options()) -> context_ref().
+-spec log(severity(), logi_location:location(), io:format(), [term()], log_options()) -> context_ref().
 log(Severity, Location, Format, Args, Options) ->
     log(?LOGI_DEFAULT_BACKEND_MANAGER, Severity, Location, Format, Args, Options).
 
--spec log(backend_manager(), severity(), location(), io:format(), [term()], log_options()) -> context_ref().
+-spec log(backend_manager(), severity(), logi_location:location(), io:format(), [term()], log_options()) -> context_ref().
 log(Manager, Severity, Location, Format, Args, Options) ->
     ContextRef = logi_util_assoc:fetch(context, Options, Manager),
     ?WITH_CONTEXT(ContextRef,

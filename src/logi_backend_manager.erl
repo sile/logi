@@ -13,12 +13,12 @@
          start_link/1,
          stop/1,
          get_id/1,
-         add_backend/2,
+         add_backend/3,
+         update_backend/3,
          delete_backend/2,
          find_backend/2,
          which_backends/1,
-         select_backends/4,
-         update_backend/2
+         select_backends/4
         ]).
 
 %%------------------------------------------------------------------------------------------------------------------------
@@ -55,15 +55,15 @@ get_id(ManagerRef) ->
     gen_server:call(ManagerRef, get_id).
     
 %% @doc バックエンドを追加する
--spec add_backend(logi:backend_manager(), logi:backend()) -> ok | {error, Reason} when
+-spec add_backend(logi:backend_manager(), logi_condition:condition(), logi_backend:backend()) -> ok | {error, Reason} when
       Reason :: {already_exists, logi:backend()}.
-add_backend(ManagerRef, Backend) ->
-    gen_server:call(ManagerRef, {add_backend, Backend}).
+add_backend(ManagerRef, Condition, Backend) ->
+    gen_server:call(ManagerRef, {add_backend, {Condition, Backend}}).
 
 %% @doc バックエンドを更新する
--spec update_backend(logi:backend_manager(), logi:backend()) -> ok | {error, not_found}.
-update_backend(ManagerRef, Backend) ->
-    gen_server:call(ManagerRef, {update_backend, Backend}).
+-spec update_backend(logi:backend_manager(), logi_condition:condition(), logi_backend:backend()) -> ok | {error, not_found}.
+update_backend(ManagerRef, Condition, Backend) ->
+    gen_server:call(ManagerRef, {update_backend, {Condition, Backend}}).
 
 %% @doc バックエンドを削除する
 -spec delete_backend(logi:backend_manager(), logi:backend_id()) -> ok | {error, not_found}.
@@ -135,15 +135,15 @@ code_change(_OldVsn, State, _Extra) ->
 %%------------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
 %%------------------------------------------------------------------------------------------------------------------------
--spec do_add_backend(logi:backend(), #state{}) -> ok | {error, Reason} when
+-spec do_add_backend({logi_condition:condition(), logi_backend:backend()}, #state{}) -> ok | {error, Reason} when
       Reason :: {already_exists, logi:backend()}.
-do_add_backend(Backend, State) ->
+do_add_backend({Condition, Backend}, State) ->
     #state{table = Table} = State,
     case logi_backend_table:find_backend(Table, logi_backend:get_id(Backend)) of
         {ok, ExistingBackend} -> {error, {already_exists, ExistingBackend}};
         error                 ->
             ok = logi_util_process:link_if_pid(logi_backend:get_ref(Backend)),
-            ok = logi_backend_table:register_backend(Table, Backend)
+            ok = logi_backend_table:register_backend(Table, Condition, Backend)
     end.
 
 -spec do_delete_backend(logi:backend_id(), #state{}) -> ok | {error, not_found}.
@@ -154,11 +154,11 @@ do_delete_backend(BackendId, State) ->
         {ok, _} -> logi_backend_table:deregister_backend(Table, BackendId) % TODO: unlink process
     end.
 
--spec do_update_backend(logi:backend(), #state{}) -> ok | {error, not_found}.
-do_update_backend(Backend, State) ->
+-spec do_update_backend({logi_condition:condition(), logi_backend:backend()}, #state{}) -> ok | {error, not_found}.
+do_update_backend({Condition, Backend}, State) ->
     case logi_backend_table:find_backend(State#state.table, logi_backend:get_id(Backend)) of
         error   -> {error, not_found};
-        {ok, _} -> logi_backend_table:register_backend(State#state.table, Backend)
+        {ok, _} -> logi_backend_table:register_backend(State#state.table, Condition, Backend)
     end.
 
 -spec do_delete_backends_by_ref(pid(), #state{}) -> ok.

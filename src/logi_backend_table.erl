@@ -5,10 +5,10 @@
 %% ETSに格納されるデータの構造:
 %% ```
 %% %% バックエンドID => バックエンド
-%% {{backend, logi:backend_id()}, logi:backend()}
+%% {{backend, logi_backend:id()}, logi_backend:backend()}
 %%
 %% %% severity => 条件付きバックエンド
-%% {{severity, logi:severity()}, [logi:conditional_backend()]}
+%% {{severity, logi:severity()}, [{logi_condition:condition_clause(), logi:backend_id()}]}
 %% '''
 %%
 %% TODO: 諸々最適化 (constraint() で none が存在するバックエンドは、それ以外の制約は除去する、等)
@@ -22,7 +22,7 @@
          new/1,
          delete/1,
          find_backend/2,
-         register_backend/2,
+         register_backend/3,
          deregister_backend/2,
          select_backends/4,
          which_backends/1
@@ -62,11 +62,11 @@ find_backend(Table, BackendId) ->
 %% @doc バックエンドを登録する
 %%
 %% 既に同じIDに紐づくバックエンドが存在する場合は、内容が更新される
--spec register_backend(table(), logi:backend()) -> ok.
-register_backend(Table, Backend) ->
+-spec register_backend(table(), logi_condition:condition(), logi_backend:backend()) -> ok.
+register_backend(Table, Condition, Backend) ->
     ok = add_backend(Table, Backend),
     ok = delete_condition(Table, Backend), % 前回の結果を消去 (XXX: これだと更新時にログが出力されない瞬間ができてしまう)
-    ok = add_condition(Table, Backend),
+    ok = add_condition(Table, Condition, Backend),
     ok.
 
 %% @doc バックエンドの登録を解除する
@@ -107,9 +107,8 @@ delete_backend(Table, Backend) ->
     true = ets:delete(Table, {backend, logi_backend:get_id(Backend)}),
     ok.
 
--spec add_condition(table(), logi:backend()) -> ok.
-add_condition(Table, Backend) ->
-    Condition = logi_backend:get_condition(Backend),
+-spec add_condition(table(), logi_condition:condition(), logi_backend:backend()) -> ok.
+add_condition(Table, Condition, Backend) ->
     add_condition_clauses(Table, logi_backend:get_id(Backend), logi_condition:get_normalized_spec(Condition)).
 
 -spec add_condition_clauses(table(), logi:backend_id(), [logi_condition:condition_clause()]) -> ok.
