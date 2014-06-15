@@ -3,16 +3,16 @@
 %% @doc ログ出力用の各種機能を提供するモジュール
 -module(logi).
 
-%%------------------------------------------------------------------------------------------------------------------------
+%%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
-%%------------------------------------------------------------------------------------------------------------------------
+%%----------------------------------------------------------------------------------------------------------------------
 -export([
          %% 定数系
          default_backend_manager/0,
          log_levels/0,
 
          %% バックエンドマネージャ系
-         start_backend_manager/1,
+         start_backend_manager/1, ensure_backend_manager_started/1,
          stop_backend_manager/1,
          which_backend_managers/0,
 
@@ -55,9 +55,9 @@
               metadata_entry_value/0,
 
               headers/0,
-              header_entry/0,
-              header_entry_key/0,
-              header_entry_value/0,
+              header/0,
+              header_key/0,
+              header_value/0,
 
               context/0,
               context_id/0,
@@ -65,12 +65,12 @@
 
               log_options/0,
               log_option/0,
-              frequency_policy_spec/0
+              frequency_policy/0
              ]).
 
-%%------------------------------------------------------------------------------------------------------------------------
+%%----------------------------------------------------------------------------------------------------------------------
 %% Types
-%%------------------------------------------------------------------------------------------------------------------------
+%%----------------------------------------------------------------------------------------------------------------------
 -type log_level() :: debug | verbose | info | notice | warning | error | critical | alert | emergency.
 -type severity()  :: log_level().
 
@@ -80,30 +80,30 @@
 -type context_id()  :: term().
 -type context_ref() :: context() | context_id().
 
--type headers()            :: [header_entry()].
--type header_entry()       :: {header_entry_key(), header_entry_value()}.
--type header_entry_key()   :: term().
--type header_entry_value() :: term().
+-type headers()      :: [header()].
+-type header()       :: {header_key(), header_value()}.
+-type header_key()   :: term().
+-type header_value() :: term().
 
 -type metadata()             :: [metadata_entry()].
 -type metadata_entry()       :: {metadata_entry_key(), metadata_entry_value()}.
 -type metadata_entry_key()   :: term().
 -type metadata_entry_value() :: term().
 
--type frequency_policy_spec() :: always
-                               | once
-                               | {once_in_times, Times::pos_integer()}
-                               | {interval, MilliSeconds::non_neg_integer()}.
+-type frequency_policy() :: always
+                          | once
+                          | {once_in_times, Times::pos_integer()}
+                          | {interval, MilliSeconds::non_neg_integer()}.
 
 -type log_options() :: [log_option()].
 -type log_option() :: {context, context_ref()}
                     | {headers, headers()}
                     | {metadata, metadata()}
-                    | {frequency, frequency_policy_spec()}.
+                    | {frequency, frequency_policy()}.
 
-%%------------------------------------------------------------------------------------------------------------------------
+%%----------------------------------------------------------------------------------------------------------------------
 %% Macros
-%%------------------------------------------------------------------------------------------------------------------------
+%%----------------------------------------------------------------------------------------------------------------------
 -define(LOGI_DEFAULT_BACKEND_MANAGER, logi_default_backend_manager).
 -define(LOGI_CONTEXT_TAG, '__LOGI_CONTEXT__').
 
@@ -119,25 +119,62 @@
             false -> (Fun)(load_context(ContextRef))
         end).
 
-%%------------------------------------------------------------------------------------------------------------------------
+%%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
-%%------------------------------------------------------------------------------------------------------------------------
+%%----------------------------------------------------------------------------------------------------------------------
+%%------------------------------------------------------------------------------
+%% Exported Functions: Constant
+%%------------------------------------------------------------------------------
+%% @doc デフォルトのバックエンドマネージャを返す
+%%
+%% このマネージャはlogiアプリケーションの開始に合わせて自動的に起動される
 -spec default_backend_manager() -> backend_manager().
-default_backend_manager() ->
-    ?LOGI_DEFAULT_BACKEND_MANAGER.
-    
--spec start_backend_manager(backend_manager()) -> {ok, pid()} | {error, Reason} when
-      Reason :: {already_started, pid()} | term().
-start_backend_manager(ManagerId) when is_atom(ManagerId) -> logi_backend_manager_sup:start_manager(ManagerId);
-start_backend_manager(ManagerId)                         -> error(badarg, [ManagerId]).
+default_backend_manager() -> ?LOGI_DEFAULT_BACKEND_MANAGER.
 
+%% @doc 利用可能なログレベル一覧を返す
+%%
+%% 結果の並び順はログレベルの昇順
+-spec log_levels() -> [log_level()].
+log_levels() -> [debug, verbose, info, notice, warning, error, critical, alert, emergency].
+
+%%------------------------------------------------------------------------------
+%% Exported Functions: Backend Manager
+%%------------------------------------------------------------------------------
+%% @doc バックエンドマネージャを起動する
+%%
+%% 既に同名のマネージャが起動している場合は```already_started```が返される
+-spec start_backend_manager(backend_manager()) -> ok | {error, Reason} when
+      Reason :: already_started | term().
+start_backend_manager(ManagerId) when is_atom(ManagerId) ->
+    case logi_backend_manager_sup:start_manager(ManagerId) of
+        {ok, _Pid}                       -> ok;
+        {error, {already_started, _Pid}} -> already_started;
+        Other                            -> Other
+    end;
+start_backend_manager(ManagerId) -> error(badarg, [ManagerId]).
+
+%% @doc まだ未起動の場合は、指定のバックエンドマネージャを起動する
+-spec ensure_backend_manager_started(backend_manager()) -> ok | {error, Reason::term()}.
+ensure_backend_manager_started(ManagerId) ->
+    case start_backend_manager(ManagerId) of
+        {error, already_started} -> ok;
+        Other                    -> Other
+    end.
+
+%% @doc バックエンドマネージャを停止する
+%%
+%% 指定のマネージャが存在しない場合でもエラーとはならずに単に無視される
 -spec stop_backend_manager(backend_manager()) -> ok.
 stop_backend_manager(ManagerId) when is_atom(ManagerId) -> logi_backend_manager_sup:stop_manager(ManagerId);
 stop_backend_manager(ManagerId)                         -> error(badarg, [ManagerId]).
 
+%% @doc 起動中のバックエンドマネージャ一覧を取得する
 -spec which_backend_managers() -> [backend_manager()].
 which_backend_managers() -> logi_backend_manager_sup:which_managers().
 
+%%------------------------------------------------------------------------------
+%% Exported Functions: Backend
+%%------------------------------------------------------------------------------
 -spec add_backend(logi_condition:spec(), logi_backend:spec()) -> ok | {error, Reason} when
       Reason :: {already_exists, logi_backend:backend()}.
 add_backend(ConditionSpec, BackendSpec) ->
@@ -165,9 +202,6 @@ which_backends() ->
 -spec which_backends(backend_manager()) -> [logi_backend:backend()].
 which_backends(ManagerId) ->
     logi_backend_manager:which_backends(ManagerId).
-
--spec log_levels() -> [log_level()].
-log_levels() -> [debug, verbose, info, notice, warning, error, critical, alert, emergency].
 
 -spec log(severity(), logi_location:location(), io:format(), [term()], log_options()) -> context_ref().
 log(Severity, Location, Format, Args, Options) ->
@@ -246,11 +280,11 @@ update_headers(ContextRef, Headers) ->
                           logi_context:set_headers(Merged, Context)
                   end).
 
--spec delete_headers([header_entry_key()]) -> context_id().
+-spec delete_headers([header_key()]) -> context_id().
 delete_headers(Keys) ->
     delete_backend(?LOGI_DEFAULT_BACKEND_MANAGER, Keys).
 
--spec delete_headers(context_ref(), [header_entry_key()]) -> context_ref().
+-spec delete_headers(context_ref(), [header_key()]) -> context_ref().
 delete_headers(ContextRef, Keys) ->
     ?WITH_CONTEXT(ContextRef,
                   fun (Context) ->
@@ -292,11 +326,11 @@ update_metadata(ContextRef, MetaData) ->
                           logi_context:set_metadata(Merged, Context)
                   end).
 
--spec delete_metadata([header_entry_key()]) -> context_id().
+-spec delete_metadata([header_key()]) -> context_id().
 delete_metadata(Keys) ->
     delete_metadata(?LOGI_DEFAULT_BACKEND_MANAGER, Keys).
 
--spec delete_metadata(context_ref(), [header_entry_key()]) -> context_ref().
+-spec delete_metadata(context_ref(), [header_key()]) -> context_ref().
 delete_metadata(ContextRef, Keys) ->
     ?WITH_CONTEXT(ContextRef,
                   fun (Context) ->
