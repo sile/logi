@@ -262,9 +262,12 @@ log(Severity, Location, Format, Args, Options) ->
 -spec log(context_ref(), severity(), logi_location:location(), io:format(), [term()], log_options()) -> context_ref().
 log(ContextRef, Severity, Location, Format, Args, Options) ->
     ?WITH_CONTEXT(ContextRef,
-                  fun (Context) ->
-                          Logger = logi_context:get_logger(Context),
-                          logi_client:log(Logger, Severity, Location, Format, Args, Options, Context)
+                  fun (Context0) ->
+                          case logi_client:ready(Context0, Severity, Location, Options) of
+                              {skip, Context1}                  -> Context1;
+                              {ok, Backends, MsgInfo, Context1} ->
+                                  logi_client:write(Context1, Backends, Location, MsgInfo, Format, Args)
+                          end
                   end).
 
 %%------------------------------------------------------------------------------

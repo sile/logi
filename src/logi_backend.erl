@@ -6,8 +6,7 @@
 %%------------------------------------------------------------------------------------------------------------------------
 %% Behaviour Callbacks
 %%------------------------------------------------------------------------------------------------------------------------
--callback format(logi:backend(), logi:msg_info(), logi:location(), io:format(), [term()]) -> iodata().
--callback write(logi:backend(), iodata()) -> ok | {error, Reason::term()}.
+-callback write(logi_backend:backend(), logi_location:location(), logi_msg_info:info(), io:format(), [term()]) -> any().
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported API

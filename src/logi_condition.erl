@@ -12,7 +12,7 @@
          is_condition/1,
          get_spec/1,
          get_normalized_spec/1,
-         is_satisfied/3
+         is_satisfied/4
         ]).
 
 -export_type([
@@ -69,9 +69,9 @@ get_normalized_spec(#?CONDITION{spec = Spec}) ->
 get_spec(#?CONDITION{spec = Spec}) -> Spec.
 
 %% @doc メタデータが指定の制約を満たしているかどうかを判定する
--spec is_satisfied(constraint(), logi:location(), logi:metadata()) -> boolean().
-is_satisfied(none, _Location, _MetaData)               -> true;
-is_satisfied({match, {M, F, Arg}}, Location, MetaData) -> M:F(Arg, Location, MetaData). % TODO: error-handling
+-spec is_satisfied(constraint(), logi_location:location(), logi:headers(), logi:metadata()) -> boolean().
+is_satisfied(none, _Location, _Headers, _MetaData)              -> true;
+is_satisfied({match, {M, F, Arg}}, Location, Headers, MetaData) -> M:F(Arg, Location, Headers, MetaData). % TODO: error-handling
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Internal Functions

@@ -1,64 +1,57 @@
 %% @copyright 2014 Takeru Ohta <phjgt308@gmail.com>
 %%
+%% @doc ログ出力処理をハンドリングするクライアントモジュール
 %% @private
 -module(logi_client).
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%------------------------------------------------------------------------------------------------------------------------
--export([log/7]).
+-export([
+         ready/4,
+         write/6
+        ]).
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%------------------------------------------------------------------------------------------------------------------------
-%% TODO: 出力対象に含まれない場合は、そもそもArgsが評価されないようにしたい => parse_transformでの展開を工夫する
--spec log(logi:backend_manager(), logi:severity(), logi:location(),
-          io:format(), [term()], logi:log_options(), logi:context()) -> logi:context().
-log(Manager, Severity, Location, Format, Args, Options, Context) ->
-    MetaData = logi_context:get_full_metadata(logi_util_assoc:fetch(metadata, Options, []), Context),
-    case logi_backend_manager:select_backends(Manager, Severity, Location, MetaData) of
-        []       -> Context;
+%% @doc ログ出力に必要な情報の準備を行う
+%%
+%% 引数の条件(ex. Severity)に該当するバックエンドが存在しない場合には`skip'が(第一要素として)返される
+-spec ready(logi_context:context(), logi:severity(), logi_location:location(), logi:log_options()) -> Result when
+      Result :: {ok, [logi_backend:backend()], logi_msg_info:info(), logi_context:context()}
+              | {skip, logi_context:context()}.
+ready(Context0, Severity, Location, Options) ->
+    MetaData = logi_context:get_full_metadata(logi_util_assoc:fetch(metadata, Options, []), Context0),
+    Headers  = logi_context:get_full_headers(logi_util_assoc:fetch(headers, Options, []), Context0),
+    Logger = logi_context:get_logger(Context0),
+    case logi_backend_manager:select_backends(Logger, Severity, Location, Headers, MetaData) of
+        []       -> {skip, Context0};
         Backends ->
-            case logi_context:is_output_allowed(logi_util_assoc:fetch(frequency, Options, always), Location, Context) of
-                {false, Context2}                 -> Context2;
-                {{true, OmittedCount},  Context2} ->
-                    Headers = logi_context:get_full_headers(logi_util_assoc:fetch(headers, Options, []), Context2),
+            case logi_context:is_output_allowed(logi_util_assoc:fetch(frequency, Options, always), Location, Context0) of
+                {false, Context1}                 -> {skip, Context1};
+                {{true, OmittedCount},  Context1} ->
                     MsgInfo = logi_msg_info:make(Severity, os:timestamp(), Headers, MetaData, OmittedCount),
-                    ok = lists:foreach(
-                           fun (Backend) ->
-                                   Module = logi_backend:get_module(Backend),
-                                   case format_message(Module, Backend, Location, Format, Args, MsgInfo) of
-                                       error         -> ok;
-                                       {ok, Message} -> write_message(Module, Backend, Message)
-                                   end
-                           end,
-                           Backends),
-                    Context2
+                    {ok, Backends, MsgInfo, Context1}
             end
     end.
-        
-%%------------------------------------------------------------------------------------------------------------------------
-%% Internal Functions
-%%------------------------------------------------------------------------------------------------------------------------
--spec format_message(module(), logi:backend(), logi:location(), io:format(), [term()], logi:msg_info()) -> {ok, iodata()} | error.
-format_message(Module, Backend, Location, Format, Args, MsgInfo) ->
-    try 
-        {ok, Module:format(Backend, MsgInfo, Location ,Format, Args)}
-    catch
-        Class:Reason ->
-            _ = error_logger:error_msg(
-                  logi_io_lib:format_error(Class, Reason, erlang:get_stacktrace(),
-                                           "~p:format/4 error: args=~p", [Module, [Backend, Location, Format, Args, MsgInfo]])),
-            error
-    end.
 
--spec write_message(module(), logi:backend(), iodata()) -> any().
-write_message(Module, Backend, Message) ->
-    try
-        Module:write(Backend, Message)
-    catch
-        Class:Reason ->
-            error_logger:error_msg(
-              logi_io_lib:format_error(Class, Reason, erlang:get_stacktrace(),
-                                       "~p:write/2 error: args=~p", [Module, [Backend, Message]]))
-    end.
+%% @doc 引数のバックエンドを使ってログ出力(書き込み)処理を行う
+-spec write(logi_context:context(), [logi_backend:backend()], logi_location:location(), logi:msg_info(), io:format(), [term()]) ->
+                   logi_context:context().
+write(Context, Backends, Location, MsgInfo, Format, Args) ->
+    ok = lists:foreach(
+           fun (Backend) ->
+                   Module = logi_backend:get_module(Backend),
+                   try
+                       _ = Module:write(Backend, Location, MsgInfo, Format, Args)
+                   catch
+                       Class:Reason ->
+                           error_logger:error_msg(
+                             logi_io_lib:format(
+                               "~s:write/5 failed: class=~s, reason=~P, trace=~P, backend=~p, location=~p, msg_info=~p, format=~p, args=~P",
+                               [Module, Class, Reason, 20, erlang:get_stacktrace(), 20, Backend, Location, MsgInfo, Format, Args, 20]))
+                   end
+           end,
+           Backends),
+    Context.

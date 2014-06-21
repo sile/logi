@@ -17,7 +17,7 @@
          delete_backend/2,
          find_backend/2,
          which_backends/1,
-         select_backends/4,
+         select_backends/5,
          get_condition/2,
          set_condition/3
         ]).
@@ -77,9 +77,9 @@ which_backends(ManagerRef) ->
     logi_backend_table:which_backends(ManagerRef).
 
 %% @doc 条件に合致するバックエンド群を選択する
--spec select_backends(logi:logger(), logi:severity(), logi:location(), logi:metadata()) -> [logi:backend()].
-select_backends(ManagerRef, Severity, Location, MetaData) ->
-    logi_backend_table:select_backends(ManagerRef, Severity, Location, MetaData).
+-spec select_backends(logi:logger(), logi:severity(), logi:location(), logi:headers(), logi:metadata()) -> [logi:backend()].
+select_backends(ManagerRef, Severity, Location, Headers, MetaData) ->
+    logi_backend_table:select_backends(ManagerRef, Severity, Location, Headers, MetaData).
 
 %% @doc バックエンドの出力条件を取得する
 -spec get_condition(logi:logger(), logi_backend:id()) -> {ok, logi:condition()} | {error, not_found}.

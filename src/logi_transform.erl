@@ -20,7 +20,7 @@
 %%               end,
 %% Functions = guess_function(?LINE, AST),
 %% Location = logi_location:make(node(), self(), Application, ?MODULE, Function, ?LINE),
-%% logi:log(logi:default_backend_manager(), info, Location, "hello: ~p", [world], [])
+%% logi:log(logi:default_logger(), info, Location, "hello: ~p", [world], [])
 %%
 
 -record(location,
@@ -109,7 +109,8 @@ transform_statement(Stmt, Location) when is_list(Stmt) ->
 transform_statement(Stmt, _Location) ->
     Stmt.
 
-transform_log_statement(ManagerAst, Severity, ArgsAst, Location) ->
+transform_log_statement(ContextAst, Severity, ArgsAst, Location) ->
+    [FormatAst, FormatArgsAst, OptionsAst] = ArgsAst,
     #location{line = Line} = Location,
     LocationAst =
         {call, Line,
@@ -120,11 +121,21 @@ transform_log_statement(ManagerAst, Severity, ArgsAst, Location) ->
           {atom, Line, Location#location.module},
           {atom, Line, Location#location.function},
           {integer, Line, Line}]},
-    {call, Line, {remote, Line, {atom, Line, logi}, {atom, Line, log}},
+    ContextVar = {var, Line, make_varname("__Context", Line)},
+    BackendsVar = {var, Line, make_varname("__Backends", Line)},
+    MsgInfoVar = {var, Line, make_varname("__MsgInfo", Line)},
+    {'case', Line,
+     {call, Line, {remote, Line, {atom, Line, logi_client}, {atom, Line, ready}},
+      [ContextAst, {atom, Line, Severity}, LocationAst, OptionsAst]},
      [
-      ManagerAst,
-      {atom, Line, Severity},
-      LocationAst | ArgsAst
+      %% {skip, Context} -> Context
+      {clause, Line, [{tuple, Line, [{atom, Line, skip}, ContextVar]}], [],
+       [ContextVar]},
+
+      %% {ok, Backends, MsgInfo, Context} -> logi_client:write(Context, Backends, Location, MsgInfo, Format, Args)
+      {clause, Line, [{tuple, Line, [{atom, Line, ok}, BackendsVar, MsgInfoVar, ContextVar]}], [],
+       [{call, Line, {remote, Line, {atom, Line, logi_client}, {atom, Line, write}},
+         [ContextVar, BackendsVar, LocationAst, MsgInfoVar, FormatAst, FormatArgsAst]}]}
      ]}.
 
 guess_application(Dirname, Attr) when Dirname /= undefined ->
@@ -148,3 +159,6 @@ find_app_file(Dir) ->
             end;
         _ -> undefined
     end.
+
+make_varname(Prefix, Line) ->
+    list_to_atom(Prefix ++ atom_to_list(get(module)) ++ integer_to_list(Line)).
