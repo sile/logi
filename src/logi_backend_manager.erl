@@ -128,7 +128,7 @@ handle_cast(_, State) ->
     
 %% @private
 handle_info({'EXIT', Pid, _}, State) ->
-    State1 = do_delete_backends_by_ref(Pid, State),
+    State1 = do_delete_backends_by_pid(Pid, State),
     {noreply, State1};
 handle_info(_, State) ->
     {noreply, State}.
@@ -148,7 +148,7 @@ code_change(_OldVsn, State, _Extra) ->
 do_set_backend({Backend, Condition}, State) ->
     %% 名前付きプロセスが指定された場合は、たとえ一時的に死んだとしてもそのうち再起動することが期待されるので、
     %% linkによる死活監視は行わない
-    ok = logi_util_process:link_if_pid(logi_backend:get_ref(Backend)),
+    ok = logi_util_process:link_if_pid(logi_backend:get_process(Backend)),
 
     ok = logi_backend_table:register_backend(State#state.table, Condition, Backend),
     BackendToCondition = gb_trees:enter(logi_backend:get_id(Backend), Condition, State#state.backend_to_condition),
@@ -164,11 +164,11 @@ do_delete_backend(BackendId, State) ->
             State#state{backend_to_condition = BackendToCondition}
     end.
 
--spec do_delete_backends_by_ref(pid(), #state{}) -> #state{}.
-do_delete_backends_by_ref(Pid, State) ->
+-spec do_delete_backends_by_pid(pid(), #state{}) -> #state{}.
+do_delete_backends_by_pid(Pid, State) ->
     lists:foldl(
       fun (B, AccState) ->
-              case logi_backend:get_ref(B) of
+              case logi_backend:get_process(B) of
                   Pid ->
                       BackendId = logi_backend:get_id(B),
                       ok = logi_backend_table:deregister_backend(State#state.table, BackendId),

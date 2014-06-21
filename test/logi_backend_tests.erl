@@ -18,14 +18,6 @@ make_test_() ->
               Backend = logi_backend:make(backend1, self(), ?MODULE, []),
               ?assertBackend(Backend)
       end},
-     {"IDを省略してバックエンドオブジェクトが作成できる",
-      fun () ->
-              Backend = logi_backend:make(self(), ?MODULE, []),
-              ?assertBackend(Backend),
-
-              %% 省略された場合は、refがidとして使用される
-              ?assertEqual(logi_backend:get_id(Backend), logi_backend:get_ref(Backend))
-      end},
      {"IDには任意の値を指定可能",
       fun () ->
               ?assertBackend(logi_backend:make(make_ref(), self(), ?MODULE, [])),
