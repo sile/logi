@@ -190,7 +190,7 @@ set_backend(BackendSpec, ConditionSpec) ->
 set_backend(LoggerId, BackendSpec, ConditionSpec) ->
     Condition = logi_condition:make(ConditionSpec),
     Backend = logi_backend:make(BackendSpec),
-    logi_backend_manager:set_backend(LoggerId, Condition, Backend).
+    logi_backend_manager:set_backend(LoggerId, Backend, Condition).
 
 %% @equiv delete_backend(default_logger(), BackendId)
 -spec delete_backend(logi_backend:id()) -> ok | {error, not_found}.
@@ -232,7 +232,10 @@ get_condition(BackendId) ->
 %% @doc バックエンドのログ出力条件を取得する
 -spec get_condition(logger(), logi_backend:id()) -> {ok, logi_condition:condition()} | {error, not_found}.
 get_condition(LoggerId, BackendId) ->
-    logi_backend_manager:get_condition(LoggerId, BackendId).
+    case logi_backend_manager:get_condition(LoggerId, BackendId) of
+        {ok, Condition} -> {ok, logi_condition:get_spec(Condition)};
+        Other           -> Other
+    end.
 
 %% @equiv set_condition(default_logger(), BackendId, ConditionSpec)
 -spec set_condition(logi_backend:id(), logi_condition:spec()) -> ok | {error, not_found}.

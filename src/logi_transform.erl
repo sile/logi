@@ -78,8 +78,9 @@ expand_severity(Severity) ->
             end
     end.
 
-default_manager(Line) ->
-    {atom, Line, logi:default_backend_manager()}.
+default_logger(Line) ->
+    {atom, Line, logi:default_logger()}.
+
 transform_statement({call, Line, {remote, _Line1, {atom, _Line2, logi}, {atom, _Line3, location}}, []}, Location) ->
     {call, Line,
      {remote, Line, {atom, Line, logi_location}, {atom, Line, make}},
@@ -93,11 +94,11 @@ transform_statement({call, Line, {remote, _Line1, {atom, _Line2, logi}, {atom, _
     Location2 = Location#location{line = Line},
     case {expand_severity(Severity0), Args} of
         {false, _}                        -> Stmt;
-        {{Severity, false}, [_]}          -> transform_log_statement(default_manager(Line), Severity, Args ++ [{nil, Line}, {nil, Line}], Location2);
-        {{Severity, false}, [_, _]}       -> transform_log_statement(default_manager(Line), Severity, Args ++ [{nil, Line}], Location2);
+        {{Severity, false}, [_]}          -> transform_log_statement(default_logger(Line), Severity, Args ++ [{nil, Line}, {nil, Line}], Location2);
+        {{Severity, false}, [_, _]}       -> transform_log_statement(default_logger(Line), Severity, Args ++ [{nil, Line}], Location2);
         {{Severity, false}, [_, _, _]}    -> transform_log_statement(hd(Args), Severity, tl(Args) ++ [{nil, Line}], Location2);
-        {{Severity, true},  [Msg, Opts]}  -> transform_log_statement(default_manager(Line), Severity, [Msg, {nil, Line}, Opts], Location2);
-        {{Severity, true},  [_, _, _]}    -> transform_log_statement(default_manager(Line), Severity, Args, Location2);
+        {{Severity, true},  [Msg, Opts]}  -> transform_log_statement(default_logger(Line), Severity, [Msg, {nil, Line}, Opts], Location2);
+        {{Severity, true},  [_, _, _]}    -> transform_log_statement(default_logger(Line), Severity, Args, Location2);
         {{Severity, true},  [_, _, _, _]} -> transform_log_statement(hd(Args), Severity, tl(Args), Location2);
         _                                 -> Stmt
     end;
