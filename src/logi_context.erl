@@ -8,11 +8,12 @@
 %% Exported API
 %%------------------------------------------------------------------------------------------------------------------------
 -export([
-         make/0, make/2,
+         make/1, make/3,
          is_context/1,
          get_full_metadata/2,
          get_full_headers/2,
          is_output_allowed/3,
+         get_logger/1,
          set_headers/2,
          get_headers/1,
          set_metadata/2,
@@ -28,6 +29,7 @@
 %%------------------------------------------------------------------------------------------------------------------------
 -record(logi_context,
         {
+          logger               :: logi:logger(),
           headers              :: logi:headers(),
           metadata             :: logi:metadata(),
           frequency_controller :: logi_frequency_controller:controller()
@@ -38,19 +40,20 @@
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%------------------------------------------------------------------------------------------------------------------------
-%% @equiv make([], [])
--spec make() -> context().
-make() ->
-    make([], []).
+%% @equiv make(LoggerId, [], [])
+-spec make(logi:logger()) -> context().
+make(LoggerId) ->
+    make(LoggerId, [], []).
 
 %% @doc コンテキストオブジェクトを生成する
--spec make(logi:headers(), logi:metadata()) -> context().
-make(Headers, MetaData) ->
-    IsValid = logi_util_assoc:is_assoc_list(Headers) andalso logi_util_assoc:is_assoc_list(MetaData),
+-spec make(logi:logger(), logi:headers(), logi:metadata()) -> context().
+make(LoggerId, Headers, MetaData) ->
+    IsValid = is_atom(LoggerId) andalso logi_util_assoc:is_assoc_list(Headers) andalso logi_util_assoc:is_assoc_list(MetaData),
     case IsValid of
-        false -> error(badarg, [Headers, MetaData]);
+        false -> error(badarg, [LoggerId, Headers, MetaData]);
         true  ->
             #logi_context{
+               logger   = LoggerId,
                headers  = lists:ukeysort(1, Headers),
                metadata = lists:ukeysort(1, MetaData),
                frequency_controller = logi_frequency_controller:make()
@@ -78,10 +81,14 @@ is_output_allowed(Policy, Location, Context) ->
         logi_frequency_controller:is_output_allowed(Policy, Location, Context#logi_context.frequency_controller),
     {Result, Context#logi_context{frequency_controller = Controller}}.
 
+%% @doc 対象となるロガーを取得する
+-spec get_logger(context()) -> logi:logger().
+get_logger(#logi_context{logger = Logger}) -> Logger.
+
 %% 注意: Headersがソート済みであることは呼び出し元が保証する
 -spec set_headers(logi:headers(), context()) -> context().
 set_headers(Headers, Context) ->
-    Context#logi_context{headers = lists:keymerge(1, Headers, Context#logi_context.headers)}.
+    Context#logi_context{headers = Headers}.
 
 -spec get_headers(context()) -> logi:headers().
 get_headers(Context) ->
@@ -90,7 +97,7 @@ get_headers(Context) ->
 %% 注意: MetaDataがソート済みであることは呼び出し元が保証する
 -spec set_metadata(logi:metadata(), context()) -> context().
 set_metadata(MetaData, Context) ->
-    Context#logi_context{metadata = lists:keymerge(1, MetaData, Context#logi_context.metadata)}.
+    Context#logi_context{metadata = MetaData}.
 
 -spec get_metadata(context()) -> logi:metadata().
 get_metadata(Context) ->

@@ -66,9 +66,9 @@ update_backend(ManagerRef, Condition, Backend) ->
     gen_server:call(ManagerRef, {update_backend, {Condition, Backend}}).
 
 %% @doc バックエンドを削除する
--spec delete_backend(logi:backend_manager(), logi:backend_id()) -> ok | {error, not_found}.
+-spec delete_backend(logi:backend_manager(), logi:backend_id()) -> ok.
 delete_backend(ManagerRef, BackendId) ->
-    gen_server:call(ManagerRef, {delete_backend, BackendId}).
+    gen_server:cast(ManagerRef, {delete_backend, BackendId}).
 
 %% @doc IDに対応するバックエンドを検索する
 -spec find_backend(logi:backend_manager(), logi:backend_id()) -> {ok, logi:backend()} | error.
@@ -100,7 +100,6 @@ init([Name]) ->
 
 %% @private
 handle_call({add_backend, Arg},    _From, State) -> {reply, do_add_backend(Arg, State), State};
-handle_call({delete_backend, Arg}, _From, State) -> {reply, do_delete_backend(Arg, State), State};
 handle_call({update_backend, Arg}, _From, State) -> {reply, do_update_backend(Arg, State), State};
 handle_call(get_id, _From, State)                -> {reply, State#state.id, State};
 handle_call(_, _, State) ->
@@ -108,6 +107,9 @@ handle_call(_, _, State) ->
     {noreply, State}.
 
 %% @private
+handle_cast({delete_backend, Arg}, State) ->
+    ok = do_delete_backend(Arg, State),
+    {noreply, State};
 handle_cast(stop, State) ->
     {stop, normal, State};
 handle_cast(_, State) ->
@@ -129,7 +131,6 @@ terminate(_Reason, _State) ->
 
 %% @private
 code_change(_OldVsn, State, _Extra) ->
-    %% TODO: log
     {ok, State}.
 
 %%------------------------------------------------------------------------------------------------------------------------
@@ -146,11 +147,11 @@ do_add_backend({Condition, Backend}, State) ->
             ok = logi_backend_table:register_backend(Table, Condition, Backend)
     end.
 
--spec do_delete_backend(logi:backend_id(), #state{}) -> ok | {error, not_found}.
+-spec do_delete_backend(logi:backend_id(), #state{}) -> ok.
 do_delete_backend(BackendId, State) ->
     #state{table = Table} = State,
     case logi_backend_table:find_backend(Table, BackendId) of
-        error   -> {error, not_found};
+        error   -> ok;
         {ok, _} -> logi_backend_table:deregister_backend(Table, BackendId) % TODO: unlink process
     end.
 
