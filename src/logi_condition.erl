@@ -71,7 +71,19 @@ get_spec(#?CONDITION{spec = Spec}) -> Spec.
 %% @doc メタデータが指定の制約を満たしているかどうかを判定する
 -spec is_satisfied(constraint(), logi_location:location(), logi:headers(), logi:metadata()) -> boolean().
 is_satisfied(none, _Location, _Headers, _MetaData)              -> true;
-is_satisfied({match, {M, F, Arg}}, Location, Headers, MetaData) -> M:F(Arg, Location, Headers, MetaData). % TODO: error-handling
+is_satisfied({match, {M, F, Arg}}, Location, Headers, MetaData) ->
+    try
+        case M:F(Arg, Location, Headers, MetaData) of
+            true  -> true;
+            false -> false
+        end
+    catch
+        Class:Reason ->
+            error_logger:error_msg(
+              logi_io_lib:format(
+                "~s:~s/5 failed: class=~s, reason=~P, trace=~P, arg=~p, location=~p, headers=~P, metadata=~P",
+                [M, F, Class, Reason, 20, erlang:get_stacktrace(), 20, Arg, Location, Headers, 20, MetaData, 20]))
+    end.
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
