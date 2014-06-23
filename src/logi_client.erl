@@ -50,7 +50,7 @@ write(Context, Backends, Location, MsgInfo, Format, Args) ->
                            error_logger:error_msg(
                              binary_to_list(
                                logi_io_lib:format(
-                                 "~s:write/5 failed: class=~s, reason=~P, trace=~P, backend=~p, location=~p, msg_info=~p, format=~p, args=~P",
+                                 "~s:write/5 failed: class=~s, reason=~4096P, trace=~4096P, backend=~4096p, location=~4096p, msg_info=~4096p, format=~p, args=~4096P",
                                  [Module, Class, Reason, 20, erlang:get_stacktrace(), 20, Backend, Location, MsgInfo, Format, Args, 20])))
                    end
            end,

@@ -33,7 +33,7 @@ format(Format, Args) ->
 
 -spec format(io:format(), [term()], [format_option()]) -> iodata().
 format(Format, Args, Options) ->
-    Result = re:replace(io_lib:format(Format, Args), "[\\n\\r]+", "", [{return, binary}]),
+    Result = re:replace(io_lib:format(Format, Args), "[\\t ]*[\\n\\r]+", " ", [{return, binary}, global]),
     abbreviate(Result, logi_util_assoc:fetch(truncate_size, Options, ?DEFAULT_TRUNCATE_SIZE), <<"...">>).
 
 %%------------------------------------------------------------------------------------------------------------------------

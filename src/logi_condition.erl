@@ -82,7 +82,7 @@ is_satisfied({match, {M, F, Arg}}, Location, Headers, MetaData) ->
             error_logger:error_msg(
               binary_to_list(
                 logi_io_lib:format(
-                  "~s:~s/5 failed: class=~s, reason=~P, trace=~P, arg=~p, location=~p, headers=~P, metadata=~P",
+                  "~s:~s/5 failed: class=~s, reason=~4096P, trace=~4096P, arg=~4096p, location=~4096p, headers=~4096P, metadata=~4096P",
                   [M, F, Class, Reason, 20, erlang:get_stacktrace(), 20, Arg, Location, Headers, 20, MetaData, 20])))
     end.
 
