@@ -2,7 +2,7 @@
 {application, logi,
  [
   {description, "A Logger Interface Library"},
-  {vsn, "0.0.1"},
+  {vsn, git},
   {registered, [logi_sup, logi_backend_manager_sup, logi_default_backend_manager]},
   {applications, [
                   kernel,
