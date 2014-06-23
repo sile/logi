@@ -109,6 +109,12 @@
 -define(DEFAULT_LOGGER, logi_default_logger).
 -define(CONTEXT_TAG, '__LOGI_CONTEXT__').
 
+-define(LOGGER_RUNNING_CHECK(LoggerId),
+        _ = case whereis(LoggerId) of
+                undefined -> error({logger_not_running, LoggerId});
+                _         -> ok
+            end).
+
 -define(WITH_CONTEXT(ContextRef, Fun),
         case is_atom(ContextRef) of
             false -> (Fun)(ContextRef);
@@ -178,8 +184,7 @@ which_loggers() -> logi_backend_manager_sup:which_managers().
 %% Exported Functions: Backend
 %%------------------------------------------------------------------------------
 %% @equiv set_backend(default_logger(), BackendSpec, ConditionSpec)
--spec set_backend(logi_backend:spec(), logi_condition:spec()) -> ok | {error, Reason} when
-      Reason :: {already_exists, logi_backend:backend()}.
+-spec set_backend(logi_backend:spec(), logi_condition:spec()) -> ok.
 set_backend(BackendSpec, ConditionSpec) ->
     set_backend(?DEFAULT_LOGGER, BackendSpec, ConditionSpec).
 
@@ -188,6 +193,7 @@ set_backend(BackendSpec, ConditionSpec) ->
 %% 既に同じIDのバックエンドが登録済みの場合は、内容が更新される
 -spec set_backend(logger(), logi_backend:spec(), logi_condition:spec()) -> ok.
 set_backend(LoggerId, BackendSpec, ConditionSpec) ->
+    ?LOGGER_RUNNING_CHECK(LoggerId),
     Condition = logi_condition:make(ConditionSpec),
     Backend = logi_backend:make(BackendSpec),
     logi_backend_manager:set_backend(LoggerId, Backend, Condition).
@@ -202,6 +208,7 @@ delete_backend(BackendId) ->
 %% 存在しないバックエンドが指定された場合でもエラーとはならずに単に無視される
 -spec delete_backend(logger(), logi_backend:id()) -> ok.
 delete_backend(LoggerId, BackendId) ->
+    ?LOGGER_RUNNING_CHECK(LoggerId),
     logi_backend_manager:delete_backend(LoggerId, BackendId).
 
 %% @equiv find_backend(default_logger(), BackendId)
@@ -212,6 +219,7 @@ find_backend(BackendId) ->
 %% @doc バックエンドを検索する
 -spec find_backend(logger(), logi_backend:id()) -> {ok, logi_backend:backend()} | {error, not_found}.
 find_backend(LoggerId, BackendId) ->
+    ?LOGGER_RUNNING_CHECK(LoggerId),
     logi_backend_manager:find_backend(LoggerId, BackendId).
 
 %% @equiv which_backends(default_logger())
@@ -222,6 +230,7 @@ which_backends() ->
 %% @doc 登録されているバックエンド一覧を取得する
 -spec which_backends(logger()) -> [logi_backend:backend()].
 which_backends(LoggerId) ->
+    ?LOGGER_RUNNING_CHECK(LoggerId),
     logi_backend_manager:which_backends(LoggerId).
 
 %% @equiv get_condition(default_logger(), BackendId)
@@ -232,6 +241,7 @@ get_condition(BackendId) ->
 %% @doc バックエンドのログ出力条件を取得する
 -spec get_condition(logger(), logi_backend:id()) -> {ok, logi_condition:condition()} | {error, not_found}.
 get_condition(LoggerId, BackendId) ->
+    ?LOGGER_RUNNING_CHECK(LoggerId),
     case logi_backend_manager:get_condition(LoggerId, BackendId) of
         {ok, Condition} -> {ok, logi_condition:get_spec(Condition)};
         Other           -> Other
@@ -245,6 +255,7 @@ set_condition(BackendId, ConditionSpec) ->
 %% @doc バックエンドのログ出力条件を設定する
 -spec set_condition(logger(), logi_backend:id(), logi_condition:spec()) -> ok | {error, not_found}.
 set_condition(LoggerId, BackendId, ConditionSpec) ->
+    ?LOGGER_RUNNING_CHECK(LoggerId),
     Condition = logi_condition:make(ConditionSpec),
     logi_backend_manager:set_condition(LoggerId, BackendId, Condition).
 
