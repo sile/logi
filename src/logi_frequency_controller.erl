@@ -21,7 +21,7 @@
 %%------------------------------------------------------------------------------------------------------------------------
 -record(logi_frequency_controller,
         {
-          location_to_policy :: gb_trees:tree(location_id(), policy_state())
+          location_to_policy :: gb_tree() % location_id() => policy_state()
         }).
 
 -record(once_in_times, {count :: pos_integer()}).
@@ -46,7 +46,7 @@ make() ->
       }.
 
 %% @doc 出力が許可されているかどうかを判定する
--spec is_output_allowed(logi:frequency_policy_spec(), logi:location(), controller()) -> {{true, non_neg_integer()} | false, controller()}.
+-spec is_output_allowed(logi:frequency_policy(), logi_location:location(), controller()) -> {{true, non_neg_integer()} | false, controller()}.
 is_output_allowed(always, _Location, Controller) ->
     {{true, 0}, Controller};
 is_output_allowed(PolicySpec, Location, Controller) ->
@@ -63,7 +63,7 @@ is_output_allowed(PolicySpec, Location, Controller) ->
 get_location_id(Location) ->
     {logi_location:get_module(Location), logi_location:get_line(Location)}.
 
--spec check_policy(logi:frequency_policy_spec(), MaybePolicyState) -> {boolean(), policy_state()} when
+-spec check_policy(logi:frequency_policy(), MaybePolicyState) -> {boolean(), policy_state()} when
       MaybePolicyState :: {value, policy_state()} | none.
 check_policy(once, MaybeState) ->
     case MaybeState =:= {value, once} of

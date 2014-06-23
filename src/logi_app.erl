@@ -20,7 +20,7 @@ start(_StartType, _StartArgs) ->
     case SupResult of
         {ok, _} ->
             case logi:start_logger(logi:default_logger()) of
-                {ok, _}         -> SupResult;
+                ok              -> SupResult;
                 {error, Reason} -> {error, {cannot_start_default_backend_manager, Reason}}
             end;
         Other -> Other

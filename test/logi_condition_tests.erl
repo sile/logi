@@ -38,7 +38,7 @@ make_test_() ->
               Spec = [info, debug, verbose, warning, alert],
               ?assertCond(logi_condition:make(Spec))
       end},
-     {"条件指定には logi:condition_spec() 型の値が定可能",
+     {"条件指定には logi_condition:spec() 型の値が定可能",
       fun () ->
               %% OK
               Spec1 = info, % ログレベルのみ指定

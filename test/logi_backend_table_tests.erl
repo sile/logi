@@ -3,7 +3,7 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--export([metadata_member/3]).
+-export([metadata_member/4]).
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Macros
@@ -131,23 +131,23 @@ select_backends_test_() ->
                
                %% severity=info, metadata=[]
                ?assertEqual([Backend1],
-                            logi_backend_table:select_backends(test, info, Location, [])),
+                            logi_backend_table:select_backends(test, info, Location, [], [])),
 
                %% severity=warning, metadata=[]
                ?assertEqual([Backend1],
-                            logi_backend_table:select_backends(test, warning, Location, [])),
+                            logi_backend_table:select_backends(test, warning, Location, [], [])),
 
                %% severity=warning, metadata=[{module, hoge}]
                ?assertEqual([Backend1, Backend3],
-                            logi_backend_table:select_backends(test, warning, Location, [{module, hoge}])),
+                            logi_backend_table:select_backends(test, warning, Location, [], [{module, hoge}])),
 
                %% severity=info, metadata=[{module, hoge}]
                ?assertEqual([Backend1, Backend3],
-                            logi_backend_table:select_backends(test, info, Location, [{module, hoge}])),
+                            logi_backend_table:select_backends(test, info, Location, [], [{module, hoge}])),
 
                %% severity=verbose, metadata=[{module, hoge}]
                ?assertEqual([Backend3],
-                            logi_backend_table:select_backends(test, verbose, Location, [{module, hoge}]))
+                            logi_backend_table:select_backends(test, verbose, Location, [], [{module, hoge}]))
        end},
       {"IDが重複したバックエンドを登録した場合は、後のものの内容が優先される",
        fun () ->
@@ -156,17 +156,17 @@ select_backends_test_() ->
                Condition1 = logi_condition:make(debug),
                Backend1 = logi_backend:make(backend1, self(), ?MODULE, []),
                ok = logi_backend_table:register_backend(test, Condition1, Backend1),
-               ?assertEqual([Backend1], logi_backend_table:select_backends(test, info, Location, [])), % infoでヒットする
+               ?assertEqual([Backend1], logi_backend_table:select_backends(test, info, Location, [], [])), % infoでヒットする
                             
                Condition2 = logi_condition:make(alert),
                Backend2 = logi_backend:make(backend1, self(), ?MODULE, []),
                ok = logi_backend_table:register_backend(test, Condition2, Backend2),
-               ?assertEqual([], logi_backend_table:select_backends(test, info, Location, [])), % infoではヒットしない
-               ?assertEqual([Backend2], logi_backend_table:select_backends(test, alert, Location, [])) % alertでヒットする
+               ?assertEqual([], logi_backend_table:select_backends(test, info, Location, [], [])), % infoではヒットしない
+               ?assertEqual([Backend2], logi_backend_table:select_backends(test, alert, Location, [], [])) % alertでヒットする
        end}
      ]}.
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
 %%------------------------------------------------------------------------------------------------------------------------
-metadata_member(X, _, MetaData) -> lists:member(X, MetaData).
+metadata_member(X, _, _, MetaData) -> lists:member(X, MetaData).

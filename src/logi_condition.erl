@@ -17,7 +17,7 @@
 
 -export_type([
               condition/0,
-              condition_spec/0,
+              spec/0,
               condition_clause/0,
               constraint/0
              ]).
@@ -29,12 +29,12 @@
 
 -record(?CONDITION,
         {
-          spec :: condition_spec()
+          spec :: spec()
         }).
 
 -opaque condition() :: #?CONDITION{}.
 
--type condition_spec()   :: condition_clause() | [condition_clause()].
+-type spec()             :: condition_clause() | [condition_clause()].
 -type condition_clause() :: logi:log_level() | {logi:log_level(), constraint()}.
 -type constraint()       :: {match, {module(), Function::atom(), Arg::term()}}
                           | none.
@@ -43,7 +43,7 @@
 %% Exported Functions
 %%------------------------------------------------------------------------------------------------------------------------
 %% @doc ログ出力条件オブジェクトを再生する
--spec make(condition_spec()) -> condition().
+-spec make(spec()) -> condition().
 make(Spec) ->
     case is_condition_spec(Spec) of
         false -> error(badarg, [Spec]);
@@ -65,7 +65,7 @@ get_normalized_spec(#?CONDITION{spec = Spec}) ->
     get_normalized_spec(#?CONDITION{spec = [Spec]}).
 
 %% @doc 出力指定を取得する
--spec get_spec(condition()) -> condition_spec().
+-spec get_spec(condition()) -> spec().
 get_spec(#?CONDITION{spec = Spec}) -> Spec.
 
 %% @doc メタデータが指定の制約を満たしているかどうかを判定する
@@ -80,15 +80,16 @@ is_satisfied({match, {M, F, Arg}}, Location, Headers, MetaData) ->
     catch
         Class:Reason ->
             error_logger:error_msg(
-              logi_io_lib:format(
-                "~s:~s/5 failed: class=~s, reason=~P, trace=~P, arg=~p, location=~p, headers=~P, metadata=~P",
-                [M, F, Class, Reason, 20, erlang:get_stacktrace(), 20, Arg, Location, Headers, 20, MetaData, 20]))
+              binary_to_list(
+                logi_io_lib:format(
+                  "~s:~s/5 failed: class=~s, reason=~P, trace=~P, arg=~p, location=~p, headers=~P, metadata=~P",
+                  [M, F, Class, Reason, 20, erlang:get_stacktrace(), 20, Arg, Location, Headers, 20, MetaData, 20])))
     end.
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
 %%------------------------------------------------------------------------------------------------------------------------
--spec is_condition_spec(condition_spec()) -> boolean().
+-spec is_condition_spec(spec()) -> boolean().
 is_condition_spec(Level) when is_atom(Level) -> is_log_level(Level);
 is_condition_spec({Level, Constraint})       -> is_log_level(Level) andalso is_constraint(Constraint);
 is_condition_spec(List) when is_list(List)   -> lists:all(fun (X) -> not is_list(X) andalso is_condition_spec(X) end, List);

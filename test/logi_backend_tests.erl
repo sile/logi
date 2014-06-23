@@ -54,7 +54,7 @@ get_test_() ->
       fun () ->
               Backend = logi_backend:make(backend1, self(), ?MODULE, []),
               ?assertEqual(backend1, logi_backend:get_id(Backend)),
-              ?assertEqual(self(), logi_backend:get_ref(Backend)),
+              ?assertEqual(self(), logi_backend:get_process(Backend)),
               ?assertEqual(?MODULE, logi_backend:get_module(Backend)),
               ?assertEqual([], logi_backend:get_data(Backend))
       end}

@@ -37,7 +37,7 @@ ready(Context0, Severity, Location, Options) ->
     end.
 
 %% @doc 引数のバックエンドを使ってログ出力(書き込み)処理を行う
--spec write(logi_context:context(), [logi_backend:backend()], logi_location:location(), logi:msg_info(), io:format(), [term()]) ->
+-spec write(logi_context:context(), [logi_backend:backend()], logi_location:location(), logi_msg_info:info(), io:format(), [term()]) ->
                    logi_context:context().
 write(Context, Backends, Location, MsgInfo, Format, Args) ->
     ok = lists:foreach(
@@ -48,9 +48,10 @@ write(Context, Backends, Location, MsgInfo, Format, Args) ->
                    catch
                        Class:Reason ->
                            error_logger:error_msg(
-                             logi_io_lib:format(
-                               "~s:write/5 failed: class=~s, reason=~P, trace=~P, backend=~p, location=~p, msg_info=~p, format=~p, args=~P",
-                               [Module, Class, Reason, 20, erlang:get_stacktrace(), 20, Backend, Location, MsgInfo, Format, Args, 20]))
+                             binary_to_list(
+                               logi_io_lib:format(
+                                 "~s:write/5 failed: class=~s, reason=~P, trace=~P, backend=~p, location=~p, msg_info=~p, format=~p, args=~P",
+                                 [Module, Class, Reason, 20, erlang:get_stacktrace(), 20, Backend, Location, MsgInfo, Format, Args, 20])))
                    end
            end,
            Backends),

@@ -62,27 +62,27 @@ set_backend(ManagerRef, Backend, Condition) ->
     gen_server:call(ManagerRef, {set_backend, {Backend, Condition}}).
 
 %% @doc バックエンドを削除する
--spec delete_backend(logi:logger(), logi:backend_id()) -> ok.
+-spec delete_backend(logi:logger(), logi_backend:id()) -> ok.
 delete_backend(ManagerRef, BackendId) ->
     gen_server:cast(ManagerRef, {delete_backend, BackendId}).
 
 %% @doc IDに対応するバックエンドを検索する
--spec find_backend(logi:logger(), logi:backend_id()) -> {ok, logi:backend()} | error.
+-spec find_backend(logi:logger(), logi_backend:id()) -> {ok, logi_backend:backend()} | error.
 find_backend(ManagerRef, BackendId) ->
     logi_backend_table:find_backend(ManagerRef, BackendId).
 
 %% @doc バックエンドを一覧を返す
--spec which_backends(logi:logger()) -> [logi:backend()].
+-spec which_backends(logi:logger()) -> [logi_backend:backend()].
 which_backends(ManagerRef) ->
     logi_backend_table:which_backends(ManagerRef).
 
 %% @doc 条件に合致するバックエンド群を選択する
--spec select_backends(logi:logger(), logi:severity(), logi:location(), logi:headers(), logi:metadata()) -> [logi:backend()].
+-spec select_backends(logi:logger(), logi:severity(), logi_location:location(), logi:headers(), logi:metadata()) -> [logi_backend:backend()].
 select_backends(ManagerRef, Severity, Location, Headers, MetaData) ->
     logi_backend_table:select_backends(ManagerRef, Severity, Location, Headers, MetaData).
 
 %% @doc バックエンドの出力条件を取得する
--spec get_condition(logi:logger(), logi_backend:id()) -> {ok, logi:condition()} | {error, not_found}.
+-spec get_condition(logi:logger(), logi_backend:id()) -> {ok, logi_condition:condition()} | {error, not_found}.
 get_condition(ManagerRef, BackendId) ->
     gen_server:call(ManagerRef, {get_condition, BackendId}).
 
@@ -112,8 +112,8 @@ handle_call({set_condition, Arg}, _From, State) ->
     State1 = do_set_condition(Arg, State),
     {reply, ok, State1};
 handle_call({set_backend, Arg}, _From, State) ->
-    {Result, State1} = do_set_backend(Arg, State),
-    {reply, Result, State1};
+    State1 = do_set_backend(Arg, State),
+    {reply, ok, State1};
 handle_call(_, _, State) ->
     {noreply, State}.
 
@@ -154,7 +154,7 @@ do_set_backend({Backend, Condition}, State) ->
     BackendToCondition = gb_trees:enter(logi_backend:get_id(Backend), Condition, State#state.backend_to_condition),
     State#state{backend_to_condition = BackendToCondition}.
 
--spec do_delete_backend(logi:backend_id(), #state{}) -> #state{}.
+-spec do_delete_backend(logi_backend:id(), #state{}) -> #state{}.
 do_delete_backend(BackendId, State) ->
     case logi_backend_table:find_backend(State#state.table, BackendId) of
         error   -> ok;

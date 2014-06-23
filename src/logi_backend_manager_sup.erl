@@ -28,18 +28,18 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 %% @doc 新しいマネージャを起動する
--spec start_manager(logi:backend_manager()) -> {ok, pid()} | {error, Reason} when
+-spec start_manager(logi:logger()) -> {ok, pid()} | {error, Reason} when
       Reason :: {already_started, pid()} | term().
 start_manager(ManagerId) ->
     supervisor:start_child(?MODULE, [ManagerId]).
 
 %% @doc マネージャを停止する
--spec stop_manager(logi:backend_manager()) -> ok.
+-spec stop_manager(logi:logger()) -> ok.
 stop_manager(ManagerId) ->
     logi_backend_manager:stop(ManagerId).
 
 %% @doc マネージャ一覧を取得する
--spec which_managers() -> [logi:backend_manager()].
+-spec which_managers() -> [logi:logger()].
 which_managers() ->
     [logi_backend_manager:get_id(Pid) || {_, Pid, _, _} <- supervisor:which_children(?MODULE), is_pid(Pid)].
 

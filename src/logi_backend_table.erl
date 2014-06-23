@@ -8,7 +8,7 @@
 %% {{backend, logi_backend:id()}, logi_backend:backend()}
 %%
 %% %% severity => 条件付きバックエンド
-%% {{severity, logi:severity()}, [{logi_condition:condition_clause(), logi:backend_id()}]}
+%% {{severity, logi:severity()}, [{logi_condition:condition_clause(), logi_backend:id()}]}
 %% '''
 %%
 %% TODO: 諸々最適化 (constraint() で none が存在するバックエンドは、それ以外の制約は除去する、等)
@@ -52,7 +52,7 @@ delete(Table) ->
     ok.
 
 %% @doc バックエンドを検索する
--spec find_backend(table(), logi:backend_id()) -> {ok, logi:backend()} | error.
+-spec find_backend(table(), logi_backend:id()) -> {ok, logi_backend:backend()} | error.
 find_backend(Table, BackendId) ->
     case ets:lookup(Table, {backend, BackendId}) of
         []             -> error;
@@ -72,7 +72,7 @@ register_backend(Table, Condition, Backend) ->
 %% @doc バックエンドの登録を解除する
 %%
 %% IDに対応するバックエンドが存在しない場合は、単に無視される
--spec deregister_backend(table(), logi:backend_id()) -> ok.
+-spec deregister_backend(table(), logi_backend:id()) -> ok.
 deregister_backend(Table, BackendId) ->
     case find_backend(Table, BackendId) of
         error         -> ok;
@@ -83,26 +83,26 @@ deregister_backend(Table, BackendId) ->
     end.
 
 %% @doc 条件に一致するバックエンド群を選択する
--spec select_backends(table(), logi:severity(), logi:location(), logi:headers(), logi:metadata()) -> [logi:backend()].
+-spec select_backends(table(), logi:severity(), logi_location:location(), logi:headers(), logi:metadata()) -> [logi_backend:backend()].
 select_backends(Table, Severity, Location, Headers, MetaData) ->
     BackendIds = [ BackendId || {ConditionClause, BackendId} <- load_conditional_backends(Table, Severity),
                                 logi_condition:is_satisfied(ConditionClause, Location, Headers, MetaData)],
     [load_backend(Table, BackendId) || BackendId <- lists:usort(BackendIds)].
 
 %% @doc 登録済みバックエンド一覧を取得する
--spec which_backends(table()) -> [logi:backend()].
+-spec which_backends(table()) -> [logi_backend:backend()].
 which_backends(Table) ->
     [Backend || {{backend, _}, Backend} <- ets:tab2list(Table)].
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
 %%------------------------------------------------------------------------------------------------------------------------
--spec add_backend(table(), logi:backend()) -> ok.
+-spec add_backend(table(), logi_backend:backend()) -> ok.
 add_backend(Table, Backend) ->
     true = ets:insert(Table, {{backend, logi_backend:get_id(Backend)}, Backend}),
     ok.
 
--spec delete_backend(table(), logi:backend()) -> ok.
+-spec delete_backend(table(), logi_backend:backend()) -> ok.
 delete_backend(Table, Backend) ->
     true = ets:delete(Table, {backend, logi_backend:get_id(Backend)}),
     ok.
@@ -111,7 +111,7 @@ delete_backend(Table, Backend) ->
 add_condition(Table, Condition, Backend) ->
     add_condition_clauses(Table, logi_backend:get_id(Backend), logi_condition:get_normalized_spec(Condition)).
 
--spec add_condition_clauses(table(), logi:backend_id(), [logi_condition:condition_clause()]) -> ok.
+-spec add_condition_clauses(table(), logi_backend:id(), [logi_condition:condition_clause()]) -> ok.
 add_condition_clauses(_Table, _BackendId, [])                         -> ok;
 add_condition_clauses(Table, BackendId, [{Level, Constraint} | Rest]) ->
     ok = lists:foreach(
@@ -123,7 +123,7 @@ add_condition_clauses(Table, BackendId, [{Level, Constraint} | Rest]) ->
            target_severities(Level)),
     add_condition_clauses(Table, BackendId, Rest).
 
--spec delete_condition(table(), logi:backend()) -> ok.
+-spec delete_condition(table(), logi_backend:backend()) -> ok.
 delete_condition(Table, Backend) ->
     DeleteId = logi_backend:get_id(Backend),
     lists:foreach(
@@ -134,7 +134,7 @@ delete_condition(Table, Backend) ->
       end,
       logi:log_levels()).
 
--spec load_conditional_backends(table(), logi:severity()) -> [{logi_condition:condition_clause(), logi:backend_id()}].
+-spec load_conditional_backends(table(), logi:severity()) -> [{logi_condition:condition_clause(), logi_backend:id()}].
 load_conditional_backends(Table, Severity) ->
     try ets:lookup(Table, {severity, Severity}) of
         []              -> [];
@@ -143,12 +143,12 @@ load_conditional_backends(Table, Severity) ->
         error:badarg -> []  % おそらく Table が存在しない
     end.
 
--spec save_conditional_backends(table(), logi:severity(), [{logi_condition:condition_clause(), logi:backend_id()}]) -> ok.
+-spec save_conditional_backends(table(), logi:severity(), [{logi_condition:condition_clause(), logi_backend:id()}]) -> ok.
 save_conditional_backends(Table, Severity, Backends) ->
     true = ets:insert(Table, {{severity, Severity}, Backends}),
     ok.
 
--spec load_backend(table(), logi:backend_id()) -> logi:backend().
+-spec load_backend(table(), logi_backend:id()) -> logi_backend:backend().
 load_backend(Table, BackendId) ->
     [{_, Backend}] = ets:lookup(Table, {backend, BackendId}),
     Backend.

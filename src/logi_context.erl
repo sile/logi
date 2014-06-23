@@ -75,7 +75,7 @@ get_full_headers(LocalHeaders, Context) ->
     LocalHeaders ++ Context#logi_context.headers.
 
 %% @doc 出力が許可されているかどうかを判定する
--spec is_output_allowed(logi:frequency_policy_spec(), logi:location(), context()) -> {{true, non_neg_integer()} | false, context()}.
+-spec is_output_allowed(logi:frequency_policy(), logi_location:location(), context()) -> {{true, non_neg_integer()} | false, context()}.
 is_output_allowed(Policy, Location, Context) ->
     {Result, Controller} =
         logi_frequency_controller:is_output_allowed(Policy, Location, Context#logi_context.frequency_controller),

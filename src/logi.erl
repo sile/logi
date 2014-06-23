@@ -79,7 +79,7 @@
 
 -type logger() :: atom().
 
--opaque context()   :: logi_context:context().
+-type context()     :: logi_context:context(). % opaqueにしたい
 -type context_id()  :: atom().
 -type context_ref() :: context() | context_id().
 
@@ -110,9 +110,9 @@
 -define(CONTEXT_TAG, '__LOGI_CONTEXT__').
 
 -define(WITH_CONTEXT(ContextRef, Fun),
-        case logi_context:is_context(ContextRef) of
-            true  -> (Fun)(ContextRef);
-            false -> ok = save_context(ContextRef, (Fun)(load_context(ContextRef))), ContextRef
+        case is_atom(ContextRef) of
+            false -> (Fun)(ContextRef);
+            true  -> ok = save_context(ContextRef, (Fun)(load_context(ContextRef))), ContextRef
         end).
 
 -define(WITH_READ_CONTEXT(ContextRef, Fun),
@@ -308,7 +308,7 @@ load_context() ->
 %% @doc ログ出力コンテキストをプロセス辞書からロードする
 %%
 %% 指定されたIDのコンテキストが存在しない場合は`make_context(ContextId)'が代わりのデフォルト値として使用される。<br />
--spec load_context(context_id()) -> {ok, context()} | {error, not_found}.
+-spec load_context(context_id()) -> context().
 load_context(ContextId) when is_atom(ContextId) ->
     case get({?CONTEXT_TAG, ContextId}) of
         undefined -> make_context(ContextId);
