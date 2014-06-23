@@ -28,7 +28,7 @@
          log/5, log/6,
 
          %% コンテキスト系
-         make_context/1, make_context/2,
+         make_context/0, make_context/1, make_context/2,
          save_context/1, save_context/2,
          load_context/0, load_context/1,
          which_contexts/0,
@@ -273,10 +273,13 @@ log(ContextRef, Severity, Location, Format, Args, Options) ->
 %%------------------------------------------------------------------------------
 %% Exported Functions: Context
 %%------------------------------------------------------------------------------
+%% @equiv make_context(default_logger())
+-spec make_context() -> context().
+make_context() -> make_context(?DEFAULT_LOGGER).
+
 %% @equiv make_context(LoggerId, [])
 -spec make_context(logger()) -> context().
-make_context(LoggerId) ->
-    logi_context:make(LoggerId).
+make_context(LoggerId) -> logi_context:make(LoggerId).
 
 %% @doc ログ出力コンテキストを生成する
 -spec make_context(logger(), Options) -> context() when
@@ -360,7 +363,7 @@ delete_headers(ContextRef, Keys) ->
     ?WITH_CONTEXT(ContextRef,
                   fun (Context) ->
                           Headers0 = get_headers(Context),
-                          Headers1 = lists:foldl(fun (Key, Acc) -> lists:keydelete(Key, 1, Acc) end, Keys, Headers0),
+                          Headers1 = lists:foldl(fun (Key, Acc) -> lists:keydelete(Key, 1, Acc) end, Headers0, Keys),
                           logi_context:set_headers(Headers1, Context)
                   end).
 
@@ -412,7 +415,7 @@ delete_metadata(ContextRef, Keys) ->
     ?WITH_CONTEXT(ContextRef,
                   fun (Context) ->
                           MetaData0 = get_metadata(Context),
-                          MetaData1 = lists:foldl(fun (Key, Acc) -> lists:keydelete(Key, 1, Acc) end, Keys, MetaData0),
+                          MetaData1 = lists:foldl(fun (Key, Acc) -> lists:keydelete(Key, 1, Acc) end, MetaData0, Keys),
                           logi_context:set_metadata(MetaData1, Context)
                   end).
 
