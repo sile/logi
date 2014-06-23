@@ -193,7 +193,7 @@ set_backend(LoggerId, BackendSpec, ConditionSpec) ->
     logi_backend_manager:set_backend(LoggerId, Backend, Condition).
 
 %% @equiv delete_backend(default_logger(), BackendId)
--spec delete_backend(logi_backend:id()) -> ok | {error, not_found}.
+-spec delete_backend(logi_backend:id()) -> ok.
 delete_backend(BackendId) ->
     delete_backend(?DEFAULT_LOGGER, BackendId).
 
