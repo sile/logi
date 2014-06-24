@@ -18,9 +18,16 @@
 %% @doc ログ出力に必要な情報の準備を行う
 %%
 %% 引数の条件(ex. Severity)に該当するバックエンドが存在しない場合には`skip'が(第一要素として)返される
--spec ready(logi_context:context(), logi:severity(), logi_location:location(), logi:log_options()) -> Result when
+-spec ready(logi_context:context_ref(), logi:severity(), logi_location:location(), logi:log_options()) -> Result when
       Result :: {ok, [logi_backend:backend()], logi_msg_info:info(), logi_context:context()}
               | {skip, logi_context:context()}.
+ready(ContextRef, Severity, Location, Options) when is_atom(ContextRef) ->
+    Result = ready(logi:load_context(ContextRef), Severity, Location, Options),
+    ok = case Result of
+             {skip, Context}     -> logi:save_context(ContextRef, Context);
+             {ok, _, _, Context} -> logi:save_context(ContextRef, Context)
+         end,
+    Result;
 ready(Context0, Severity, Location, Options) ->
     MetaData = logi_context:get_full_metadata(logi_util_assoc:fetch(metadata, Options, []), Context0),
     Headers  = logi_context:get_full_headers(logi_util_assoc:fetch(headers, Options, []), Context0),
