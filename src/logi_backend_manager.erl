@@ -34,7 +34,7 @@
         {
           id                   :: logi:logger(),
           table                :: logi_backend_table:table(),
-          backend_to_condition :: gb_tree() % logi_backend:id() => logi_condition:condition()
+          backend_to_condition :: gb_trees:tree(logi_backend:id(), logi_condition:condition())
         }).
 
 %%------------------------------------------------------------------------------------------------------------------------

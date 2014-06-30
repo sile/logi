@@ -21,7 +21,7 @@
 %%------------------------------------------------------------------------------------------------------------------------
 -record(logi_frequency_controller,
         {
-          location_to_policy :: gb_tree() % location_id() => policy_state()
+          location_to_policy :: gb_trees:tree(location_id(), policy_state())
         }).
 
 -record(once_in_times, {count :: pos_integer()}).
