@@ -1,3 +1,4 @@
+%% coding: latin-1
 %% @copyright 2014 Takeru Ohta <phjgt308@gmail.com>
 -module(logi_backend_table_tests).
 

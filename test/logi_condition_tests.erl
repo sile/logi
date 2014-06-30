@@ -1,3 +1,4 @@
+%% coding: latin-1
 %% @copyright 2014 Takeru Ohta <phjgt308@gmail.com>
 -module(logi_condition_tests).
 
