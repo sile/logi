@@ -69,15 +69,19 @@ get_node(#logi_location{node = Node}) -> Node.
 get_process(#logi_location{process = Pid}) -> Pid.
 
 %% @doc アプリケーション名を取得する
+-spec get_application(location()) -> atom().
 get_application(#logi_location{application = App}) -> App.
 
 %% @doc モジュール名を取得する
+-spec get_module(location()) -> module().
 get_module(#logi_location{module = Module}) -> Module.
 
 %% @doc 関数名を取得する
+-spec get_function(location()) -> atom().
 get_function(#logi_location{function = Function}) -> Function.
 
 %% @doc 行番号を取得する
+-spec get_line(location()) -> line().
 get_line(#logi_location{line = Line}) -> Line.
 
 %% @doc 連想リスト形式に変換する
