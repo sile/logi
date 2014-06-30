@@ -11,6 +11,8 @@
 %%------------------------------------------------------------------------------------------------------------------------
 -define(INFO, logi_condition:make(info)).
 
+-define(BACKEND_PROCESS_NAME, hoge). % dummy name
+
 %%------------------------------------------------------------------------------------------------------------------------
 %% Unit Tests
 %%------------------------------------------------------------------------------------------------------------------------
@@ -33,12 +35,12 @@ register_backend_test_() ->
      [
       {"新規バックエンドを登録できる",
        fun () ->
-               Backend = logi_backend:make(backend1, self(), ?MODULE, []),
+               Backend = logi_backend:make(backend1, ?BACKEND_PROCESS_NAME, ?MODULE, []),
                ?assertEqual(ok, logi_backend_table:register_backend(test, ?INFO, Backend))
        end},
       {"IDが重複したバックエンドを登録した場合は、後のものの内容が優先される",
        fun () ->
-               Backend1 = logi_backend:make(backend1, self(), ?MODULE, []),
+               Backend1 = logi_backend:make(backend1, ?BACKEND_PROCESS_NAME, ?MODULE, []),
                ?assertEqual(ok, logi_backend_table:register_backend(test, ?INFO, Backend1)),
 
                Backend2 = logi_backend:make(backend1, name, moulde, [hoge,fuga]),
@@ -53,8 +55,8 @@ find_backend_test_() ->
      [
       {"登録したバックエンドを検索できる",
        fun () ->
-               Backend1 = logi_backend:make(backend1, self(), ?MODULE, []),
-               Backend2 = logi_backend:make(backend2, self(), ?MODULE, []),
+               Backend1 = logi_backend:make(backend1, ?BACKEND_PROCESS_NAME, ?MODULE, []),
+               Backend2 = logi_backend:make(backend2, ?BACKEND_PROCESS_NAME, ?MODULE, []),
                ok = logi_backend_table:register_backend(test, ?INFO, Backend1),
                ok = logi_backend_table:register_backend(test, ?INFO, Backend2),
 
@@ -63,7 +65,7 @@ find_backend_test_() ->
        end},
       {"存在しないIDが指定された場合は`error'が返る",
        fun () ->
-               Backend = logi_backend:make(backend1, self(), ?MODULE, []),
+               Backend = logi_backend:make(backend1, ?BACKEND_PROCESS_NAME, ?MODULE, []),
                ok = logi_backend_table:register_backend(test, ?INFO, Backend),
 
                ?assertEqual(error, logi_backend_table:find_backend(test, backend2))
@@ -77,8 +79,8 @@ deregister_backend_test_() ->
      [
       {"バックエンドの登録を解除できる",
        fun () ->
-               Backend1 = logi_backend:make(backend1, self(), ?MODULE, []),
-               Backend2 = logi_backend:make(backend2, self(), ?MODULE, []),
+               Backend1 = logi_backend:make(backend1, ?BACKEND_PROCESS_NAME, ?MODULE, []),
+               Backend2 = logi_backend:make(backend2, ?BACKEND_PROCESS_NAME, ?MODULE, []),
                ok = logi_backend_table:register_backend(test, ?INFO, Backend1),
                ok = logi_backend_table:register_backend(test, ?INFO, Backend2),
 
@@ -92,7 +94,7 @@ deregister_backend_test_() ->
        end},
       {"存在しないIDが指定された場合は単に無視される",
        fun () ->
-               Backend = logi_backend:make(backend1, self(), ?MODULE, []),
+               Backend = logi_backend:make(backend1, ?BACKEND_PROCESS_NAME, ?MODULE, []),
                ok = logi_backend_table:register_backend(test, ?INFO, Backend),
 
                ?assertEqual(ok, logi_backend_table:deregister_backend(test, backend2))
@@ -110,12 +112,12 @@ select_backends_test_() ->
 
                %% info以上なら対象
                Condition1 = logi_condition:make(info),
-               Backend1 = logi_backend:make(backend1, self(), ?MODULE, []),
+               Backend1 = logi_backend:make(backend1, ?BACKEND_PROCESS_NAME, ?MODULE, []),
                ok = logi_backend_table:register_backend(test, Condition1, Backend1),
 
                %% warning以上 かつ メタデータ内に`{module, hoge}'が含まれている なら対象
                Condition2 = logi_condition:make({warning, {match, {?MODULE, metadata_member, {module, hoge}}}}),
-               Backend2 = logi_backend:make(backend2, self(), ?MODULE, []),
+               Backend2 = logi_backend:make(backend2, ?BACKEND_PROCESS_NAME, ?MODULE, []),
                ok = logi_backend_table:register_backend(test, Condition2, Backend2),
 
                %% 以下のいずれかなら対象:
@@ -123,7 +125,7 @@ select_backends_test_() ->
                %% - info以上 かつ メタデータ内に`{module, fuga}'が含まれている
                Condition3 = logi_condition:make([{debug, {match, {?MODULE, metadata_member, {module, hoge}}}},
                                                  {info,  {match, {?MODULE, metadata_member, {module, fuga}}}}]),
-               Backend3 = logi_backend:make(backend2, self(), ?MODULE, []),
+               Backend3 = logi_backend:make(backend2, ?BACKEND_PROCESS_NAME, ?MODULE, []),
                ok = logi_backend_table:register_backend(test, Condition3, Backend3),
 
                Location = logi_location:make(logi, log, 100),
@@ -155,12 +157,12 @@ select_backends_test_() ->
                Location = logi_location:make(logi, log, 100),
 
                Condition1 = logi_condition:make(debug),
-               Backend1 = logi_backend:make(backend1, self(), ?MODULE, []),
+               Backend1 = logi_backend:make(backend1, ?BACKEND_PROCESS_NAME, ?MODULE, []),
                ok = logi_backend_table:register_backend(test, Condition1, Backend1),
                ?assertEqual([Backend1], logi_backend_table:select_backends(test, info, Location, [], [])), % infoでヒットする
                             
                Condition2 = logi_condition:make(alert),
-               Backend2 = logi_backend:make(backend1, self(), ?MODULE, []),
+               Backend2 = logi_backend:make(backend1, ?BACKEND_PROCESS_NAME, ?MODULE, []),
                ok = logi_backend_table:register_backend(test, Condition2, Backend2),
                ?assertEqual([], logi_backend_table:select_backends(test, info, Location, [], [])), % infoではヒットしない
                ?assertEqual([Backend2], logi_backend_table:select_backends(test, alert, Location, [], [])) % alertでヒットする

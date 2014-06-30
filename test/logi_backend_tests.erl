@@ -9,6 +9,8 @@
 %%------------------------------------------------------------------------------------------------------------------------
 -define(assertBackend(X), ?assert(logi_backend:is_backend(X))).
 
+-define(BACKEND_PROCESS_NAME, hoge). % dummy name
+
 %%------------------------------------------------------------------------------------------------------------------------
 %% Unit Tests
 %%------------------------------------------------------------------------------------------------------------------------
@@ -16,36 +18,35 @@ make_test_() ->
     [
      {"バックエンドオブジェクトが作成できる",
       fun () ->
-              Backend = logi_backend:make(backend1, self(), ?MODULE, []),
+              Backend = logi_backend:make(backend1, ?BACKEND_PROCESS_NAME, ?MODULE, []),
               ?assertBackend(Backend)
       end},
      {"IDには任意の値を指定可能",
       fun () ->
-              ?assertBackend(logi_backend:make(make_ref(), self(), ?MODULE, [])),
-              ?assertBackend(logi_backend:make([hoge, "fuga"], self(), ?MODULE, []))
+              ?assertBackend(logi_backend:make(make_ref(), ?BACKEND_PROCESS_NAME, ?MODULE, [])),
+              ?assertBackend(logi_backend:make([hoge, "fuga"], ?BACKEND_PROCESS_NAME, ?MODULE, []))
       end},
-     {"参照には プロセス名(atom()) or プロセスID(pid()) が指定可能",
+     {"バックエンドプロセスには名前付きプロセス(atom())のみが指定可能",
       fun () ->
               %% OK
-              ?assertBackend(logi_backend:make(id1, self(), ?MODULE, [])),
-              ?assertBackend(logi_backend:make(id1, name, ?MODULE, [])),
+              ?assertBackend(logi_backend:make(id1, ?BACKEND_PROCESS_NAME, ?MODULE, [])),
 
               %% NG
-              ?assertError(badarg, logi_backend:make(id1, make_ref(), ?MODULE, [])),
-              ?assertError(badarg, logi_backend:make(id1, [hoge, "fuga"], ?MODULE, []))
+              ?assertError(badarg, logi_backend:make(id1, self(), ?MODULE, [])),
+              ?assertError(badarg, logi_backend:make(id1, make_ref(), ?MODULE, []))
       end},
      {"モジュールにはモジュール名(atom())が指定可能",
       fun () ->
               %% OK
-              ?assertBackend(logi_backend:make(id1, self(), hoge, [])),
+              ?assertBackend(logi_backend:make(id1, ?BACKEND_PROCESS_NAME, hoge, [])),
 
               %% NG
-              ?assertError(badarg, logi_backend:make(id1, self(), "hoge", []))
+              ?assertError(badarg, logi_backend:make(id1, ?BACKEND_PROCESS_NAME, "hoge", []))
       end},
      {"オプションには任意の値が指定可能",
       fun () ->
-              ?assertBackend(logi_backend:make(id1, self(), ?MODULE, [{key, value}])),
-              ?assertBackend(logi_backend:make(id1, self(), ?MODULE, non_assoc_list))  % 連想リスト以外もOK
+              ?assertBackend(logi_backend:make(id1, ?BACKEND_PROCESS_NAME, ?MODULE, [{key, value}])),
+              ?assertBackend(logi_backend:make(id1, ?BACKEND_PROCESS_NAME, ?MODULE, non_assoc_list))  % 連想リスト以外もOK
       end}
     ].
 
@@ -53,9 +54,9 @@ get_test_() ->
     [
      {"作成したオブジェクトの各フィールドの値が取得できる",
       fun () ->
-              Backend = logi_backend:make(backend1, self(), ?MODULE, []),
+              Backend = logi_backend:make(backend1, ?BACKEND_PROCESS_NAME, ?MODULE, []),
               ?assertEqual(backend1, logi_backend:get_id(Backend)),
-              ?assertEqual(self(), logi_backend:get_process(Backend)),
+              ?assertEqual(?BACKEND_PROCESS_NAME, logi_backend:get_process(Backend)),
               ?assertEqual(?MODULE, logi_backend:get_module(Backend)),
               ?assertEqual([], logi_backend:get_data(Backend))
       end}

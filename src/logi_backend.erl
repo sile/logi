@@ -47,7 +47,7 @@
               | {id(), process(), module(), data()}.
 
 -type id()      :: term().
--type process() :: pid() | atom().
+-type process() :: atom().
 -type data()    :: term().
 
 %%------------------------------------------------------------------------------------------------------------------------
@@ -56,7 +56,7 @@
 %% @doc バックエンドオブジェクトを生成する
 -spec make(id(), process(), module(), data()) -> backend().
 make(Id, Process, Module, Data) ->
-    case is_backend_process(Process) andalso is_atom(Module) of
+    case is_atom(Process) andalso is_atom(Module) of
         false -> error(badarg, [Id, Process, Module, Data]);
         true  ->
             #?BACKEND{
@@ -92,9 +92,3 @@ get_module(#?BACKEND{module = Module}) -> Module.
 %% @doc バックエンドに紐付く任意データを取得する
 -spec get_data(backend()) -> data().
 get_data(#?BACKEND{data = Data}) -> Data.
-
-%%------------------------------------------------------------------------------------------------------------------------
-%% Internal Functions
-%%------------------------------------------------------------------------------------------------------------------------
--spec is_backend_process(process() | term()) -> boolean().
-is_backend_process(Process) -> is_atom(Process) orelse is_pid(Process).
