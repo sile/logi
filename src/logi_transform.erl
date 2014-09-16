@@ -161,4 +161,9 @@ find_app_file(Dir) ->
     end.
 
 make_varname(Prefix, Line) ->
-    list_to_atom(Prefix ++ atom_to_list(get(module)) ++ integer_to_list(Line)).
+    Seq = case get({?MODULE, seq}) of
+              undefined -> 0;
+              Seq0      -> Seq0
+          end,
+    put({?MODULE, seq}, Seq + 1),
+    list_to_atom(Prefix ++ "_line" ++ integer_to_list(Line) ++ "_" ++ integer_to_list(Seq)).
