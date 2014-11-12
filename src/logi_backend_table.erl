@@ -87,7 +87,7 @@ deregister_backend(Table, BackendId) ->
 select_backends(Table, Severity, Location, Headers, MetaData) ->
     BackendIds = [ BackendId || {ConditionClause, BackendId} <- load_conditional_backends(Table, Severity),
                                 logi_condition:is_satisfied(ConditionClause, Location, Headers, MetaData)],
-    [load_backend(Table, BackendId) || BackendId <- lists:usort(BackendIds)].
+    lists:filtermap(fun (BackendId) -> load_backend(Table, BackendId) end, lists:usort(BackendIds)).
 
 %% @doc 登録済みバックエンド一覧を取得する
 -spec which_backends(table()) -> [logi_backend:backend()].
@@ -148,10 +148,12 @@ save_conditional_backends(Table, Severity, Backends) ->
     true = ets:insert(Table, {{severity, Severity}, Backends}),
     ok.
 
--spec load_backend(table(), logi_backend:id()) -> logi_backend:backend().
+-spec load_backend(table(), logi_backend:id()) -> {true, logi_backend:backend()} | false.
 load_backend(Table, BackendId) ->
-    [{_, Backend}] = ets:lookup(Table, {backend, BackendId}),
-    Backend.
+    case ets:lookup(Table, {backend, BackendId}) of
+        []             -> false;
+        [{_, Backend}] -> {true, Backend}
+    end.
 
 -spec target_severities(logi:log_level()) -> [logi:log_level()].
 target_severities(Level) ->
