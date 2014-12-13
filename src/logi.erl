@@ -3,6 +3,8 @@
 %% @doc ログ出力用の各種機能を提供するモジュール
 -module(logi).
 
+-compile({no_auto_import, [error/1, error/2]}).
+
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
@@ -43,7 +45,18 @@
          set_metadata/1, set_metadata/2,
          get_metadata/0, get_metadata/1,
          delete_metadata/1, delete_metadata/2,
-         clear_metadata/0, clear_metadata/1
+         clear_metadata/0, clear_metadata/1,
+
+         %% ログ出力用の代替関数 (通常は`{parse_transform, logi_transform}'を指定してコンパイルすることを推奨)
+         debug/1, debug/2, debug/3, debug_opt/2, debug_opt/3, debug_opt/4,
+         verbose/1, verbose/2, verbose/3, verbose_opt/2, verbose_opt/3, verbose_opt/4,
+         info/1, info/2, info/3, info_opt/2, info_opt/3, info_opt/4,
+         notice/1, notice/2, notice/3, notice_opt/2, notice_opt/3, notice_opt/4,
+         warning/1, warning/2, warning/3, warning_opt/2, warning_opt/3, warning_opt/4,
+         error/1, error/2, error/3, error_opt/2, error_opt/3, error_opt/4,
+         critical/1, critical/2, critical/3, critical_opt/2, critical_opt/3, critical_opt/4,
+         alert/1, alert/2, alert/3, alert_opt/2, alert_opt/3, alert_opt/4,
+         emergency/1, emergency/2, emergency/3, emergency_opt/2, emergency_opt/3, emergency_opt/4
         ]).
 
 -export_type([
@@ -111,7 +124,7 @@
 
 -define(LOGGER_RUNNING_CHECK(LoggerId),
         _ = case whereis(LoggerId) of
-                undefined -> error({logger_not_running, LoggerId});
+                undefined -> erlang:error({logger_not_running, LoggerId});
                 _         -> ok
             end).
 
@@ -159,7 +172,7 @@ start_logger(LoggerId) when is_atom(LoggerId) ->
         {error, {already_started, _Pid}} -> already_started;
         Other                            -> Other
     end;
-start_logger(LoggerId) -> error(badarg, [LoggerId]).
+start_logger(LoggerId) -> erlang:error(badarg, [LoggerId]).
 
 %% @doc まだ未起動の場合は、指定のロガーを起動する
 -spec ensure_logger_started(logger()) -> ok | {error, Reason::term()}.
@@ -174,7 +187,7 @@ ensure_logger_started(LoggerId) ->
 %% 指定のロガーが存在しない場合でもエラーとはならずに単に無視される
 -spec stop_logger(logger()) -> ok.
 stop_logger(LoggerId) when is_atom(LoggerId) -> logi_backend_manager_sup:stop_manager(LoggerId);
-stop_logger(LoggerId)                        -> error(badarg, [LoggerId]).
+stop_logger(LoggerId)                        -> erlang:error(badarg, [LoggerId]).
 
 %% @doc 起動中のロガー一覧を取得する
 -spec which_loggers() -> [logger()].
@@ -310,7 +323,7 @@ save_context(Context) ->
 -spec save_context(context_id(), context()) -> ok.
 save_context(ContextId, Context) ->
     case is_atom(ContextId) andalso logi_context:is_context(Context) of
-        false -> error(badarg, [ContextId, Context]);
+        false -> erlang:error(badarg, [ContextId, Context]);
         true  -> _ = put({?CONTEXT_TAG, ContextId}, Context), ok
     end.
 
@@ -328,7 +341,7 @@ load_context(ContextId) when is_atom(ContextId) ->
         undefined -> make_context(ContextId);
         Context   -> Context
     end;
-load_context(ContextId) -> error(badarg, [ContextId]).
+load_context(ContextId) -> erlang:error(badarg, [ContextId]).
 
 %% @doc 保存されているコンテキスト一覧を取得する
 -spec which_contexts() -> [{context_id(), context()}].
@@ -367,7 +380,7 @@ get_headers(ContextRef) ->
 %% @equiv default_logger(default_logger(), Keys)
 -spec delete_headers([header_key()]) -> context_id().
 delete_headers(Keys) -> delete_backend(?DEFAULT_LOGGER, Keys).
-    
+
 %% @doc 指定されたキーを保持するヘッダ群の削除する
 -spec delete_headers(context_ref(), [header_key()]) -> context_ref().
 delete_headers(ContextRef, Keys) ->
@@ -392,7 +405,7 @@ clear_headers(ContextRef) ->
 %% @equiv set_metadata(default_logger(), MetaData)
 -spec set_metadata(metadata()) -> context_id().
 set_metadata(MetaData) -> set_metadata(?DEFAULT_LOGGER, MetaData).
-    
+
 %% @equiv ヘッダ群を設定する
 %%
 %% キー名が同じエントリが存在する場合は値が上書きされる. <br />
@@ -437,3 +450,178 @@ clear_metadata() -> clear_metadata(?DEFAULT_LOGGER).
 -spec clear_metadata(context_ref()) -> context_ref().
 clear_metadata(ContextRef) ->
     ?WITH_CONTEXT(ContextRef, fun (Context) -> logi_context:set_metadata([], Context) end).
+
+
+%%------------------------------------------------------------------------------
+%% Exported Functions: Log Output
+%%------------------------------------------------------------------------------
+-spec debug(io:format()) -> context_ref().
+debug(Format) -> debug(Format, []).
+
+-spec debug(io:format(), [term()]) -> context_ref().
+debug(Format, Args) -> debug(?DEFAULT_LOGGER, Format, Args).
+
+-spec debug(context_ref(), io:format(), [term()]) -> context_ref().
+debug(ContextRef, Format, Args) -> debug_opt(ContextRef, Format, Args, []).
+
+-spec debug_opt(io:format(), log_options()) -> context_ref().
+debug_opt(Format, Options) -> debug_opt(Format, [], Options).
+
+-spec debug_opt(io:format(), [term()], log_options()) -> context_ref().
+debug_opt(Format, Args, Options) -> debug_opt(?DEFAULT_LOGGER, Format, Args, Options).
+
+-spec debug_opt(context_ref(), io:format(), [term()], log_options()) -> context_ref().
+debug_opt(ContextRef, Format, Args, Options) ->
+    log(ContextRef, debug, logi_location:make(undefined, undefined, 0), Format, Args, Options).
+
+-spec verbose(io:format()) -> context_ref().
+verbose(Format) -> verbose(Format, []).
+
+-spec verbose(io:format(), [term()]) -> context_ref().
+verbose(Format, Args) -> verbose(?DEFAULT_LOGGER, Format, Args).
+
+-spec verbose(context_ref(), io:format(), [term()]) -> context_ref().
+verbose(ContextRef, Format, Args) -> verbose_opt(ContextRef, Format, Args, []).
+
+-spec verbose_opt(io:format(), log_options()) -> context_ref().
+verbose_opt(Format, Options) -> verbose_opt(Format, [], Options).
+
+-spec verbose_opt(io:format(), [term()], log_options()) -> context_ref().
+verbose_opt(Format, Args, Options) -> verbose_opt(?DEFAULT_LOGGER, Format, Args, Options).
+
+-spec verbose_opt(context_ref(), io:format(), [term()], log_options()) -> context_ref().
+verbose_opt(ContextRef, Format, Args, Options) ->
+    log(ContextRef, verbose, logi_location:make(undefined, undefined, 0), Format, Args, Options).
+
+-spec info(io:format()) -> context_ref().
+info(Format) -> info(Format, []).
+
+-spec info(io:format(), [term()]) -> context_ref().
+info(Format, Args) -> info(?DEFAULT_LOGGER, Format, Args).
+
+-spec info(context_ref(), io:format(), [term()]) -> context_ref().
+info(ContextRef, Format, Args) -> info_opt(ContextRef, Format, Args, []).
+
+-spec info_opt(io:format(), log_options()) -> context_ref().
+info_opt(Format, Options) -> info_opt(Format, [], Options).
+
+-spec info_opt(io:format(), [term()], log_options()) -> context_ref().
+info_opt(Format, Args, Options) -> info_opt(?DEFAULT_LOGGER, Format, Args, Options).
+
+-spec info_opt(context_ref(), io:format(), [term()], log_options()) -> context_ref().
+info_opt(ContextRef, Format, Args, Options) ->
+    log(ContextRef, info, logi_location:make(undefined, undefined, 0), Format, Args, Options).
+
+-spec notice(io:format()) -> context_ref().
+notice(Format) -> notice(Format, []).
+
+-spec notice(io:format(), [term()]) -> context_ref().
+notice(Format, Args) -> notice(?DEFAULT_LOGGER, Format, Args).
+
+-spec notice(context_ref(), io:format(), [term()]) -> context_ref().
+notice(ContextRef, Format, Args) -> notice_opt(ContextRef, Format, Args, []).
+
+-spec notice_opt(io:format(), log_options()) -> context_ref().
+notice_opt(Format, Options) -> notice_opt(Format, [], Options).
+
+-spec notice_opt(io:format(), [term()], log_options()) -> context_ref().
+notice_opt(Format, Args, Options) -> notice_opt(?DEFAULT_LOGGER, Format, Args, Options).
+
+-spec notice_opt(context_ref(), io:format(), [term()], log_options()) -> context_ref().
+notice_opt(ContextRef, Format, Args, Options) ->
+    log(ContextRef, notice, logi_location:make(undefined, undefined, 0), Format, Args, Options).
+
+-spec warning(io:format()) -> context_ref().
+warning(Format) -> warning(Format, []).
+
+-spec warning(io:format(), [term()]) -> context_ref().
+warning(Format, Args) -> warning(?DEFAULT_LOGGER, Format, Args).
+
+-spec warning(context_ref(), io:format(), [term()]) -> context_ref().
+warning(ContextRef, Format, Args) -> warning_opt(ContextRef, Format, Args, []).
+
+-spec warning_opt(io:format(), log_options()) -> context_ref().
+warning_opt(Format, Options) -> warning_opt(Format, [], Options).
+
+-spec warning_opt(io:format(), [term()], log_options()) -> context_ref().
+warning_opt(Format, Args, Options) -> warning_opt(?DEFAULT_LOGGER, Format, Args, Options).
+
+-spec warning_opt(context_ref(), io:format(), [term()], log_options()) -> context_ref().
+warning_opt(ContextRef, Format, Args, Options) ->
+    log(ContextRef, warning, logi_location:make(undefined, undefined, 0), Format, Args, Options).
+
+-spec error(io:format()) -> context_ref().
+error(Format) -> error(Format, []).
+
+-spec error(io:format(), [term()]) -> context_ref().
+error(Format, Args) -> error(?DEFAULT_LOGGER, Format, Args).
+
+-spec error(context_ref(), io:format(), [term()]) -> context_ref().
+error(ContextRef, Format, Args) -> error_opt(ContextRef, Format, Args, []).
+
+-spec error_opt(io:format(), log_options()) -> context_ref().
+error_opt(Format, Options) -> error_opt(Format, [], Options).
+
+-spec error_opt(io:format(), [term()], log_options()) -> context_ref().
+error_opt(Format, Args, Options) -> error_opt(?DEFAULT_LOGGER, Format, Args, Options).
+
+-spec error_opt(context_ref(), io:format(), [term()], log_options()) -> context_ref().
+error_opt(ContextRef, Format, Args, Options) ->
+    log(ContextRef, error, logi_location:make(undefined, undefined, 0), Format, Args, Options).
+
+-spec critical(io:format()) -> context_ref().
+critical(Format) -> critical(Format, []).
+
+-spec critical(io:format(), [term()]) -> context_ref().
+critical(Format, Args) -> critical(?DEFAULT_LOGGER, Format, Args).
+
+-spec critical(context_ref(), io:format(), [term()]) -> context_ref().
+critical(ContextRef, Format, Args) -> critical_opt(ContextRef, Format, Args, []).
+
+-spec critical_opt(io:format(), log_options()) -> context_ref().
+critical_opt(Format, Options) -> critical_opt(Format, [], Options).
+
+-spec critical_opt(io:format(), [term()], log_options()) -> context_ref().
+critical_opt(Format, Args, Options) -> critical_opt(?DEFAULT_LOGGER, Format, Args, Options).
+
+-spec critical_opt(context_ref(), io:format(), [term()], log_options()) -> context_ref().
+critical_opt(ContextRef, Format, Args, Options) ->
+    log(ContextRef, critical, logi_location:make(undefined, undefined, 0), Format, Args, Options).
+
+-spec alert(io:format()) -> context_ref().
+alert(Format) -> alert(Format, []).
+
+-spec alert(io:format(), [term()]) -> context_ref().
+alert(Format, Args) -> alert(?DEFAULT_LOGGER, Format, Args).
+
+-spec alert(context_ref(), io:format(), [term()]) -> context_ref().
+alert(ContextRef, Format, Args) -> alert_opt(ContextRef, Format, Args, []).
+
+-spec alert_opt(io:format(), log_options()) -> context_ref().
+alert_opt(Format, Options) -> alert_opt(Format, [], Options).
+
+-spec alert_opt(io:format(), [term()], log_options()) -> context_ref().
+alert_opt(Format, Args, Options) -> alert_opt(?DEFAULT_LOGGER, Format, Args, Options).
+
+-spec alert_opt(context_ref(), io:format(), [term()], log_options()) -> context_ref().
+alert_opt(ContextRef, Format, Args, Options) ->
+    log(ContextRef, alert, logi_location:make(undefined, undefined, 0), Format, Args, Options).
+
+-spec emergency(io:format()) -> context_ref().
+emergency(Format) -> emergency(Format, []).
+
+-spec emergency(io:format(), [term()]) -> context_ref().
+emergency(Format, Args) -> emergency(?DEFAULT_LOGGER, Format, Args).
+
+-spec emergency(context_ref(), io:format(), [term()]) -> context_ref().
+emergency(ContextRef, Format, Args) -> emergency_opt(ContextRef, Format, Args, []).
+
+-spec emergency_opt(io:format(), log_options()) -> context_ref().
+emergency_opt(Format, Options) -> emergency_opt(Format, [], Options).
+
+-spec emergency_opt(io:format(), [term()], log_options()) -> context_ref().
+emergency_opt(Format, Args, Options) -> emergency_opt(?DEFAULT_LOGGER, Format, Args, Options).
+
+-spec emergency_opt(context_ref(), io:format(), [term()], log_options()) -> context_ref().
+emergency_opt(ContextRef, Format, Args, Options) ->
+    log(ContextRef, emergency, logi_location:make(undefined, undefined, 0), Format, Args, Options).

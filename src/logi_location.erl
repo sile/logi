@@ -38,7 +38,7 @@
 
 -opaque location() :: #logi_location{}.
 
--type line() :: pos_integer().
+-type line() :: pos_integer() | 0. % 0 indicates 'Unknown Line'
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
