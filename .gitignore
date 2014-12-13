@@ -1,10 +1,12 @@
 *~
 *.beam
 /.*/
-/doc/
+/doc/*
+!/doc/*.md
 /ebin/
 .dialyzer.plt
 deps/
 log/
 erl
 *.dump
+.rebar

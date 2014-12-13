@@ -163,7 +163,7 @@ log_levels() -> [debug, verbose, info, notice, warning, error, critical, alert, 
 %%------------------------------------------------------------------------------
 %% @doc ロガーを起動する
 %%
-%% 既に同名のロガーが起動している場合は```already_started```が返される
+%% 既に同名のロガーが起動している場合は`{error, already_started}'が返される
 -spec start_logger(logger()) -> ok | {error, Reason} when
       Reason :: already_started | term().
 start_logger(LoggerId) when is_atom(LoggerId) ->
@@ -355,7 +355,7 @@ which_contexts() ->
 -spec set_headers(headers()) -> context_id().
 set_headers(Headers) -> set_headers(?DEFAULT_LOGGER, Headers).
 
-%% @equiv ヘッダ群を設定する
+%% @doc ヘッダ群を設定する
 %%
 %% キー名が同じヘッダが存在する場合は値が上書きされる. <br />
 %% それ以外の既存のヘッダは、そのまま保持され続ける.
@@ -406,7 +406,7 @@ clear_headers(ContextRef) ->
 -spec set_metadata(metadata()) -> context_id().
 set_metadata(MetaData) -> set_metadata(?DEFAULT_LOGGER, MetaData).
 
-%% @equiv ヘッダ群を設定する
+%% @doc ヘッダ群を設定する
 %%
 %% キー名が同じエントリが存在する場合は値が上書きされる. <br />
 %% それ以外の既存のエントリは、そのまま保持され続ける.
