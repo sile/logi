@@ -23,11 +23,11 @@ edoc:
 	@./rebar doc skip_deps=true
 
 start: compile
-	@erl -sname $(APP)@`hostname` -pz ebin deps/*/ebin -eval 'erlang:display({start_app, $(APP), application:ensure_all_started($(APP))}).'
+	@erl -pz ebin deps/*/ebin -eval 'erlang:display({start_app, $(APP), application:ensure_all_started($(APP))}).'
 
 .dialyzer.plt:
 	touch .dialyzer.plt
 	dialyzer --build_plt --plt .dialyzer.plt --apps erts kernel stdlib
 
-dialyze: .dialyzer.plt
-	dialyzer --plt .dialyzer.plt -r ebin
+dialyze: .dialyzer.plt compile
+	dialyzer --no_native --plt .dialyzer.plt -r ebin
