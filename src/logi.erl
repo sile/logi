@@ -169,7 +169,7 @@ log_levels() -> [debug, verbose, info, notice, warning, error, critical, alert, 
 start_logger(LoggerId) when is_atom(LoggerId) ->
     case logi_backend_manager_sup:start_manager(LoggerId) of
         {ok, _Pid}                       -> ok;
-        {error, {already_started, _Pid}} -> already_started;
+        {error, {already_started, _Pid}} -> {error, already_started};
         Other                            -> Other
     end;
 start_logger(LoggerId) -> erlang:error(badarg, [LoggerId]).
