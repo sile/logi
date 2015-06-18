@@ -55,7 +55,7 @@ stop(ManagerRef) ->
 -spec get_id(pid() | logi:logger()) -> logi:logger().
 get_id(ManagerRef) ->
     gen_server:call(ManagerRef, get_id).
-    
+
 %% @doc バックエンドを設定する
 -spec set_backend(logi:logger(), logi_backend:backend(), logi_condition:condition()) -> ok.
 set_backend(ManagerRef, Backend, Condition) ->
@@ -108,8 +108,8 @@ init([Name]) ->
 handle_call(get_id, _From, State)               -> {reply, State#state.id, State};
 handle_call({get_condition, Arg}, _From, State) -> {reply, do_get_condition(Arg, State), State};
 handle_call({set_condition, Arg}, _From, State) ->
-    State1 = do_set_condition(Arg, State),
-    {reply, ok, State1};
+    {Reply, State1} = do_set_condition(Arg, State),
+    {reply, Reply, State1};
 handle_call({set_backend, Arg}, _From, State) ->
     State1 = do_set_backend(Arg, State),
     {reply, ok, State1};
@@ -124,7 +124,7 @@ handle_cast(stop, State) ->
     {stop, normal, State};
 handle_cast(_, State) ->
     {noreply, State}.
-    
+
 %% @private
 handle_info(_, State) ->
     {noreply, State}.
@@ -149,7 +149,7 @@ do_set_backend({Backend, Condition}, State) ->
 -spec do_delete_backend(logi_backend:id(), #state{}) -> #state{}.
 do_delete_backend(BackendId, State) ->
     case logi_backend_table:find_backend(State#state.table, BackendId) of
-        error   -> ok;
+        error   -> State;
         {ok, _} ->
             ok = logi_backend_table:deregister_backend(State#state.table, BackendId),
             BackendToCondition = gb_trees:delete_any(BackendId, State#state.backend_to_condition),
