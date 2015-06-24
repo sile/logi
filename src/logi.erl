@@ -47,6 +47,8 @@
          delete_metadata/1, delete_metadata/2,
          clear_metadata/0, clear_metadata/1,
 
+         %% TODO: location/0
+
          %% ログ出力用の代替関数 (通常は`{parse_transform, logi_transform}'を指定してコンパイルすることを推奨)
          debug/1, debug/2, debug/3, debug_opt/2, debug_opt/3, debug_opt/4,
          verbose/1, verbose/2, verbose/3, verbose_opt/2, verbose_opt/3, verbose_opt/4,

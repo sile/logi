@@ -1,132 +1,125 @@
-%% @copyright 2014 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc TODO
+%% @doc logi用のparse_transformモジュール
+%%
+%% {@link logi:location/0}や{@link logi:info/2}等の呼び出しに自動で以下の位置情報を追加するために使用される:
+%% - アプリケーション名
+%% - モジュール名
+%% - 関数名
+%% - 行番号
+%%
+%% 対象モジュールのコンパイルオプションに`{parse_transform, logi_transform}'を追加することで、この機能が有効となる。
+%%
+%% `logi_transform'を有効にせずに`logi'を使用することは可能だが、有益な情報がログから失われてしまうので推奨はされない。
+%%
+%% parse_transformに関しては以下も参考となる:
+%% - http://www.erlang.org/doc/man/erl_id_trans.html
+%% - http://www.erlang.org/doc/apps/erts/absform.html
 -module(logi_transform).
 
 -export([parse_transform/2]).
+-export_type([form/0]).
+-export_type([expr/0, expr_call_remote/0, expr_var/0]).
+-export_type([line/0]).
 
-%% [before]
-%%
-%% logi:info("hello: ~p", [world], []).
-%%
-%% [after]
-%%
-%% Application = case guess_application(AST) of
-%%                 false -> case application:get_application(?MODULE) of
-%%                            undefined -> undefined;
-%%                            {ok, App} -> App
-%%                          end
-%%                 {true, App} -> App
-%%               end,
-%% Functions = guess_function(?LINE, AST),
-%% Location = logi_location:make(node(), self(), Application, ?MODULE, Function, ?LINE),
-%% logi:log(logi:default_logger(), info, Location, "hello: ~p", [world], [])
-%%
+%%----------------------------------------------------------------------------------------------------------------------
+%% Types & Records
+%%----------------------------------------------------------------------------------------------------------------------
+-type form() :: {attribute, line(), atom(), term()}
+              | {function, line(), atom(), non_neg_integer(), [clause()]}
+              | erl_parse:abstract_form().
+
+-type clause() :: {clause, line(), [term()], [term()], [expr()]}
+                | erl_parse:abstract_clause().
+
+-type expr() :: expr_call_remote()
+              | expr_var()
+              | erl_parse:abstract_expr().
+
+-type expr_call_remote() :: {call, line(), {remote, line(), expr(), expr()}, [expr()]}.
+-type expr_var() :: {var, line(), atom()}.
+
+-type line() :: non_neg_integer().
 
 -record(location,
         {
           application :: atom(),
           module      :: module(),
           function    :: atom(),
-          line        :: pos_integer()
+          line        :: line()
         }).
 
-%% @private
-parse_transform(AST, Options) ->
-    Application = guess_application(proplists:get_value(outdir, Options), hd(AST)),
-    Location = #location{application = Application},
-    walk_ast([], AST, Location).
+%%----------------------------------------------------------------------------------------------------------------------
+%% Exported Functions
+%%----------------------------------------------------------------------------------------------------------------------
+-spec parse_transform([form()], [compile:option()]) -> [form()].
+parse_transform(AbstractForms, Options) ->
+    Loc = #location{
+             application = logi_transform_utils:guess_application(AbstractForms, Options),
+             module      = logi_transform_utils:get_module(AbstractForms)
+            },
+    walk_forms(AbstractForms, Loc).
 
-%%------------------------------------------------------------------------------------------------------------------------
+%%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
-%%------------------------------------------------------------------------------------------------------------------------
-walk_ast(Acc, [], _Location) ->
-    lists:reverse(Acc);
-walk_ast(Acc, [{attribute, _, module, Module} = H | T], Location) ->
-    walk_ast([H | Acc], T, Location#location{module = Module});
-walk_ast(Acc, [{function, Line, Name, Arity, Clauses} | T], Location) ->
-    Acc2 = [{function, Line, Name, Arity, walk_clauses([], Clauses, Location#location{function = Name})} | Acc],
-    walk_ast(Acc2, T, Location);
-walk_ast(Acc, [H | T], Location) ->
-    walk_ast([H | Acc], T, Location).
+%%----------------------------------------------------------------------------------------------------------------------
+-spec walk_forms([form()], #location{}) -> [form()].
+walk_forms(Forms, Loc) ->
+    [case Form of
+         {function, _, Name, _, Clauses} -> setelement(5, Form, walk_clauses(Clauses, Loc#location{function = Name}));
+         _                               -> Form
+     end || Form <- Forms].
 
-walk_clauses(Acc, [], _Location) ->
-    lists:reverse(Acc);
-walk_clauses(Acc, [{clause, Line, Args, Guards, Body} | T], Location) ->
-    walk_clauses([{clause, Line, Args, Guards, walk_body([], Body, Location)} | Acc], T, Location).
+-spec walk_clauses([clause()], #location{}) -> [clause()].
+walk_clauses(Clauses, Loc) ->
+    [case Clause of
+         {clause, Line, Args, Guards, Body} -> {clause, Line, Args, Guards, [walk_expr(E, Loc) || E <- Body]};
+         _                                  -> Clause
+     end || Clause <- Clauses].
 
-walk_body(Acc, [], _Location) ->
-    lists:reverse(Acc);
-walk_body(Acc, [H|T], Location) ->
-    walk_body([transform_statement(H,Location) | Acc], T, Location).
+-spec walk_expr(expr(), #location{}) -> expr().
+walk_expr({call, Line, {remote, _, {atom, _, logi}, _}, _} = C, Loc) -> transform_logi_call(C, Loc#location{line = Line});
+walk_expr(Expr, Loc) when is_tuple(Expr)                             -> list_to_tuple(walk_expr(tuple_to_list(Expr), Loc));
+walk_expr(Expr, Loc) when is_list(Expr)                              -> [walk_expr(E, Loc) || E <- Expr];
+walk_expr(Expr, _Loc)                                                -> Expr.
 
-expand_severity(Severity) ->
-    case lists:member(Severity, logi:log_levels()) of
-        true  -> {Severity, false};
-        false ->
-            Bin = atom_to_binary(Severity, utf8),
-            PrefixSize = max(0, byte_size(Bin) - byte_size(<<"_opt">>)),
-            case Bin of
-                <<Prefix:PrefixSize/binary, "_opt">> ->
-                    Severity2 = binary_to_atom(Prefix, utf8),
-                    case lists:member(Severity2, logi:log_levels()) of
-                        true  -> {Severity2, true};
-                        false -> false
-                    end;
-                _ ->
-                    false
-            end
-    end.
-
-default_logger(Line) ->
-    {atom, Line, logi:default_logger()}.
-
-transform_statement({call, Line, {remote, _Line1, {atom, _Line2, logi}, {atom, _Line3, location}}, []}, Location) ->
-    {call, Line,
-     {remote, Line, {atom, Line, logi_location}, {atom, Line, make}},
-     [{call, Line, {atom, Line, node}, []},
-      {call, Line, {atom, Line, self}, []},
-      {atom, Line, Location#location.application},
-      {atom, Line, Location#location.module},
-      {atom, Line, Location#location.function},
-      {integer, Line, Line}]};
-transform_statement({call, Line, {remote, _Line1, {atom, _Line2, logi}, {atom, _Line3, Severity0}}, Args} = Stmt, Location) ->
-    Location2 = Location#location{line = Line},
+-spec transform_logi_call(expr_call_remote(), #location{}) -> expr_call_remote().
+transform_logi_call({call, _, {remote, _, _, {atom, _, location}}, []}, Loc) ->
+    logi_location_expr(Loc);
+transform_logi_call({call, _, {remote, _, _, {atom, _, Severity0}}, Args} = Call, Loc = #location{line = Line}) ->
+    DefaultLogger = {atom, Line, logi:default_logger()},
     case {expand_severity(Severity0), Args} of
-        {false, _}                        -> Stmt;
-        {{Severity, false}, [_]}          -> transform_log_statement(default_logger(Line), Severity, Args ++ [{nil, Line}, {nil, Line}], Location2);
-        {{Severity, false}, [_, _]}       -> transform_log_statement(default_logger(Line), Severity, Args ++ [{nil, Line}], Location2);
-        {{Severity, false}, [_, _, _]}    -> transform_log_statement(hd(Args), Severity, tl(Args) ++ [{nil, Line}], Location2);
-        {{Severity, true},  [Msg, Opts]}  -> transform_log_statement(default_logger(Line), Severity, [Msg, {nil, Line}, Opts], Location2);
-        {{Severity, true},  [_, _, _]}    -> transform_log_statement(default_logger(Line), Severity, Args, Location2);
-        {{Severity, true},  [_, _, _, _]} -> transform_log_statement(hd(Args), Severity, tl(Args), Location2);
-        _                                 -> Stmt
+        {{ok, Severity, false}, [Fmt]}                        -> logi_call_expr(DefaultLogger, Severity, Fmt, {nil, Line}, {nil, Line}, Loc);
+        {{ok, Severity, false}, [Fmt, FmtArgs]}               -> logi_call_expr(DefaultLogger, Severity, Fmt, FmtArgs,     {nil, Line}, Loc);
+        {{ok, Severity, false}, [Logger, Fmt, FmtArgs]}       -> logi_call_expr(Logger,        Severity, Fmt, FmtArgs,     {nil, Line}, Loc);
+        {{ok, Severity, true},  [Fmt, Opts]}                  -> logi_call_expr(DefaultLogger, Severity, Fmt, {nil, Line}, Opts,        Loc);
+        {{ok, Severity, true},  [Fmt, FmtArgs, Opts]}         -> logi_call_expr(DefaultLogger, Severity, Fmt, FmtArgs,     Opts,        Loc);
+        {{ok, Severity, true},  [Logger, Fmt, FmtArgs, Opts]} -> logi_call_expr(Logger,        Severity, Fmt, FmtArgs,     Opts,        Loc);
+        _                                                     -> Call
     end;
-transform_statement(Stmt, Location) when is_tuple(Stmt) ->
-    list_to_tuple(transform_statement(tuple_to_list(Stmt), Location));
-transform_statement(Stmt, Location) when is_list(Stmt) ->
-    [transform_statement(S, Location) || S <- Stmt];
-transform_statement(Stmt, _Location) ->
-    Stmt.
+transform_logi_call(Call, _Loc) ->
+    Call.
 
-transform_log_statement(ContextAst, Severity, ArgsAst, Location) ->
-    [FormatAst, FormatArgsAst, OptionsAst] = ArgsAst,
-    #location{line = Line} = Location,
-    LocationAst =
-        {call, Line,
-         {remote, Line, {atom, Line, logi_location}, {atom, Line, make}},
-         [{call, Line, {atom, Line, node}, []},
-          {call, Line, {atom, Line, self}, []},
-          {atom, Line, Location#location.application},
-          {atom, Line, Location#location.module},
-          {atom, Line, Location#location.function},
-          {integer, Line, Line}]},
-    ContextVar = {var, Line, make_varname("__Context", Line)},
-    BackendsVar = {var, Line, make_varname("__Backends", Line)},
-    MsgInfoVar = {var, Line, make_varname("__MsgInfo", Line)},
-    {'case', Line,
-     {call, Line, {remote, Line, {atom, Line, logi_client}, {atom, Line, ready}},
-      [ContextAst, {atom, Line, Severity}, LocationAst, OptionsAst]},
+-spec logi_location_expr(#location{}) -> expr().
+logi_location_expr(Loc = #location{line = Line}) ->
+    logi_transform_utils:make_call_remote(
+      Line, logi_location, make,
+      [
+       {call, Line, {atom, Line, node}, []},
+       {call, Line, {atom, Line, self}, []},
+       {atom, Line, Loc#location.application},
+       {atom, Line, Loc#location.module},
+       {atom, Line, Loc#location.function},
+       {integer, Line, Line}
+      ]).
+
+-spec logi_call_expr(expr(), logi:severity(), expr(), expr(), expr(), #location{}) -> expr().
+logi_call_expr(ContextExpr, Severity, FormatExpr, FormatArgsExpr, OptionsExpr, Loc = #location{line = Line}) ->
+    LocationExpr = logi_location_expr(Loc),
+    BackendsVar = logi_transform_utils:make_var(Line, "__Backends"),
+    ContextVar = logi_transform_utils:make_var(Line, "__Context"),
+    MsgInfoVar = logi_transform_utils:make_var(Line, "__MsgInfo"),
+    {'case', Line, logi_transform_utils:make_call_remote(Line, logi_client, ready, [ContextExpr, {atom, Line, Severity}, LocationExpr, OptionsExpr]),
      [
       %% {skip, Context} -> Context
       {clause, Line, [{tuple, Line, [{atom, Line, skip}, ContextVar]}], [],
@@ -134,36 +127,24 @@ transform_log_statement(ContextAst, Severity, ArgsAst, Location) ->
 
       %% {ok, Backends, MsgInfo, Context} -> logi_client:write(Context, Backends, Location, MsgInfo, Format, Args)
       {clause, Line, [{tuple, Line, [{atom, Line, ok}, BackendsVar, MsgInfoVar, ContextVar]}], [],
-       [{call, Line, {remote, Line, {atom, Line, logi_client}, {atom, Line, write}},
-         [ContextVar, BackendsVar, LocationAst, MsgInfoVar, FormatAst, FormatArgsAst]}]}
+       [logi_transform_utils:make_call_remote(Line, logi_client, write, [ContextVar, BackendsVar, LocationExpr, MsgInfoVar, FormatExpr, FormatArgsExpr])]}
      ]}.
 
-guess_application(Dirname, Attr) when Dirname /= undefined ->
-    case find_app_file(Dirname) of
-        undefined -> guess_application(undefined, Attr);
-        Appname   -> Appname
-    end;
-guess_application(undefined, {attribute, _, file, {Filename, _}}) ->
-    Dir = filename:dirname(Filename),
-    find_app_file(Dir);
-guess_application(_, _) ->
-    undefined.
-
-find_app_file(Dir) ->
-    case filelib:wildcard(Dir++"/*.{app,app.src}") of
-        []     -> undefined;
-        [File] ->
-            case file:consult(File) of
-                {ok, [{application, Appname, _Attributes}|_]} -> Appname;
-                _                                             -> undefined
-            end;
-        _ -> undefined
+-spec expand_severity(atom()) -> {ok, logi:severity(), HasOptions::boolean()} | error.
+expand_severity(Severity) ->
+    case lists:member(Severity, logi:log_levels()) of
+        true  -> {ok, Severity, false};
+        false ->
+            Bin = atom_to_binary(Severity, utf8),
+            PrefixSize = max(0, byte_size(Bin) - byte_size(<<"_opt">>)),
+            case Bin of
+                <<Prefix:PrefixSize/binary, "_opt">> ->
+                    Severity2 = binary_to_atom(Prefix, utf8),
+                    case lists:member(Severity2, logi:log_levels()) of
+                        true  -> {ok, Severity2, true};
+                        false -> error
+                    end;
+                _ ->
+                    error
+            end
     end.
-
-make_varname(Prefix, Line) ->
-    Seq = case get({?MODULE, seq}) of
-              undefined -> 0;
-              Seq0      -> Seq0
-          end,
-    put({?MODULE, seq}, Seq + 1),
-    list_to_atom(Prefix ++ "_line" ++ integer_to_list(Line) ++ "_" ++ integer_to_list(Seq)).
