@@ -6,10 +6,9 @@
 * [Function Index](#index)
 * [Function Details](#functions)
 
-
 バックエンドモジュールのインタフェース定義 および バックエンドオブジェクト操作関数を提供.
-Copyright (c) 2014 Takeru Ohta <phjgt308@gmail.com>
 
+Copyright (c) 2014 Takeru Ohta <phjgt308@gmail.com>
 
 __This module defines the `logi_backend` behaviour.__<br /> Required callback functions: `write/5`.
 
@@ -31,7 +30,6 @@ __abstract datatype__: `backend()`
 ### <a name="type-data">data()</a> ###
 
 
-
 <pre><code>
 data() = term()
 </code></pre>
@@ -39,9 +37,7 @@ data() = term()
 
 
 
-
 ### <a name="type-id">id()</a> ###
-
 
 
 <pre><code>
@@ -51,9 +47,7 @@ id() = term()
 
 
 
-
 ### <a name="type-process">process()</a> ###
-
 
 
 <pre><code>
@@ -63,15 +57,12 @@ process() = atom()
 
 
 
-
 ### <a name="type-spec">spec()</a> ###
-
 
 
 <pre><code>
 spec() = {<a href="#type-process">process()</a>, module(), <a href="#type-data">data()</a>} | {<a href="#type-id">id()</a>, <a href="#type-process">process()</a>, module(), <a href="#type-data">data()</a>}
 </code></pre>
-
 
 <a name="index"></a>
 
@@ -89,17 +80,16 @@ spec() = {<a href="#type-process">process()</a>, module(), <a href="#type-data">
 
 ### get_data/1 ###
 
-
 <pre><code>
 get_data(Logi_backend::<a href="#type-backend">backend()</a>) -&gt; <a href="#type-data">data()</a>
 </code></pre>
 <br />
 
 バックエンドに紐付く任意データを取得する
+
 <a name="get_id-1"></a>
 
 ### get_id/1 ###
-
 
 <pre><code>
 get_id(Logi_backend::<a href="#type-backend">backend()</a>) -&gt; <a href="#type-id">id()</a>
@@ -107,10 +97,10 @@ get_id(Logi_backend::<a href="#type-backend">backend()</a>) -&gt; <a href="#type
 <br />
 
 バックエンドのIDを取得する
+
 <a name="get_module-1"></a>
 
 ### get_module/1 ###
-
 
 <pre><code>
 get_module(Logi_backend::<a href="#type-backend">backend()</a>) -&gt; module()
@@ -118,10 +108,10 @@ get_module(Logi_backend::<a href="#type-backend">backend()</a>) -&gt; module()
 <br />
 
 バックエンドのモジュールを取得する
+
 <a name="get_process-1"></a>
 
 ### get_process/1 ###
-
 
 <pre><code>
 get_process(Logi_backend::<a href="#type-backend">backend()</a>) -&gt; <a href="#type-process">process()</a>
@@ -129,10 +119,10 @@ get_process(Logi_backend::<a href="#type-backend">backend()</a>) -&gt; <a href="
 <br />
 
 バックエンドプロセスを取得する
+
 <a name="is_backend-1"></a>
 
 ### is_backend/1 ###
-
 
 <pre><code>
 is_backend(X::<a href="#type-backend">backend()</a> | term()) -&gt; boolean()
@@ -140,10 +130,10 @@ is_backend(X::<a href="#type-backend">backend()</a> | term()) -&gt; boolean()
 <br />
 
 引数の値がbackend()型かどうかを判定する
+
 <a name="make-1"></a>
 
 ### make/1 ###
-
 
 <pre><code>
 make(Arg::<a href="#type-spec">spec()</a>) -&gt; <a href="#type-backend">backend()</a>
@@ -151,10 +141,10 @@ make(Arg::<a href="#type-spec">spec()</a>) -&gt; <a href="#type-backend">backend
 <br />
 
 spec()をもとにbackend()を生成する
+
 <a name="make-4"></a>
 
 ### make/4 ###
-
 
 <pre><code>
 make(Id::<a href="#type-id">id()</a>, Process::<a href="#type-process">process()</a>, Module::module(), Data::<a href="#type-data">data()</a>) -&gt; <a href="#type-backend">backend()</a>
@@ -162,3 +152,4 @@ make(Id::<a href="#type-id">id()</a>, Process::<a href="#type-process">process()
 <br />
 
 バックエンドオブジェクトを生成する
+

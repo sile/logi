@@ -6,10 +6,9 @@
 * [Function Index](#index)
 * [Function Details](#functions)
 
-
 ログ出力の位置情報を保持するためのモジュール.
-Copyright (c) 2014 Takeru Ohta <phjgt308@gmail.com>
 
+Copyright (c) 2014 Takeru Ohta <phjgt308@gmail.com>
 
 <a name="types"></a>
 
@@ -21,14 +20,11 @@ Copyright (c) 2014 Takeru Ohta <phjgt308@gmail.com>
 ### <a name="type-line">line()</a> ###
 
 
-
 <pre><code>
 line() = pos_integer() | 0
 </code></pre>
 
-
-
- 0 indicates 'Unknown Line'
+0 indicates 'Unknown Line'
 
 
 
@@ -54,17 +50,16 @@ Function, Line)</tt></a>.</td></tr><tr><td valign="top"><a href="#make-6">make/6
 
 ### get_application/1 ###
 
-
 <pre><code>
 get_application(Logi_location::<a href="#type-location">location()</a>) -&gt; atom()
 </code></pre>
 <br />
 
 アプリケーション名を取得する
+
 <a name="get_function-1"></a>
 
 ### get_function/1 ###
-
 
 <pre><code>
 get_function(Logi_location::<a href="#type-location">location()</a>) -&gt; atom()
@@ -72,10 +67,10 @@ get_function(Logi_location::<a href="#type-location">location()</a>) -&gt; atom(
 <br />
 
 関数名を取得する
+
 <a name="get_line-1"></a>
 
 ### get_line/1 ###
-
 
 <pre><code>
 get_line(Logi_location::<a href="#type-location">location()</a>) -&gt; <a href="#type-line">line()</a>
@@ -83,10 +78,10 @@ get_line(Logi_location::<a href="#type-location">location()</a>) -&gt; <a href="
 <br />
 
 行番号を取得する
+
 <a name="get_module-1"></a>
 
 ### get_module/1 ###
-
 
 <pre><code>
 get_module(Logi_location::<a href="#type-location">location()</a>) -&gt; module()
@@ -94,10 +89,10 @@ get_module(Logi_location::<a href="#type-location">location()</a>) -&gt; module(
 <br />
 
 モジュール名を取得する
+
 <a name="get_node-1"></a>
 
 ### get_node/1 ###
-
 
 <pre><code>
 get_node(Logi_location::<a href="#type-location">location()</a>) -&gt; node()
@@ -105,10 +100,10 @@ get_node(Logi_location::<a href="#type-location">location()</a>) -&gt; node()
 <br />
 
 ノード名を取得する
+
 <a name="get_process-1"></a>
 
 ### get_process/1 ###
-
 
 <pre><code>
 get_process(Logi_location::<a href="#type-location">location()</a>) -&gt; pid()
@@ -116,10 +111,10 @@ get_process(Logi_location::<a href="#type-location">location()</a>) -&gt; pid()
 <br />
 
 プロセスIDを取得する
+
 <a name="guess_application-1"></a>
 
 ### guess_application/1 ###
-
 
 <pre><code>
 guess_application(Module::module()) -&gt; atom() | undefined
@@ -127,10 +122,10 @@ guess_application(Module::module()) -&gt; atom() | undefined
 <br />
 
 モジュール名から、それが属するアプリケーションを推測する
+
 <a name="make-3"></a>
 
 ### make/3 ###
-
 
 <pre><code>
 make(Module::module(), Function::atom(), Line::<a href="#type-line">line()</a>) -&gt; <a href="#type-location">location()</a>
@@ -138,10 +133,10 @@ make(Module::module(), Function::atom(), Line::<a href="#type-line">line()</a>) 
 <br />
 
 Equivalent to [`make(node(), self(), guess_application(Module), Module,Function, Line)`](#make-6).
+
 <a name="make-6"></a>
 
 ### make/6 ###
-
 
 <pre><code>
 make(Node::node(), Pid::pid(), Application::atom(), Module::module(), Function::atom(), Line::<a href="#type-line">line()</a>) -&gt; <a href="#type-location">location()</a>
@@ -149,10 +144,10 @@ make(Node::node(), Pid::pid(), Application::atom(), Module::module(), Function::
 <br />
 
 位置情報オブジェクトを作成する
+
 <a name="to_list-1"></a>
 
 ### to_list/1 ###
-
 
 <pre><code>
 to_list(Location::<a href="#type-location">location()</a>) -&gt; <a href="ordsets.md#type-ordset">ordsets:ordset</a>(Entry)
@@ -161,3 +156,4 @@ to_list(Location::<a href="#type-location">location()</a>) -&gt; <a href="ordset
 <ul class="definitions"><li><code>Entry = {node, node()} | {process, pid()} | {application, atom()} | {module, module()} | {function, atom()} | {line, <a href="#type-line">line()</a>}</code></li></ul>
 
 連想リスト形式に変換する
+

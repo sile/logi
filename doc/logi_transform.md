@@ -6,15 +6,13 @@
 * [Function Index](#index)
 * [Function Details](#functions)
 
-
 logi用のparse_transformモジュール.
+
 Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
 <a name="description"></a>
 
 ## Description ##
-
-
 
 [`logi:location/0`](logi.md#location-0)や[`logi:info/2`](logi.md#info-2)等の呼び出しに自動で以下の位置情報を追加するために使用される:
 - アプリケーション名
@@ -22,14 +20,9 @@ Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 - 関数名
 - 行番号
 
-
-
 対象モジュールのコンパイルオプションに`{parse_transform, logi_transform}`を追加することで、この機能が有効となる。
 
-
-
 `logi_transform`を有効にせずに`logi`を使用することは可能だが、有益な情報がログから失われてしまうので推奨はされない。
-
 
 parse_transformに関しては以下も参考となる:
 - http://www.erlang.org/doc/man/erl_id_trans.html
@@ -44,7 +37,6 @@ parse_transformに関しては以下も参考となる:
 ### <a name="type-clause">clause()</a> ###
 
 
-
 <pre><code>
 clause() = {clause, <a href="#type-line">line()</a>, [term()], [term()], [<a href="#type-expr">expr()</a>]} | <a href="erl_parse.md#type-abstract_clause">erl_parse:abstract_clause()</a>
 </code></pre>
@@ -52,9 +44,7 @@ clause() = {clause, <a href="#type-line">line()</a>, [term()], [term()], [<a hre
 
 
 
-
 ### <a name="type-expr">expr()</a> ###
-
 
 
 <pre><code>
@@ -64,9 +54,7 @@ expr() = <a href="#type-expr_call_remote">expr_call_remote()</a> | <a href="#typ
 
 
 
-
 ### <a name="type-expr_call_remote">expr_call_remote()</a> ###
-
 
 
 <pre><code>
@@ -76,9 +64,7 @@ expr_call_remote() = {call, <a href="#type-line">line()</a>, {remote, <a href="#
 
 
 
-
 ### <a name="type-expr_var">expr_var()</a> ###
-
 
 
 <pre><code>
@@ -88,9 +74,7 @@ expr_var() = {var, <a href="#type-line">line()</a>, atom()}
 
 
 
-
 ### <a name="type-form">form()</a> ###
-
 
 
 <pre><code>
@@ -100,15 +84,12 @@ form() = {attribute, <a href="#type-line">line()</a>, atom(), term()} | {functio
 
 
 
-
 ### <a name="type-line">line()</a> ###
-
 
 
 <pre><code>
 line() = non_neg_integer()
 </code></pre>
-
 
 <a name="index"></a>
 
@@ -126,10 +107,8 @@ line() = non_neg_integer()
 
 ### parse_transform/2 ###
 
-
 <pre><code>
 parse_transform(AbstractForms::[<a href="#type-form">form()</a>], Options::[<a href="compile.md#type-option">compile:option()</a>]) -&gt; [<a href="#type-form">form()</a>]
 </code></pre>
 <br />
-
 

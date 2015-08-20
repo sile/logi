@@ -6,10 +6,9 @@
 * [Function Index](#index)
 * [Function Details](#functions)
 
-
 ログメッセージの付加情報を取得する.
-Copyright (c) 2014 Takeru Ohta <phjgt308@gmail.com>
 
+Copyright (c) 2014 Takeru Ohta <phjgt308@gmail.com>
 
 <a name="types"></a>
 
@@ -39,54 +38,44 @@ __abstract datatype__: `info()`
 
 ### get_headers/1 ###
 
-
 <pre><code>
 get_headers(Logi_msg_info::<a href="#type-info">info()</a>) -&gt; <a href="logi.md#type-headers">logi:headers()</a>
 </code></pre>
 <br />
 
-
 <a name="get_metadata-1"></a>
 
 ### get_metadata/1 ###
-
 
 <pre><code>
 get_metadata(Logi_msg_info::<a href="#type-info">info()</a>) -&gt; <a href="logi.md#type-metadata">logi:metadata()</a>
 </code></pre>
 <br />
 
-
 <a name="get_omitted_count-1"></a>
 
 ### get_omitted_count/1 ###
-
 
 <pre><code>
 get_omitted_count(Logi_msg_info::<a href="#type-info">info()</a>) -&gt; non_neg_integer()
 </code></pre>
 <br />
 
-
 <a name="get_severity-1"></a>
 
 ### get_severity/1 ###
-
 
 <pre><code>
 get_severity(Logi_msg_info::<a href="#type-info">info()</a>) -&gt; <a href="logi.md#type-severity">logi:severity()</a>
 </code></pre>
 <br />
 
-
 <a name="get_timestamp-1"></a>
 
 ### get_timestamp/1 ###
-
 
 <pre><code>
 get_timestamp(Logi_msg_info::<a href="#type-info">info()</a>) -&gt; <a href="erlang.md#type-timestamp">erlang:timestamp()</a>
 </code></pre>
 <br />
-
 

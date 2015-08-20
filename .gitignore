@@ -10,3 +10,4 @@ log/
 erl
 *.dump
 .rebar
+_build
