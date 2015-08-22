@@ -1,6 +1,6 @@
-%% @copyright 2014 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc バックエンドモジュールのインタフェース定義 および バックエンドオブジェクト操作関数を提供
+%% @doc backend object
 -module(logi_backend).
 
 %%------------------------------------------------------------------------------------------------------------------------
@@ -11,22 +11,13 @@
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%------------------------------------------------------------------------------------------------------------------------
--export([
-         make/1, make/4,
-         is_backend/1,
-         get_id/1,
-         get_process/1,
-         get_module/1,
-         get_data/1
-        ]).
+-export([make/1, make/4]).
+-export([is_backend/1]).
+-export([get_id/1, get_process/1, get_module/1, get_data/1]).
 
--export_type([
-              backend/0,
-              spec/0,
-              id/0,
-              process/0,
-              data/0
-             ]).
+-export_type([backend/0]).
+-export_type([spec/0]).
+-export_type([id/0, process/0, data/0]).
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Macros & Records & Types
@@ -48,12 +39,12 @@
 
 -type id()      :: term().
 -type process() :: atom().
--type data()    :: term().
+-type data()    :: term(). % user defined data
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%------------------------------------------------------------------------------------------------------------------------
-%% @doc バックエンドオブジェクトを生成する
+%% @doc Makes a new backend object
 -spec make(id(), process(), module(), data()) -> backend().
 make(Id, Process, Module, Data) ->
     case is_atom(Process) andalso is_atom(Module) of
@@ -67,28 +58,28 @@ make(Id, Process, Module, Data) ->
                }
     end.
 
-%% @doc spec()をもとにbackend()を生成する
--spec make(spec()) -> backend().
+%% @doc Makes a new backend object from `Spec'
+-spec make(Spec::spec()) -> backend().
 make({Process, Module, Data})     -> make(Process, Process, Module, Data);
 make({Id, Process, Module, Data}) -> make(Id, Process, Module, Data);
 make(Arg)                         -> error(badrag, [Arg]).
 
-%% @doc 引数の値がbackend()型かどうかを判定する
--spec is_backend(backend() | term()) -> boolean().
+%% @doc Returns `true' if `Term' appears to be a backend, otherwise `false'
+-spec is_backend(Term::term()) -> boolean().
 is_backend(X) -> is_record(X, ?BACKEND).
 
-%% @doc バックエンドのIDを取得する
+%% @doc Gets the backend ID
 -spec get_id(backend()) ->  id().
 get_id(#?BACKEND{id = Id}) -> Id.
 
-%% @doc バックエンドプロセスを取得する
+%% @doc Gets the backend process
 -spec get_process(backend()) -> process().
 get_process(#?BACKEND{process = Process}) -> Process.
 
-%% @doc バックエンドのモジュールを取得する
+%% @doc Gets the backend module
 -spec get_module(backend()) -> module().
 get_module(#?BACKEND{module = Module}) -> Module.
 
-%% @doc バックエンドに紐付く任意データを取得する
+%% @doc Gets the backend data
 -spec get_data(backend()) -> data().
 get_data(#?BACKEND{data = Data}) -> Data.

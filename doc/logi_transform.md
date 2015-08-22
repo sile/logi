@@ -6,7 +6,7 @@
 * [Function Index](#index)
 * [Function Details](#functions)
 
-logi用のparse_transformモジュール.
+A parse_transform module for logi.
 
 Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
@@ -14,17 +14,15 @@ Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
 ## Description ##
 
-[`logi:location/0`](logi.md#location-0)や[`logi:info/2`](logi.md#info-2)等の呼び出しに自動で以下の位置情報を追加するために使用される:
-- アプリケーション名
-- モジュール名
-- 関数名
-- 行番号
+This module is used to provide following information automatically to log messages (e.g. the messages produced by [`logi:info/2`](logi.md#info-2)): <br />
+- Application Name
+- Module Name
+- Function Name
+- Line Number
 
-対象モジュールのコンパイルオプションに`{parse_transform, logi_transform}`を追加することで、この機能が有効となる。
+The above functionality will be enabled, if the option `{parse_transform, logi_transform}` is passed to the compiler.
 
-`logi_transform`を有効にせずに`logi`を使用することは可能だが、有益な情報がログから失われてしまうので推奨はされない。
-
-parse_transformに関しては以下も参考となる:
+Reference documentations for parse_transform: <br />
 - http://www.erlang.org/doc/man/erl_id_trans.html
 - http://www.erlang.org/doc/apps/erts/absform.html
 <a name="types"></a>
@@ -96,7 +94,7 @@ line() = non_neg_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#parse_transform-2">parse_transform/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#parse_transform-2">parse_transform/2</a></td><td>Performs transformations for logi.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -111,4 +109,6 @@ line() = non_neg_integer()
 parse_transform(AbstractForms::[<a href="#type-form">form()</a>], Options::[<a href="compile.md#type-option">compile:option()</a>]) -&gt; [<a href="#type-form">form()</a>]
 </code></pre>
 <br />
+
+Performs transformations for logi
 

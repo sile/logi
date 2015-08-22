@@ -1,4 +1,4 @@
-%% @copyright 2014 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc application module
 %% @private
@@ -14,7 +14,7 @@
 %%------------------------------------------------------------------------------------------------------------------------
 %% 'application' Callback Functions
 %%------------------------------------------------------------------------------------------------------------------------
-%% @hidden
+%% @private
 start(_StartType, _StartArgs) ->
     SupResult = logi_sup:start_link(),
     case SupResult of
@@ -26,6 +26,6 @@ start(_StartType, _StartArgs) ->
         Other -> Other
     end.
 
-%% @hidden
+%% @private
 stop(_State) ->
     ok.

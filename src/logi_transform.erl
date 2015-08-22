@@ -1,26 +1,25 @@
 %% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc logi用のparse_transformモジュール
+%% @doc A parse_transform module for logi
 %%
-%% {@link logi:location/0}や{@link logi:info/2}等の呼び出しに自動で以下の位置情報を追加するために使用される:
-%% - アプリケーション名
-%% - モジュール名
-%% - 関数名
-%% - 行番号
+%% This module is used to provide following information automatically to log messages (e.g. the messages produced by {@link logi:info/2}): <br />
+%% - Application Name
+%% - Module Name
+%% - Function Name
+%% - Line Number
 %%
-%% 対象モジュールのコンパイルオプションに`{parse_transform, logi_transform}'を追加することで、この機能が有効となる。
+%% The above functionality will be enabled, if the option `{parse_transform, logi_transform}' is passed to the compiler.
 %%
-%% `logi_transform'を有効にせずに`logi'を使用することは可能だが、有益な情報がログから失われてしまうので推奨はされない。
-%%
-%% parse_transformに関しては以下も参考となる:
+%% Reference documentations for parse_transform: <br />
 %% - http://www.erlang.org/doc/man/erl_id_trans.html
 %% - http://www.erlang.org/doc/apps/erts/absform.html
 -module(logi_transform).
 
+%%----------------------------------------------------------------------------------------------------------------------
+%% Exported API
+%%----------------------------------------------------------------------------------------------------------------------
 -export([parse_transform/2]).
--export_type([form/0]).
--export_type([expr/0, expr_call_remote/0, expr_var/0]).
--export_type([line/0]).
+-export_type([form/0, line/0, expr/0, expr_call_remote/0, expr_var/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types & Records
@@ -52,6 +51,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
+%% @doc Performs transformations for logi
 -spec parse_transform([form()], [compile:option()]) -> [form()].
 parse_transform(AbstractForms, Options) ->
     Loc = #location{

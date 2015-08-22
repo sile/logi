@@ -1,6 +1,6 @@
 %% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc logi_transform用のユーティリティ関数を集めたモジュール
+%% @doc utility functions for logi_transform
 %% @private
 -module(logi_transform_utils).
 
@@ -15,12 +15,12 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @doc 抽象構文木からモジュール名を取得する
+%% @doc Retrieves the module name from the abstract syntax tree
 -spec get_module([logi_transform:form()]) -> module().
 get_module([{attribute, _, module, Module} | _]) -> Module;  % a `module' attribute will always exist
 get_module([_                              | T]) -> get_module(T).
 
-%% @doc 対象モジュールが属するアプリケーションを推定する
+%% @doc Guesses the application name from the abstract syntax tree `Froms' and the compiler options `Options'
 -spec guess_application([logi_transform:form()], [compile:option()]) -> atom() | undefined.
 guess_application(Forms, Options) ->
     OutDir = proplists:get_value(outdir, Options),
@@ -30,7 +30,7 @@ guess_application(Forms, Options) ->
              end,
     find_app_file([Dir || Dir <- [OutDir, SrcDir], Dir =/= undefined]).
 
-%% @doc 変数用の抽象項を生成して返す
+%% @doc Makes a abstract term for variable
 -spec make_var(logi_transform:line(), string()) -> logi_transform:expr_var().
 make_var(Line, Prefix) ->
     Seq = case get({?MODULE, seq}) of
@@ -41,7 +41,7 @@ make_var(Line, Prefix) ->
     Name = list_to_atom(Prefix ++ "_line" ++ integer_to_list(Line) ++ "_" ++ integer_to_list(Seq)),
     {var, Line, Name}.
 
-%% @doc 外部関数呼び出し用の抽象項を生成して返す
+%% @doc Makes a abstract term for external function call
 -spec make_call_remote(logi_transform:line(), module(), atom(), [logi_transform:expr()]) -> logi_transform:expr_call_remote().
 make_call_remote(Line, Module, Function, ArgsExpr) ->
     {call, Line, {remote, Line, {atom, Line, Module}, {atom, Line, Function}}, ArgsExpr}.

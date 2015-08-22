@@ -1,4 +1,4 @@
-%% @copyright 2014 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc root supervisor module
 %% @private
@@ -24,7 +24,7 @@
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%------------------------------------------------------------------------------------------------------------------------
-%% @doc Starts root supervisor
+%% @doc Starts the root supervisor
 -spec start_link() -> {ok, pid()} | {error, Reason::term()}.
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
@@ -32,10 +32,10 @@ start_link() ->
 %%------------------------------------------------------------------------------------------------------------------------
 %% 'supervisor' Callback Functions
 %%------------------------------------------------------------------------------------------------------------------------
-%% @hidden
+%% @private
 init([]) ->
     Children =
         [
          ?SUPERVISOR_CHILD(logi_backend_manager_sup)
         ],
-    {ok, {{one_for_one, 5, 10}, Children}}.    
+    {ok, {{one_for_one, 5, 10}, Children}}.

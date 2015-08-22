@@ -1,4 +1,4 @@
-%% @copyright 2014 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc ログ出力用の各種機能を提供するモジュール
 -module(logi).
