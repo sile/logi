@@ -93,3 +93,6 @@ check_policy({interval, Internal}, MaybeState) ->
     end;
 check_policy(PolicySpec, MaybeState) ->
     error(badarg, [PolicySpec, MaybeState]).
+
+%% logi:info(#{frequency => #{period => 60, intensity => 10, message => none, id => todo, severity => verbose}},
+%%           "hogehoge", []).

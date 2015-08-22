@@ -6,8 +6,8 @@
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%------------------------------------------------------------------------------------------------------------------------
--export([make/5]).
--export([get_severity/1, get_timestamp/1, get_headers/1, get_metadata/1, get_omitted_count/1]).
+-export([make/4]).
+-export([get_severity/1, get_timestamp/1, get_headers/1, get_metadata/1]).
 
 -export_type([info/0]).
 
@@ -19,8 +19,7 @@
           severity      :: logi:severity(),
           timestamp     :: erlang:timestamp(),
           headers       :: logi:headers(),
-          metadata      :: logi:metadata(),
-          omitted_count :: non_neg_integer()
+          metadata      :: logi:metadata()
         }).
 
 -opaque info() :: #logi_msg_info{}.
@@ -29,14 +28,13 @@
 %% Exported Function
 %%------------------------------------------------------------------------------------------------------------------------
 %% @doc Makes a `info()' object
--spec make(logi:severity(), erlang:timestamp(), logi:headers(), logi:metadata(), non_neg_integer()) -> info().
-make(Severity, Timestamp, Headers, MetaData, OmittedCount) ->
+-spec make(logi:severity(), erlang:timestamp(), logi:headers(), logi:metadata()) -> info().
+make(Severity, Timestamp, Headers, MetaData) ->
     #logi_msg_info{
        severity      = Severity,
        timestamp     = Timestamp,
        headers       = Headers,
-       metadata      = MetaData,
-       omitted_count = OmittedCount
+       metadata      = MetaData
       }.
 
 %% Gets the severity
@@ -54,7 +52,3 @@ get_headers(#logi_msg_info{headers = Headers}) -> Headers.
 %% Gets the metadata
 -spec get_metadata(info()) -> logi:metadata().
 get_metadata(#logi_msg_info{metadata = MetaData}) -> MetaData.
-
-%% Gets the omitted count
--spec get_omitted_count(info()) -> non_neg_integer().
-get_omitted_count(#logi_msg_info{omitted_count = Count}) -> Count.

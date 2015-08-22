@@ -36,9 +36,9 @@ ready(Context0, Severity, Location, Options) ->
         []       -> {skip, Context0};
         Backends ->
             case logi_context:is_output_allowed(logi_util_assoc:fetch(frequency, Options, always), Location, Context0) of
-                {false, Context1}                 -> {skip, Context1};
-                {{true, OmittedCount},  Context1} ->
-                    MsgInfo = logi_msg_info:make(Severity, os:timestamp(), Headers, MetaData, OmittedCount),
+                {false, Context1}                  -> {skip, Context1};
+                {{true, _OmittedCount},  Context1} ->
+                    MsgInfo = logi_msg_info:make(Severity, os:timestamp(), Headers, MetaData),
                     {ok, Backends, MsgInfo, Context1}
             end
     end.
