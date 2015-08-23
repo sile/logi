@@ -1,4 +1,4 @@
-%% @copyright 2014 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc ログ出力処理をハンドリングするクライアントモジュール
 %% @private
@@ -35,18 +35,17 @@ ready(Context0, Severity, Location, Options) ->
     case logi_backend_manager:select_backends(Logger, Severity, Location, Headers, MetaData) of
         []       -> {skip, Context0};
         Backends ->
-            case logi_context:is_output_allowed(logi_util_assoc:fetch(frequency, Options, always), Location, Context0) of
-                {false, Context1}                  -> {skip, Context1};
-                {{true, _OmittedCount},  Context1} ->
-                    MsgInfo = logi_msg_info:make(Severity, os:timestamp(), Headers, MetaData),
-                    {ok, Backends, MsgInfo, Context1}
+            MsgInfo = logi_msg_info:make(Severity, os:timestamp(), Location, Headers, MetaData),
+            case logi_context:is_output_allowed(logi_util_assoc:fetch(frequency, Options, undefined), MsgInfo, Context0) of
+                {false, Context1} -> {skip, Context1};
+                {true,  Context1} -> {ok, Backends, MsgInfo, Context1}
             end
     end.
 
 %% @doc 引数のバックエンドを使ってログ出力(書き込み)処理を行う
 -spec write(logi_context:context(), [logi_backend:backend()], logi_location:location(), logi_msg_info:info(), io:format(), [term()]) ->
                    logi_context:context().
-write(Context, Backends, Location, MsgInfo, Format, Args) ->
+write(Context, Backends, Location, MsgInfo, Format, Args) -> % TODO: Delete `Location'
     ok = lists:foreach(
            fun (Backend) ->
                    Module = logi_backend:get_module(Backend),

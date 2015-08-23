@@ -67,9 +67,26 @@ TODO
   - 特に、gen_event実装的なモジュールで、ID を指定した場合
 - 省略メッセージの出力タイミング
   - 同一プロセスの何らかのメッセージ出力時に、省略期間を超過していたら
+  - プロセスが(次のログを出さずに)死んだら出力されない可能性がある
 - より高度の制御が欲しい場合は?
   - ユーザが自前で独自の機構を実装すれば良い (TODO: 例)
 
 ### アドホックかつ詳細なトレースを行いたい場合
 
 - Erlangのトレース機能を使用するべき (ex. recon)
+
+### 想定する構成
+
+- ライブラリ
+  - logiのみ
+- アプリケーション
+  - 必要に応じて、以下を使う
+     - logi_fileやlogi_tty 等の出力用バックエンド
+     - logi_lager, lager_logi, error_logger_logi等の転送用ライブラリ (NOTE: 存在しないものもある)
+
+### バックエンドの適用条件
+
+- min-level, max-level
+- location: application, module, function, line, process
+- header, metadata (?)
+- arbitrary predicate function (??)

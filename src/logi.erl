@@ -61,6 +61,8 @@
          emergency/1, emergency/2, emergency/3, emergency_opt/2, emergency_opt/3, emergency_opt/4
         ]).
 
+-export([on_expire/4]).  % XXX:
+
 -export_type([
               log_level/0,
               severity/0,
@@ -108,10 +110,13 @@
 -type metadata_entry_key()   :: term().
 -type metadata_entry_value() :: term().
 
--type frequency_policy() :: always
-                          | once
-                          | {once_in_times, Times::pos_integer()}
-                          | {interval, MilliSeconds::non_neg_integer()}.
+-type seconds() :: non_neg_integer().
+
+-type frequency_policy() :: #{intensity => non_neg_integer(),
+                              period    => seconds(),
+                              on_expire => function(), % XXX:
+                              max_flush_count => pos_integer(),
+                              id => term()}. % TODO: description
 
 -type log_options() :: [log_option()].
 -type log_option() :: {headers, headers()}             % default: []
@@ -627,3 +632,14 @@ emergency_opt(Format, Args, Options) -> emergency_opt(?DEFAULT_LOGGER, Format, A
 -spec emergency_opt(context_ref(), io:format(), [term()], log_options()) -> context_ref().
 emergency_opt(ContextRef, Format, Args, Options) ->
     log(ContextRef, emergency, logi_location:make(undefined, undefined, 0), Format, Args, Options).
+
+%% TODO
+on_expire(Context, Id, Count, Info) ->
+    %% TODO: max_flush_count=0
+    Duration = timer:now_diff(os:timestamp(), logi_msg_info:get_timestamp(Info)) / 1000 / 1000,
+    log(Context,
+        logi_msg_info:get_severity(Info),
+        logi_msg_info:get_location(Info),
+        "Over ~p seconds, ~p messages were dropped (id: ~p)", [Duration, Count, Id],
+        [{headers, logi_msg_info:get_headers(Info)},
+         {metadata, logi_msg_info:get_metadata(Info)}]).

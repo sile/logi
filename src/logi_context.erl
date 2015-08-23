@@ -29,10 +29,10 @@
 %%------------------------------------------------------------------------------------------------------------------------
 -record(logi_context,
         {
-          logger               :: logi:logger(),
-          headers              :: logi:headers(),
-          metadata             :: logi:metadata(),
-          frequency_controller :: logi_frequency_controller:controller()
+          logger    :: logi:logger(),
+          headers   :: logi:headers(),
+          metadata  :: logi:metadata(),
+          frequency :: undefined | logi_frequency:controller()
         }).
 
 -opaque context() :: #logi_context{}.
@@ -55,8 +55,7 @@ make(LoggerId, Headers, MetaData) ->
             #logi_context{
                logger   = LoggerId,
                headers  = lists:ukeysort(1, Headers),
-               metadata = lists:ukeysort(1, MetaData),
-               frequency_controller = logi_frequency_controller:make()
+               metadata = lists:ukeysort(1, MetaData)
               }
     end.
 
@@ -74,12 +73,20 @@ get_full_metadata(LocalMetaData, Context) ->
 get_full_headers(LocalHeaders, Context) ->
     LocalHeaders ++ Context#logi_context.headers.
 
-%% @doc 出力が許可されているかどうかを判定する
--spec is_output_allowed(logi:frequency_policy(), logi_location:location(), context()) -> {{true, non_neg_integer()} | false, context()}.
-is_output_allowed(Policy, Location, Context) ->
-    {Result, Controller} =
-        logi_frequency_controller:is_output_allowed(Policy, Location, Context#logi_context.frequency_controller),
-    {Result, Context#logi_context{frequency_controller = Controller}}.
+%% %% @doc 出力が許可されているかどうかを判定する
+-spec is_output_allowed(logi:frequency_policy(), logi_msg_info:info(), context()) -> {boolean(), context()}.
+is_output_allowed(Policy, MsgInfo, Context) ->
+    {Controller0, Entries} =
+        logi_frequency:flush_expired_entries(case Policy of
+                                                 undefined -> 5;
+                                                 _ -> maps:get(max_flush_count, Policy, 5)
+                                             end,
+                                             logi_msg_info:get_timestamp(MsgInfo),
+                                             Context#logi_context.frequency),
+    Context1 = Context#logi_context{frequency = Controller0},
+    Context2 = lists:foldl(fun logi_frequency:output_overflow_message/2, Context1, Entries),
+    {Result, Controller1} = logi_frequency:is_output_allowed(Policy, MsgInfo, Controller0),
+    {Result, Context2#logi_context{frequency = Controller1}}.
 
 %% @doc 対象となるロガーを取得する
 -spec get_logger(context()) -> logi:logger().
