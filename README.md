@@ -90,3 +90,12 @@ TODO
 - location: application, module, function, line, process
 - header, metadata (?)
 - arbitrary predicate function (??)
+- and, or, not
+
+- 制約は、全体の性能劣化に繋がらないもののみにしたい (関係箇所以外には影響なし)
+  - それ以外は、条件付きで中継するようなバックエンドをdebugレベルで登録すれば実現可能
+  - 組み込みと性能は変わらず、柔軟性は高い
+- max_levelはok
+- `sys:replace_state/3`を使って、特定プロセスに直接バックエンドを指定するのはありかもしれない
+
+- 推奨: ライブラリがloggerを受け取れるようにして、利用者側が各種設定を制御可能にする

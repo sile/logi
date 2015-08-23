@@ -41,7 +41,7 @@
           alive_count       :: non_neg_integer(),
           dropped_count = 1 :: pos_integer(),
           msg_info          :: logi_msg_info:info(),
-          on_expire         :: logi:on_expire_fun()
+          on_expire         :: logi:on_expire_fun() % TODO: expire時に適用する関数と、それへの引数を返すインタフェースにする
         }).
 
 -type state() :: #normal{} | #overflow{}.
