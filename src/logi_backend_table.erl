@@ -84,9 +84,9 @@ deregister_backend(Table, BackendId) ->
 
 %% @doc 条件に一致するバックエンド群を選択する
 -spec select_backends(table(), logi:severity(), logi_location:location(), logi:headers(), logi:metadata()) -> [logi_backend:backend()].
-select_backends(Table, Severity, Location, Headers, MetaData) ->
-    BackendIds = [ BackendId || {ConditionClause, BackendId} <- load_conditional_backends(Table, Severity),
-                                logi_condition:is_satisfied(ConditionClause, Location, Headers, MetaData)],
+select_backends(Table, Severity, _Location, _Headers, _MetaData) ->
+    %% TODO: 整理
+    BackendIds = load_conditional_backends(Table, Severity),
     lists:filtermap(fun (BackendId) -> load_backend(Table, BackendId) end, lists:usort(BackendIds)).
 
 %% @doc 登録済みバックエンド一覧を取得する
@@ -111,16 +111,13 @@ delete_backend(Table, Backend) ->
 add_condition(Table, Condition, Backend) ->
     add_condition_clauses(Table, logi_backend:get_id(Backend), logi_condition:get_normalized_spec(Condition)).
 
--spec add_condition_clauses(table(), logi_backend:id(), [logi_condition:condition_clause()]) -> ok.
+-spec add_condition_clauses(table(), logi_backend:id(), [logi:loglevel()]) -> ok.
 add_condition_clauses(_Table, _BackendId, [])                         -> ok;
-add_condition_clauses(Table, BackendId, [{Level, Constraint} | Rest]) ->
-    ok = lists:foreach(
-           fun (Severity) ->
-                   Backends0 = load_conditional_backends(Table, Severity),
-                   Backends1 = lists:umerge([{Constraint, BackendId}], Backends0),
-                   save_conditional_backends(Table, Severity, Backends1)
-           end,
-           target_severities(Level)),
+add_condition_clauses(Table, BackendId, [Level | Rest]) ->
+    Severity = Level,
+    Backends0 = load_conditional_backends(Table, Severity),
+    Backends1 = lists:umerge([BackendId], Backends0),
+    _ = save_conditional_backends(Table, Severity, Backends1),
     add_condition_clauses(Table, BackendId, Rest).
 
 -spec delete_condition(table(), logi_backend:backend()) -> ok.
@@ -129,13 +126,14 @@ delete_condition(Table, Backend) ->
     lists:foreach(
       fun (Severity) ->
               Backends0 = load_conditional_backends(Table, Severity),
-              Backends1 = lists:filter(fun ({_, BackendId}) -> BackendId =/= DeleteId end, Backends0),
+              Backends1 = lists:filter(fun (BackendId) -> BackendId =/= DeleteId end, Backends0),
               save_conditional_backends(Table, Severity, Backends1)
       end,
       logi:log_levels()).
 
--spec load_conditional_backends(table(), logi:severity()) -> [{logi_condition:condition_clause(), logi_backend:id()}].
+-spec load_conditional_backends(table(), logi:severity()) -> [logi_backend:id()].
 load_conditional_backends(Table, Severity) ->
+    %% TODO: bagを使った方がシンプルかも(setではなく)
     try ets:lookup(Table, {severity, Severity}) of
         []              -> [];
         [{_, Backends}] -> Backends
@@ -143,7 +141,7 @@ load_conditional_backends(Table, Severity) ->
         error:badarg -> []  % おそらく Table が存在しない
     end.
 
--spec save_conditional_backends(table(), logi:severity(), [{logi_condition:condition_clause(), logi_backend:id()}]) -> ok.
+-spec save_conditional_backends(table(), logi:severity(), [logi_backend:id()]) -> ok.
 save_conditional_backends(Table, Severity, Backends) ->
     true = ets:insert(Table, {{severity, Severity}, Backends}),
     ok.
@@ -154,7 +152,3 @@ load_backend(Table, BackendId) ->
         []             -> false;
         [{_, Backend}] -> {true, Backend}
     end.
-
--spec target_severities(logi:log_level()) -> [logi:log_level()].
-target_severities(Level) ->
-    lists:dropwhile(fun (L) -> L =/= Level end, logi:log_levels()).

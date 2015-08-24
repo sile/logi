@@ -11,15 +11,12 @@
          make/1,
          is_condition/1,
          get_spec/1,
-         get_normalized_spec/1,
-         is_satisfied/4
+         get_normalized_spec/1
         ]).
 
 -export_type([
               condition/0,
-              spec/0,
-              condition_clause/0,
-              constraint/0
+              spec/0
              ]).
 
 %%------------------------------------------------------------------------------------------------------------------------
@@ -34,10 +31,7 @@
 
 -opaque condition() :: #?CONDITION{}.
 
--type spec()             :: condition_clause() | [condition_clause()].
--type condition_clause() :: logi:log_level() | {logi:log_level(), constraint()}.
--type constraint()       :: {match, {module(), Function::atom(), Arg::term()}}
-                          | none.
+-type spec() :: logi:log_level() | {logi:log_level(), logi:log_level()} | [logi:log_level()]. % XXX:
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
@@ -54,35 +48,22 @@ make(Spec) ->
 -spec is_condition(condition()) -> boolean().
 is_condition(X) -> is_record(X, ?CONDITION).
 
-%% @doc 正規化された出力指定を取得する
--spec get_normalized_spec(condition()) -> [condition_clause()].
-get_normalized_spec(#?CONDITION{spec = Spec}) when is_list(Spec) ->
-    [case Clause of
-         {_, _} -> Clause;
-         Level  -> {Level, none}
-     end || Clause <- Spec];
-get_normalized_spec(#?CONDITION{spec = Spec}) ->
-    get_normalized_spec(#?CONDITION{spec = [Spec]}).
-
 %% @doc 出力指定を取得する
 -spec get_spec(condition()) -> spec().
 get_spec(#?CONDITION{spec = Spec}) -> Spec.
 
-%% @doc メタデータが指定の制約を満たしているかどうかを判定する
--spec is_satisfied(constraint(), logi_location:location(), logi:headers(), logi:metadata()) -> boolean().
-is_satisfied(none, _Location, _Headers, _MetaData)              -> true;
-is_satisfied({match, {M, F, Arg}}, Location, Headers, MetaData) ->
-    try
-        case M:F(Arg, Location, Headers, MetaData) of
-            true  -> true;
-            false -> false
-        end
-    catch
-        Class:Reason ->
-            error_logger:error_report(
-              [{location, [{module, ?MODULE}, {line, ?LINE}, {pid, self()}]},
-               {mfargs, {M, F, [Arg, Location, Headers, MetaData]}},
-               {exception, {Class, Reason, erlang:get_stacktrace()}}])
+%% TODO:
+-spec get_normalized_spec(condition()) -> [logi:loglevel()].
+get_normalized_spec(#?CONDITION{spec = Spec}) ->
+    case Spec of
+        {Min, Max} ->
+            lists:reverse(
+              lists:dropwhile(fun (L) -> Max =/= L end,
+                              lists:reverse(lists:dropwhile(fun (L) -> Min =/= L end, logi:log_levels()))));
+        Level when is_atom(Level) ->
+            lists:dropwhile(fun (L) -> Level =/= L end, logi:log_levels());
+        Levels ->
+            lists:filter(fun (L) -> lists:member(L, Levels) end, logi:log_levels())
     end.
 
 %%------------------------------------------------------------------------------------------------------------------------
@@ -90,14 +71,9 @@ is_satisfied({match, {M, F, Arg}}, Location, Headers, MetaData) ->
 %%------------------------------------------------------------------------------------------------------------------------
 -spec is_condition_spec(spec()) -> boolean().
 is_condition_spec(Level) when is_atom(Level) -> is_log_level(Level);
-is_condition_spec({Level, Constraint})       -> is_log_level(Level) andalso is_constraint(Constraint);
-is_condition_spec(List) when is_list(List)   -> lists:all(fun (X) -> not is_list(X) andalso is_condition_spec(X) end, List);
+is_condition_spec({MinLevel, MaxLevel})      -> is_log_level(MinLevel) andalso is_log_level(MaxLevel);
+is_condition_spec(List) when is_list(List)   -> lists:all(fun is_log_level/1, List);
 is_condition_spec(_)                         -> false.
-
--spec is_constraint(constraint()) -> boolean().
-is_constraint({match, {M, F, _}}) -> is_atom(M) andalso is_atom(F);
-is_constraint(none)               -> true;
-is_constraint(_)                  -> false.
 
 -spec is_log_level(logi:log_level() | term()) -> boolean().
 is_log_level(X) -> lists:member(X, logi:log_levels()).
