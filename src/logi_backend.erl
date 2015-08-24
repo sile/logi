@@ -34,7 +34,7 @@
 
 -opaque backend() :: #?BACKEND{}.
 
--type spec() :: {process(), module(), data()}
+-type spec() :: {process(), module(), data()} % TODO: `process()'は不要かも (`data()'だけで十分?)
               | {id(), process(), module(), data()}.
 
 -type id()      :: term().
