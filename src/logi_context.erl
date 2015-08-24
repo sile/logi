@@ -120,6 +120,7 @@ get_metadata(Context) ->
     Context#logi_context.metadata.
 
 %% TODO:
+%% TODO: Supports skip
 -spec apply_severity_mapper(logi:severity(), logi_location:location(), context()) -> {logi:severity(), context()}.
 apply_severity_mapper(Severity, _Location, Context = #logi_context{severity_mapper = undefined}) ->
     {Severity, Context};

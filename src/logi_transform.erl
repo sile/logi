@@ -86,16 +86,16 @@ walk_expr(Expr, _Loc)                                                -> Expr.
 -spec transform_logi_call(expr_call_remote(), #location{}) -> expr_call_remote().
 transform_logi_call({call, _, {remote, _, _, {atom, _, location}}, []}, Loc) ->
     logi_location_expr(Loc);
-transform_logi_call({call, _, {remote, _, _, {atom, _, Severity0}}, Args} = Call, Loc = #location{line = Line}) ->
-    DefaultLogger = {atom, Line, logi:default_logger()},
-    case {expand_severity(Severity0), Args} of
-        {{ok, Severity, false}, [Fmt]}                        -> logi_call_expr(DefaultLogger, Severity, Fmt, {nil, Line}, {nil, Line}, Loc);
-        {{ok, Severity, false}, [Fmt, FmtArgs]}               -> logi_call_expr(DefaultLogger, Severity, Fmt, FmtArgs,     {nil, Line}, Loc);
-        {{ok, Severity, false}, [Logger, Fmt, FmtArgs]}       -> logi_call_expr(Logger,        Severity, Fmt, FmtArgs,     {nil, Line}, Loc);
-        {{ok, Severity, true},  [Fmt, Opts]}                  -> logi_call_expr(DefaultLogger, Severity, Fmt, {nil, Line}, Opts,        Loc);
-        {{ok, Severity, true},  [Fmt, FmtArgs, Opts]}         -> logi_call_expr(DefaultLogger, Severity, Fmt, FmtArgs,     Opts,        Loc);
-        {{ok, Severity, true},  [Logger, Fmt, FmtArgs, Opts]} -> logi_call_expr(Logger,        Severity, Fmt, FmtArgs,     Opts,        Loc);
-        _                                                     -> Call
+transform_logi_call({call, _, {remote, _, _, {atom, _, Severity}}, Args} = Call, Loc = #location{line = Line}) ->
+    case lists:member(Severity, logi:log_levels()) of
+        false -> Call;
+        true  ->
+            case Args of
+                [Fmt]                -> logi_call_expr(Severity, Fmt, {nil, Line}, {map, Line, []}, Loc);
+                [Fmt, FmtArgs]       -> logi_call_expr(Severity, Fmt, FmtArgs,     {map, Line, []}, Loc);
+                [Fmt, FmtArgs, Opts] -> logi_call_expr(Severity, Fmt, FmtArgs,     Opts,            Loc);
+                _                    -> Call
+            end
     end;
 transform_logi_call(Call, _Loc) ->
     Call.
@@ -113,13 +113,13 @@ logi_location_expr(Loc = #location{line = Line}) ->
        {integer, Line, Line}
       ]).
 
--spec logi_call_expr(expr(), logi:severity(), expr(), expr(), expr(), #location{}) -> expr().
-logi_call_expr(ContextExpr, Severity, FormatExpr, FormatArgsExpr, OptionsExpr, Loc = #location{line = Line}) ->
+-spec logi_call_expr(logi:severity(), expr(), expr(), expr(), #location{}) -> expr().
+logi_call_expr(Severity, FormatExpr, FormatArgsExpr, OptionsExpr, Loc = #location{line = Line}) ->
     LocationExpr = logi_location_expr(Loc),
     BackendsVar = logi_transform_utils:make_var(Line, "__Backends"),
     ContextVar = logi_transform_utils:make_var(Line, "__Context"),
     MsgInfoVar = logi_transform_utils:make_var(Line, "__MsgInfo"),
-    {'case', Line, logi_transform_utils:make_call_remote(Line, logi_client, ready, [ContextExpr, {atom, Line, Severity}, LocationExpr, OptionsExpr]),
+    {'case', Line, logi_transform_utils:make_call_remote(Line, logi_client, ready, [{atom, Line, Severity}, LocationExpr, OptionsExpr]),
      [
       %% {skip, Context} -> Context
       {clause, Line, [{tuple, Line, [{atom, Line, skip}, ContextVar]}], [],
@@ -127,24 +127,6 @@ logi_call_expr(ContextExpr, Severity, FormatExpr, FormatArgsExpr, OptionsExpr, L
 
       %% {ok, Backends, MsgInfo, Context} -> logi_client:write(Context, Backends, MsgInfo, Format, Args)
       {clause, Line, [{tuple, Line, [{atom, Line, ok}, BackendsVar, MsgInfoVar, ContextVar]}], [],
-       [logi_transform_utils:make_call_remote(Line, logi_client, write, [ContextVar, BackendsVar, MsgInfoVar, FormatExpr, FormatArgsExpr])]}
+       [logi_transform_utils:make_call_remote(Line, logi_client, write, [BackendsVar, MsgInfoVar, FormatExpr, FormatArgsExpr]),
+        ContextVar]}
      ]}.
-
--spec expand_severity(atom()) -> {ok, logi:severity(), HasOptions::boolean()} | error.
-expand_severity(Severity) ->
-    case lists:member(Severity, logi:log_levels()) of
-        true  -> {ok, Severity, false};
-        false ->
-            Bin = atom_to_binary(Severity, utf8),
-            PrefixSize = max(0, byte_size(Bin) - byte_size(<<"_opt">>)),
-            case Bin of
-                <<Prefix:PrefixSize/binary, "_opt">> ->
-                    Severity2 = binary_to_atom(Prefix, utf8),
-                    case lists:member(Severity2, logi:log_levels()) of
-                        true  -> {ok, Severity2, true};
-                        false -> error
-                    end;
-                _ ->
-                    error
-            end
-    end.

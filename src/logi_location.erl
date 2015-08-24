@@ -7,6 +7,7 @@
 %% Exported API
 %%------------------------------------------------------------------------------------------------------------------------
 -export([
+         guess/0,
          make/3, make/6,
          get_node/1,
          get_process/1,
@@ -43,6 +44,17 @@
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%------------------------------------------------------------------------------------------------------------------------
+%% TODO:
+-spec guess() -> location().
+guess() ->
+    case process_info(self(), current_stacktrace) of % XXX: 末尾呼び出しやHiPEだと不正確な結果になる
+        {current_stacktrace, [_, _, {Module, Function, _, Location} | _]} ->
+            Line = proplists:get_value(line, Location, 0),
+            make(Module, Function, Line);
+        _ ->
+            make(undefined, undefined, 0)
+    end.
+
 %% @equiv make(node(), self(), guess_application(Module), Module, Function, Line)
 -spec make(module(), atom(), line()) -> location().
 make(Module, Function, Line) ->
