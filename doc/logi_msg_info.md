@@ -31,7 +31,7 @@ __abstract datatype__: `info()`
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_headers-1">get_headers/1</a></td><td>Gets the headers of the message.</td></tr><tr><td valign="top"><a href="#get_location-1">get_location/1</a></td><td>Gets the location of the message.</td></tr><tr><td valign="top"><a href="#get_metadata-1">get_metadata/1</a></td><td>Gets the metadata of the message.</td></tr><tr><td valign="top"><a href="#get_omitted_count-1">get_omitted_count/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_severity-1">get_severity/1</a></td><td>Gets the severity of the message.</td></tr><tr><td valign="top"><a href="#get_timestamp-1">get_timestamp/1</a></td><td>Gets the timestamp of the message.</td></tr><tr><td valign="top"><a href="#make-5">make/5</a></td><td>Makes a <code>info()</code> object.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_headers-1">get_headers/1</a></td><td>Gets the headers of the message.</td></tr><tr><td valign="top"><a href="#get_location-1">get_location/1</a></td><td>Gets the location of the message.</td></tr><tr><td valign="top"><a href="#get_metadata-1">get_metadata/1</a></td><td>Gets the metadata of the message.</td></tr><tr><td valign="top"><a href="#get_severity-1">get_severity/1</a></td><td>Gets the severity of the message.</td></tr><tr><td valign="top"><a href="#get_timestamp-1">get_timestamp/1</a></td><td>Gets the timestamp of the message.</td></tr><tr><td valign="top"><a href="#make-5">make/5</a></td><td>Makes a <code>info()</code> object.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -70,12 +70,6 @@ get_metadata(Logi_msg_info::<a href="#type-info">info()</a>) -&gt; <a href="logi
 <br />
 
 Gets the metadata of the message
-
-<a name="get_omitted_count-1"></a>
-
-### get_omitted_count/1 ###
-
-`get_omitted_count(X1) -> any()`
 
 <a name="get_severity-1"></a>
 

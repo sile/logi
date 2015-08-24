@@ -10,7 +10,6 @@
 %%------------------------------------------------------------------------------------------------------------------------
 -export([make/5]).
 -export([get_severity/1, get_timestamp/1, get_headers/1, get_metadata/1, get_location/1]).
--export([get_omitted_count/1]). % TODO: delete
 
 -export_type([info/0]).
 
@@ -61,5 +60,3 @@ get_headers(#logi_msg_info{headers = Headers}) -> Headers.
 %% @doc Gets the metadata of the message
 -spec get_metadata(info()) -> logi:metadata().
 get_metadata(#logi_msg_info{metadata = MetaData}) -> MetaData.
-
-get_omitted_count(_) -> 0.

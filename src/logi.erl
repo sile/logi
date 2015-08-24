@@ -297,7 +297,7 @@ log(ContextRef, Severity, Location, Format, Args, Options) ->
                           case logi_client:ready(Context0, Severity, Location, Options) of
                               {skip, Context1}                  -> Context1;
                               {ok, Backends, MsgInfo, Context1} ->
-                                  logi_client:write(Context1, Backends, Location, MsgInfo, Format, Args)
+                                  logi_client:write(Context1, Backends, MsgInfo, Format, Args)
                           end
                   end).
 

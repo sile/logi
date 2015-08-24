@@ -14,7 +14,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_backend' Callback API
 %%----------------------------------------------------------------------------------------------------------------------
--export([write/5]).
+-export([write/4]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
@@ -39,8 +39,9 @@ uninstall(Logger) ->
 %% 'logi_backend' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
--spec write(logi_backend:backend(), logi_location:location(), logi_msg_info:info(), io:format(), [term()]) -> any().
-write(_Backend, Location, MsgInfo, Format, Args) ->
+-spec write(logi_backend:backend(), logi_msg_info:info(), io:format(), [term()]) -> any().
+write(_Backend, MsgInfo, Format, Args) ->
+    Location = logi_msg_info:get_location(MsgInfo),
     io:format("~s [~s] ~p ~p ~s:~p [~s] ~s\n",
               [format_timestamp(logi_msg_info:get_timestamp(MsgInfo)),
                logi_msg_info:get_severity(MsgInfo),

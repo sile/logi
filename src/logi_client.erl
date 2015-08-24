@@ -7,7 +7,7 @@
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%------------------------------------------------------------------------------------------------------------------------
--export([ready/4, write/6]).
+-export([ready/4, write/5]).
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
@@ -41,19 +41,19 @@ ready(Context0, Severity0, Location, Options) ->
     end.
 
 %% @doc 引数のバックエンドを使ってログ出力(書き込み)処理を行う
--spec write(logi_context:context(), [logi_backend:backend()], logi_location:location(), logi_msg_info:info(), io:format(), [term()]) ->
+-spec write(logi_context:context(), [logi_backend:backend()], logi_msg_info:info(), io:format(), [term()]) ->
                    logi_context:context().
-write(Context, Backends, Location, MsgInfo, Format, Args) -> % TODO: Delete `Location'
+write(Context, Backends, MsgInfo, Format, Args) ->
     ok = lists:foreach(
            fun (Backend) ->
                    Module = logi_backend:get_module(Backend),
                    try
-                       _ = Module:write(Backend, Location, MsgInfo, Format, Args)
+                       _ = Module:write(Backend, MsgInfo, Format, Args)
                    catch
                        Class:Reason ->
                            error_logger:error_report(
                              [{location, [{module, ?MODULE}, {line, ?LINE}, {pid, self()}]},
-                              {mfargs, {Module, write, [Backend, Location, MsgInfo, Format, Args]}},
+                              {mfargs, {Module, write, [Backend, MsgInfo, Format, Args]}},
                               {exception, {Class, Reason, erlang:get_stacktrace()}}])
                    end
            end,

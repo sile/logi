@@ -125,9 +125,9 @@ logi_call_expr(ContextExpr, Severity, FormatExpr, FormatArgsExpr, OptionsExpr, L
       {clause, Line, [{tuple, Line, [{atom, Line, skip}, ContextVar]}], [],
        [ContextVar]},
 
-      %% {ok, Backends, MsgInfo, Context} -> logi_client:write(Context, Backends, Location, MsgInfo, Format, Args)
+      %% {ok, Backends, MsgInfo, Context} -> logi_client:write(Context, Backends, MsgInfo, Format, Args)
       {clause, Line, [{tuple, Line, [{atom, Line, ok}, BackendsVar, MsgInfoVar, ContextVar]}], [],
-       [logi_transform_utils:make_call_remote(Line, logi_client, write, [ContextVar, BackendsVar, LocationExpr, MsgInfoVar, FormatExpr, FormatArgsExpr])]}
+       [logi_transform_utils:make_call_remote(Line, logi_client, write, [ContextVar, BackendsVar, MsgInfoVar, FormatExpr, FormatArgsExpr])]}
      ]}.
 
 -spec expand_severity(atom()) -> {ok, logi:severity(), HasOptions::boolean()} | error.
