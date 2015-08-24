@@ -20,6 +20,8 @@
          get_metadata/1
         ]).
 
+-export([apply_severity_mapper/3]).
+
 -export_type([
               context/0
              ]).
@@ -32,10 +34,17 @@
           logger    :: logi:logger(),
           headers   :: logi:headers(),
           metadata  :: logi:metadata(),
-          frequency :: undefined | logi_frequency:controller()
+          frequency :: undefined | logi_frequency:controller(),
+          severity_mapper :: undefined | severity_mapper()
         }).
 
 -opaque context() :: #logi_context{}.
+
+-type severity_mapper() :: {severity_map_fun(), severity_mapper_state()}.
+-type severity_mapper_state() :: term().
+-type severity_map_fun() :: fun ((logi:logger(), logi:severity(), logi:location(), logi:headers(), logi:metadata(),
+                                  severity_mapper_state()) -> logi:severity() |
+                                                              {logi:severity(), severity_mapper_state()}).
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
@@ -109,3 +118,14 @@ set_metadata(MetaData, Context) ->
 -spec get_metadata(context()) -> logi:metadata().
 get_metadata(Context) ->
     Context#logi_context.metadata.
+
+%% TODO:
+-spec apply_severity_mapper(logi:severity(), logi_location:location(), context()) -> {logi:severity(), context()}.
+apply_severity_mapper(Severity, _Location, Context = #logi_context{severity_mapper = undefined}) ->
+    {Severity, Context};
+apply_severity_mapper(Severity0, Location, Context = #logi_context{severity_mapper = {MapFun, State0}}) ->
+    #logi_context{logger = Logger, headers = Headers, metadata = MetaData} = Context,
+    case MapFun(Logger, Severity0, Location, Headers, MetaData, State0) of
+        {Severity, State1} -> {Severity, Context#logi_context{severity_mapper = {MapFun, State1}}};
+        Severity           -> {Severity, Context}
+    end.

@@ -7,10 +7,7 @@
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%------------------------------------------------------------------------------------------------------------------------
--export([
-         ready/4,
-         write/6
-        ]).
+-export([ready/4, write/6]).
 
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
@@ -28,17 +25,18 @@ ready(ContextRef, Severity, Location, Options) when is_atom(ContextRef) ->
              {ok, _, _, Context} -> logi:save_context(ContextRef, Context)
          end,
     Result;
-ready(Context0, Severity, Location, Options) ->
+ready(Context0, Severity0, Location, Options) ->
     MetaData = logi_context:get_full_metadata(logi_util_assoc:fetch(metadata, Options, []), Context0),
     Headers  = logi_context:get_full_headers(logi_util_assoc:fetch(headers, Options, []), Context0),
     Logger = logi_context:get_logger(Context0),
+    {Severity, Context1} = logi_context:apply_severity_mapper(Severity0, Location, Context0),
     case logi_backend_manager:select_backends(Logger, Severity, Location, Headers, MetaData) of
-        []       -> {skip, Context0};
+        []       -> {skip, Context1};
         Backends ->
             MsgInfo = logi_msg_info:make(Severity, os:timestamp(), Location, Headers, MetaData),
-            case logi_context:is_output_allowed(logi_util_assoc:fetch(frequency, Options, undefined), MsgInfo, Context0) of
-                {false, Context1} -> {skip, Context1};
-                {true,  Context1} -> {ok, Backends, MsgInfo, Context1}
+            case logi_context:is_output_allowed(logi_util_assoc:fetch(frequency, Options, undefined), MsgInfo, Context1) of
+                {false, Context2} -> {skip, Context2};
+                {true,  Context2} -> {ok, Backends, MsgInfo, Context2}
             end
     end.
 
