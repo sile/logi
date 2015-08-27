@@ -1,6 +1,8 @@
 %% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc ログ出力用の各種機能を提供するモジュール
+%% @doc A Logger Interface Library
+%%
+%% TODO: 全体的に用語整理
 -module(logi).
 
 -compile({no_auto_import, [error/1, error/2]}).
@@ -8,27 +10,36 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
+
+%% Constants
+-export([default_logger/0]).
+-export([log_levels/0]).
+
+%% Logger Process API
+-export([start_logger/1, ensure_logger_started/1]).
+-export([stop_logger/1]).
+-export([which_loggers/0]).
+
+%% Backend API
+-export([register_backend/3]).
+-export([update_backend/2]).
+-export([deregister_backend/1, deregister_backend/2]).
+-export([find_backend/1, find_backend/2]).
+-export([which_backends/0, which_backends/1]).
+
+%% Logging API
+-export([log/2, log/3, log/4]).
+-export([debug/1, debug/2, debug/3]).
+-export([verbose/1, verbose/2, verbose/3]).
+-export([info/1, info/2, info/3]).
+-export([notice/1, notice/2, notice/3]).
+-export([warning/1, warning/2, warning/3]).
+-export([error/1, error/2, error/3]).
+-export([critical/1, critical/2, critical/3]).
+-export([alert/1, alert/2, alert/3]).
+-export([emergency/1, emergency/2, emergency/3]).
+
 -export([
-         %% 定数系
-         default_logger/0,
-         log_levels/0,
-
-         %% ロガープロセス系
-         start_logger/1, ensure_logger_started/1,
-         stop_logger/1,
-         which_loggers/0,
-
-         %% バックエンド系
-         set_backend/2, set_backend/3,
-         delete_backend/1, delete_backend/2,
-         find_backend/1, find_backend/2,
-         which_backends/0, which_backends/1,
-         get_condition/1, get_condition/2,
-         set_condition/2, set_condition/3,
-
-         %% ログ出力
-         log/4, log/5,
-
          %% コンテキスト系
          make_context/0, make_context/1, make_context/2,
          save_context/1, save_context/2,
@@ -45,20 +56,10 @@
          set_metadata/1, set_metadata/2,
          get_metadata/0, get_metadata/1,
          delete_metadata/1, delete_metadata/2,
-         clear_metadata/0, clear_metadata/1,
+         clear_metadata/0, clear_metadata/1
 
          %% TODO: location/0
 
-         %% ログ出力用の代替関数 (通常は`{parse_transform, logi_transform}'を指定してコンパイルすることを推奨)
-         debug/1, debug/2, debug/3,
-         verbose/1, verbose/2, verbose/3,
-         info/1, info/2, info/3,
-         notice/1, notice/2, notice/3,
-         warning/1, warning/2, warning/3,
-         error/1, error/2, error/3,
-         critical/1, critical/2, critical/3,
-         alert/1, alert/2, alert/3,
-         emergency/1, emergency/2, emergency/3
         ]).
 
 -export([on_expire/4]).  % XXX:
@@ -98,6 +99,7 @@
 -type context()     :: logi_context:context(). % opaqueにしたい
 -type context_id()  :: atom().
 -type context_ref() :: context() | context_id().
+-type client_ref() :: context_ref().
 
 -type headers()      :: [header()].
 -type header()       :: {header_key(), header_value()}.
@@ -117,11 +119,51 @@
                               max_flush_count => pos_integer(),
                               id => term()}. % TODO: description
 
--type log_options() :: #{logger => context_ref(),
-                         headers => headers(),  % default: []
-                         metadata => metadata(), % default: []
-                         frequency => frequency_policy()}. % default: always
+-type log_options() ::
+        #{
+           logger => client_ref(),
+           location => logi_location:location(),
+           headers => headers(),  % default: []
+           metadata => metadata(), % default: []
+           frequency => frequency_policy()
+         }. % default: always
 %% TODO: location (?)
+
+%% TODO: export
+-type register_backend_options() ::
+        #{
+           extra_arg => logi_backend:extra_arg(),
+           condition => logi_condition:spec(),
+           ttl       => timeout(),
+           owner     => pid(),
+           if_exists => error | ignore | supersede,
+           logger    => logger()
+         }.
+
+-type update_backend_options() ::
+        #{
+           extra_arg => logi_backend:extra_arg(),
+           condition => logi_condition:spec(),
+           ttl       => timeout(),
+           owner     => undefined | pid(),
+           logger    => logger()
+         }.
+
+-type deregister_backend_options() :: #{logger => logger()}.
+
+-type find_backend_options() :: #{logger => logger()}.
+
+-type which_backends_options() :: #{logger => logger()}.
+
+-type backend_info() ::
+        #{
+           id        => logi_backend:id(),
+           module    => logi_backend:callback_module(),
+           extra_arg => logi_backend:extra_arg(),
+           condition => logi_condition:spec(),
+           ttl       => timeout(),
+           owner     => pid()
+         }.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros
@@ -129,9 +171,10 @@
 -define(DEFAULT_LOGGER, logi_default_logger).
 -define(CONTEXT_TAG, '__LOGI_CONTEXT__').
 
+%% TODO: move to logi_logger module
 -define(LOGGER_RUNNING_CHECK(LoggerId),
         _ = case whereis(LoggerId) of
-                undefined -> erlang:error({logger_not_running, LoggerId});
+                undefined -> erlang:error({logger_is_not_running, LoggerId});
                 _         -> ok
             end).
 
@@ -151,155 +194,210 @@
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %%------------------------------------------------------------------------------
-%% Exported Functions: Constant
+%% Exported Functions: Constants
 %%------------------------------------------------------------------------------
-%% @doc デフォルトのロガーを返す
+%% @doc Returns the default logger
 %%
-%% このロガーはlogiアプリケーションの開始に合わせて自動的に起動される
+%% The default logger is started automatically when logi application was started.
 -spec default_logger() -> logger().
 default_logger() -> ?DEFAULT_LOGGER.
 
-%% @doc 利用可能なログレベル一覧を返す
+%% @doc Returns the available log level list
 %%
-%% 結果の並び順はログレベルの昇順
+%% The log levels are ordered by the severity (The lowest severity level will appear first).
 -spec log_levels() -> [log_level()].
 log_levels() -> [debug, verbose, info, notice, warning, error, critical, alert, emergency].
 
 %%------------------------------------------------------------------------------
-%% Exported Functions: Logger Process
+%% Exported Functions: Logger Process API
 %%------------------------------------------------------------------------------
-%% @doc ロガーを起動する
+%% @doc Starts a new logger
 %%
-%% 既に同名のロガーが起動している場合は`{error, already_started}'が返される
--spec start_logger(logger()) -> ok | {error, Reason} when
-      Reason :: already_started | term().
+%% If a logger with the same Id already exists, it will return `{error, already_started}'.
+-spec start_logger(logger()) -> ok | {error, already_started}.
 start_logger(LoggerId) when is_atom(LoggerId) ->
     case logi_backend_manager_sup:start_manager(LoggerId) of
         {ok, _Pid}                       -> ok;
         {error, {already_started, _Pid}} -> {error, already_started};
-        Other                            -> Other
+        Other                            -> erlang:error({unexpected_result, Other}, [LoggerId])
     end;
 start_logger(LoggerId) -> erlang:error(badarg, [LoggerId]).
 
-%% @doc まだ未起動の場合は、指定のロガーを起動する
--spec ensure_logger_started(logger()) -> ok | {error, Reason::term()}.
+%% @doc Equivalent to {@link start_logger/1} except it returns `ok' for already started loggers
+-spec ensure_logger_started(logger()) -> ok.
 ensure_logger_started(LoggerId) ->
     case start_logger(LoggerId) of
-        {error, already_started} -> ok;
-        Other                    -> Other
+        ok                       -> ok;
+        {error, already_started} -> ok
     end.
 
-%% @doc ロガーを停止する
+%% @doc Stops the logger
 %%
-%% 指定のロガーが存在しない場合でもエラーとはならずに単に無視される
+%% If the logger `LoggerId' have not been started, it will be silently ignored.
 -spec stop_logger(logger()) -> ok.
 stop_logger(LoggerId) when is_atom(LoggerId) -> logi_backend_manager_sup:stop_manager(LoggerId);
 stop_logger(LoggerId)                        -> erlang:error(badarg, [LoggerId]).
 
-%% @doc 起動中のロガー一覧を取得する
+%% @doc Returns a list of all running loggers
 -spec which_loggers() -> [logger()].
 which_loggers() -> logi_backend_manager_sup:which_managers().
 
 %%------------------------------------------------------------------------------
-%% Exported Functions: Backend
+%% Exported Functions: Backend API
 %%------------------------------------------------------------------------------
-%% @equiv set_backend(default_logger(), BackendSpec, ConditionSpec)
--spec set_backend(logi_backend:spec(), logi_condition:spec()) -> ok.
-set_backend(BackendSpec, ConditionSpec) ->
-    set_backend(?DEFAULT_LOGGER, BackendSpec, ConditionSpec).
+%% @doc Registers the backend
+-spec register_backend(logi_backend:id(), logi_backend:callback_module(), register_backend_options()) ->
+                              {ok, OldBackend} | {error, Reason} when
+      OldBackend :: undefined | backend_info(),
+      Reason     :: {already_registered, backend_info()}.
+register_backend(BackendId, BackendModlue, Options) ->
+    logi_backend_manager:register_backend(BackendId, BackendModlue, Options).
 
-%% @doc バックエンドを登録する
-%%
-%% 既に同じIDのバックエンドが登録済みの場合は、内容が更新される
--spec set_backend(logger(), logi_backend:spec(), logi_condition:spec()) -> ok.
-set_backend(LoggerId, BackendSpec, ConditionSpec) ->
-    ?LOGGER_RUNNING_CHECK(LoggerId),
-    Condition = logi_condition:make(ConditionSpec),
-    Backend = logi_backend:make(BackendSpec),
-    logi_backend_manager:set_backend(LoggerId, Backend, Condition).
+%% @doc Updates the backend
+-spec update_backend(logi_backend:id(), update_backend_options()) -> {ok, OldBackend} | {error, Reason} when
+      OldBackend :: undefined | backend_info(),
+      Reason     :: unregistered.
+update_backend(BackendId, Options) ->
+    logi_backend_manager:update_backend(BackendId, Options).
 
-%% @equiv delete_backend(default_logger(), BackendId)
--spec delete_backend(logi_backend:id()) -> ok.
-delete_backend(BackendId) ->
-    delete_backend(?DEFAULT_LOGGER, BackendId).
+%% @equiv deregister_backend(BackendId, #{})
+-spec deregister_backend(logi_backend:id()) -> DeregisteredBackend when
+      DeregisteredBackend :: undefined | backend_info().
+deregister_backend(BackendId) ->
+    deregister_backend(BackendId, #{}).
 
-%% @doc バックエンドを削除する
-%%
-%% 存在しないバックエンドが指定された場合でもエラーとはならずに単に無視される
--spec delete_backend(logger(), logi_backend:id()) -> ok.
-delete_backend(LoggerId, BackendId) ->
-    ?LOGGER_RUNNING_CHECK(LoggerId),
-    logi_backend_manager:delete_backend(LoggerId, BackendId).
+%% @doc Deregisters the backend
+-spec deregister_backend(logi_backend:id(), deregister_backend_options()) -> DeregisteredBackend when
+      DeregisteredBackend :: undefined | backend_info().
+deregister_backend(BackendId, Options) ->
+    logi_backend_manager:deregister_backend(BackendId, Options).
 
-%% @equiv find_backend(default_logger(), BackendId)
--spec find_backend(logi_backend:id()) -> {ok, logi_backend:backend()} | {error, not_found}.
+%% @equiv find_backend(BackendId, #{})
+-spec find_backend(logi_backend:id()) -> {ok, backend_info()} | {error, not_found}.
 find_backend(BackendId) ->
-    find_backend(?DEFAULT_LOGGER, BackendId).
+    find_backend(BackendId, #{}).
 
-%% @doc バックエンドを検索する
--spec find_backend(logger(), logi_backend:id()) -> {ok, logi_backend:backend()} | {error, not_found}.
-find_backend(LoggerId, BackendId) ->
-    ?LOGGER_RUNNING_CHECK(LoggerId),
-    logi_backend_manager:find_backend(LoggerId, BackendId).
+%% @doc Finds the backend
+-spec find_backend(logi_backend:id(), find_backend_options()) -> {ok, backend_info()} | {error, not_found}.
+find_backend(BackendId, Options) ->
+    logi_backend_manager:find_backend(BackendId, Options).
 
-%% @equiv which_backends(default_logger())
--spec which_backends() -> [logi_backend:backend()].
+%% @equiv which_backends(#{})
+-spec which_backends() -> [logi_backend:id()].
 which_backends() ->
-    which_backends(?DEFAULT_LOGGER).
+    which_backends(#{}).
 
-%% @doc 登録されているバックエンド一覧を取得する
--spec which_backends(logger()) -> [logi_backend:backend()].
-which_backends(LoggerId) ->
-    ?LOGGER_RUNNING_CHECK(LoggerId),
-    logi_backend_manager:which_backends(LoggerId).
-
-%% @equiv get_condition(default_logger(), BackendId)
--spec get_condition(logi_backend:id()) -> {ok, logi_condition:condition()} | {error, not_found}.
-get_condition(BackendId) ->
-    get_condition(?DEFAULT_LOGGER, BackendId).
-
-%% @doc バックエンドのログ出力条件を取得する
--spec get_condition(logger(), logi_backend:id()) -> {ok, logi_condition:condition()} | {error, not_found}.
-get_condition(LoggerId, BackendId) ->
-    ?LOGGER_RUNNING_CHECK(LoggerId),
-    case logi_backend_manager:get_condition(LoggerId, BackendId) of
-        {ok, Condition} -> {ok, logi_condition:get_spec(Condition)};
-        Other           -> Other
-    end.
-
-%% @equiv set_condition(default_logger(), BackendId, ConditionSpec)
--spec set_condition(logi_backend:id(), logi_condition:spec()) -> ok | {error, not_found}.
-set_condition(BackendId, ConditionSpec) ->
-    set_condition(?DEFAULT_LOGGER, BackendId, ConditionSpec).
-
-%% @doc バックエンドのログ出力条件を設定する
--spec set_condition(logger(), logi_backend:id(), logi_condition:spec()) -> ok | {error, not_found}.
-set_condition(LoggerId, BackendId, ConditionSpec) ->
-    ?LOGGER_RUNNING_CHECK(LoggerId),
-    Condition = logi_condition:make(ConditionSpec),
-    logi_backend_manager:set_condition(LoggerId, BackendId, Condition).
+%% @doc Returns a list of registered backends
+-spec which_backends(which_backends_options()) -> [logi_backend:id()].
+which_backends(Options) ->
+    logi_backend_manager:which_backends(Options).
 
 %%------------------------------------------------------------------------------
-%% Exported Functions: Log
+%% Exported Functions: Logging API
 %%------------------------------------------------------------------------------
-%% @equiv log(Severity, Location, Format, Args, #{})
--spec log(severity(), logi_location:location(), io:format(), [term()]) -> context_ref().
-log(Severity, Location, Format, Args) ->
-    log(Severity, Location, Format, Args, #{}).
+%% @equiv log(Severity, Format, [])
+-spec log(severity(), io:format()) -> client_ref().
+log(Severity, Format) -> log(Severity, Format, []).
 
-%% @doc ログを出力する
+%% @equiv log(Severity, Format, Args, #{})
+-spec log(severity(), io:format(), [term()]) -> client_ref().
+log(Severity, Format, Args) -> log(Severity, Format, Args, #{}).
+
+%% @doc Outputs the log message
 %%
-%% 通常は`logi_transform'モジュールが適用する関数マクロ群を通してログ出力を行い、この関数は直接は使用されない
--spec log(severity(), logi_location:location(), io:format(), [term()], log_options()) -> context_ref().
-log(Severity, Location, Format, Args, Options) ->
-    ContextRef = maps:get(logger, Options, default_logger()),
-    ?WITH_CONTEXT(ContextRef,
-                  fun (Context0) ->
-                          case logi_client:ready(Context0, Severity, Location, Options) of
-                              {skip, Context1}                  -> Context1;
-                              {ok, Backends, MsgInfo, Context1} -> _ = logi_client:write(Backends, MsgInfo, Format, Args), Context1
+%% TODO: doc: logi_transform
+-spec log(severity(), io:format(), [term()], log_options()) -> client_ref().
+log(Severity, Format, Args, Options) ->
+    ClientRef = maps:get(logger, Options, default_logger()),
+    ?WITH_CONTEXT(ClientRef,
+                  fun (Client0) ->
+                          case logi_client:ready(Client0, Severity, Options) of
+                              {skip, Client1}                  -> Client1;
+                              {ok, Backends, MsgInfo, Client1} -> _ = logi_client:write(Backends, MsgInfo, Format, Args), Client1
                           end
                   end).
+
+-spec debug(io:format()) -> context_ref().
+debug(Format) -> debug(Format, []).
+
+-spec debug(io:format(), [term()]) -> context_ref().
+debug(Format, Args) -> debug(Format, Args, #{}).
+
+-spec debug(io:format(), [term()], log_options()) -> context_ref().
+debug(Format, Args, Options) -> log(debug, Format, Args, Options).
+
+-spec verbose(io:format()) -> context_ref().
+verbose(Format) -> verbose(Format, []).
+
+-spec verbose(io:format(), [term()]) -> context_ref().
+verbose(Format, Args) -> verbose(Format, Args, #{}).
+
+-spec verbose(io:format(), [term()], log_options()) -> context_ref().
+verbose(Format, Args, Options) -> log(verbose, Format, Args, Options).
+
+-spec info(io:format()) -> context_ref().
+info(Format) -> info(Format, []).
+
+-spec info(io:format(), [term()]) -> context_ref().
+info(Format, Args) -> info(Format, Args, #{}).
+
+-spec info(io:format(), [term()], log_options()) -> context_ref().
+info(Format, Args, Options) -> log(info, Format, Args, Options).
+
+-spec notice(io:format()) -> context_ref().
+notice(Format) -> notice(Format, []).
+
+-spec notice(io:format(), [term()]) -> context_ref().
+notice(Format, Args) -> notice(Format, Args, #{}).
+
+-spec notice(io:format(), [term()], log_options()) -> context_ref().
+notice(Format, Args, Options) -> log(notice, Format, Args, Options).
+
+-spec warning(io:format()) -> context_ref().
+warning(Format) -> warning(Format, []).
+
+-spec warning(io:format(), [term()]) -> context_ref().
+warning(Format, Args) -> warning(Format, Args, #{}).
+
+-spec warning(io:format(), [term()], log_options()) -> context_ref().
+warning(Format, Args, Options) -> log(warning, Format, Args, Options).
+
+-spec error(io:format()) -> context_ref().
+error(Format) -> error(Format, []).
+
+-spec error(io:format(), [term()]) -> context_ref().
+error(Format, Args) -> error(Format, Args, #{}).
+
+-spec error(io:format(), [term()], log_options()) -> context_ref().
+error(Format, Args, Options) -> log(error, Format, Args, Options).
+
+-spec critical(io:format()) -> context_ref().
+critical(Format) -> critical(Format, []).
+
+-spec critical(io:format(), [term()]) -> context_ref().
+critical(Format, Args) -> critical(Format, Args, #{}).
+
+-spec critical(io:format(), [term()], log_options()) -> context_ref().
+critical(Format, Args, Options) -> log(critical, Format, Args, Options).
+
+-spec alert(io:format()) -> context_ref().
+alert(Format) -> alert(Format, []).
+
+-spec alert(io:format(), [term()]) -> context_ref().
+alert(Format, Args) -> alert(Format, Args, #{}).
+
+-spec alert(io:format(), [term()], log_options()) -> context_ref().
+alert(Format, Args, Options) -> log(alert, Format, Args, Options).
+
+%% TODO: obsolute annotation (?)
+-spec emergency(io:format()) -> context_ref().
+emergency(Format) -> emergency(Format, []).
+
+-spec emergency(io:format(), [term()]) -> context_ref().
+emergency(Format, Args) -> emergency(Format, Args, #{}).
+
+-spec emergency(io:format(), [term()], log_options()) -> context_ref().
+emergency(Format, Args, Options) -> log(emergency, Format, Args, Options).
 
 %%------------------------------------------------------------------------------
 %% Exported Functions: Context
@@ -386,7 +484,7 @@ get_headers(ContextRef) ->
 
 %% @equiv default_logger(default_logger(), Keys)
 -spec delete_headers([header_key()]) -> context_id().
-delete_headers(Keys) -> delete_backend(?DEFAULT_LOGGER, Keys).
+delete_headers(Keys) -> delete_headers(?DEFAULT_LOGGER, Keys).
 
 %% @doc 指定されたキーを保持するヘッダ群の削除する
 -spec delete_headers(context_ref(), [header_key()]) -> context_ref().
@@ -459,99 +557,13 @@ clear_metadata(ContextRef) ->
     ?WITH_CONTEXT(ContextRef, fun (Context) -> logi_context:set_metadata([], Context) end).
 
 
-%%------------------------------------------------------------------------------
-%% Exported Functions: Log Output
-%%------------------------------------------------------------------------------
--spec debug(io:format()) -> context_ref().
-debug(Format) -> debug(Format, []).
-
--spec debug(io:format(), [term()]) -> context_ref().
-debug(Format, Args) -> debug(Format, Args, #{}).
-
--spec debug(io:format(), [term()], log_options()) -> context_ref().
-debug(Format, Args, Options) -> log(debug, logi_location:guess(), Format, Args, Options).
-
--spec verbose(io:format()) -> context_ref().
-verbose(Format) -> verbose(Format, []).
-
--spec verbose(io:format(), [term()]) -> context_ref().
-verbose(Format, Args) -> verbose(Format, Args, #{}).
-
--spec verbose(io:format(), [term()], log_options()) -> context_ref().
-verbose(Format, Args, Options) -> log(verbose, logi_location:guess(), Format, Args, Options).
-
--spec info(io:format()) -> context_ref().
-info(Format) -> info(Format, []).
-
--spec info(io:format(), [term()]) -> context_ref().
-info(Format, Args) -> info(Format, Args, #{}).
-
--spec info(io:format(), [term()], log_options()) -> context_ref().
-info(Format, Args, Options) -> log(info, logi_location:guess(), Format, Args, Options).
-
--spec notice(io:format()) -> context_ref().
-notice(Format) -> notice(Format, []).
-
--spec notice(io:format(), [term()]) -> context_ref().
-notice(Format, Args) -> notice(Format, Args, #{}).
-
--spec notice(io:format(), [term()], log_options()) -> context_ref().
-notice(Format, Args, Options) -> log(notice, logi_location:guess(), Format, Args, Options).
-
--spec warning(io:format()) -> context_ref().
-warning(Format) -> warning(Format, []).
-
--spec warning(io:format(), [term()]) -> context_ref().
-warning(Format, Args) -> warning(Format, Args, #{}).
-
--spec warning(io:format(), [term()], log_options()) -> context_ref().
-warning(Format, Args, Options) -> log(warning, logi_location:guess(), Format, Args, Options).
-
--spec error(io:format()) -> context_ref().
-error(Format) -> error(Format, []).
-
--spec error(io:format(), [term()]) -> context_ref().
-error(Format, Args) -> error(Format, Args, #{}).
-
--spec error(io:format(), [term()], log_options()) -> context_ref().
-error(Format, Args, Options) -> log(error, logi_location:guess(), Format, Args, Options).
-
--spec critical(io:format()) -> context_ref().
-critical(Format) -> critical(Format, []).
-
--spec critical(io:format(), [term()]) -> context_ref().
-critical(Format, Args) -> critical(Format, Args, #{}).
-
--spec critical(io:format(), [term()], log_options()) -> context_ref().
-critical(Format, Args, Options) -> log(critical, logi_location:guess(), Format, Args, Options).
-
--spec alert(io:format()) -> context_ref().
-alert(Format) -> alert(Format, []).
-
--spec alert(io:format(), [term()]) -> context_ref().
-alert(Format, Args) -> alert(Format, Args, #{}).
-
--spec alert(io:format(), [term()], log_options()) -> context_ref().
-alert(Format, Args, Options) -> log(alert, logi_location:guess(), Format, Args, Options).
-
-%% TODO: obsolute annotation (?)
--spec emergency(io:format()) -> context_ref().
-emergency(Format) -> emergency(Format, []).
-
--spec emergency(io:format(), [term()]) -> context_ref().
-emergency(Format, Args) -> emergency(Format, Args, #{}).
-
--spec emergency(io:format(), [term()], log_options()) -> context_ref().
-emergency(Format, Args, Options) -> log(emergency, logi_location:guess(), Format, Args, Options).
-
-
 %% TODO
 on_expire(Context, Id, Count, Info) ->
     %% TODO: max_flush_count=0
     Duration = timer:now_diff(os:timestamp(), logi_msg_info:get_timestamp(Info)) / 1000 / 1000,
     log(logi_msg_info:get_severity(Info),
-        logi_msg_info:get_location(Info),
         "Over ~p seconds, ~p messages were dropped (id: ~p)", [Duration, Count, Id],
         #{logger => Context,
+          location => logi_msg_info:get_location(Info),
           headers => logi_msg_info:get_headers(Info),
           metadata => logi_msg_info:get_metadata(Info)}).

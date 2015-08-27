@@ -1,6 +1,6 @@
 %% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% TODO: Renames to logi_logger or logi_log_server
+%% TODO: Renames to logi_logger
 %%
 %% @doc backend manager process
 %% @private

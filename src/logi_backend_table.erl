@@ -90,6 +90,8 @@ select_backends(Table, Severity, _Location, _Headers, _MetaData) ->
     lists:filtermap(fun (BackendId) -> load_backend(Table, BackendId) end, lists:usort(BackendIds)).
 
 %% @doc 登録済みバックエンド一覧を取得する
+%%
+%% TODO: returns id only
 -spec which_backends(table()) -> [logi_backend:backend()].
 which_backends(Table) ->
     [Backend || {{backend, _}, Backend} <- ets:tab2list(Table)].
