@@ -31,6 +31,7 @@
           module  :: module(),
           data    :: data()
         }).
+%% TODO: formatter field (?): {module(), term()}
 
 -opaque backend() :: #?BACKEND{}.
 

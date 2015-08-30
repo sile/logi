@@ -3,11 +3,8 @@
  [
   {description, "A Logger Interface Library"},
   {vsn, git},
-  {registered, [logi_sup, logi_backend_manager_sup, logi_default_backend_manager]},
-  {applications, [
-                  kernel,
-                  stdlib
-                 ]},
+  {registered, [logi_sup, logi_logger_sup, logi_default_logger]},
+  {applications, [kernel, stdlib]},
   {mod, { logi_app, []}},
   {env, []}
  ]}.
