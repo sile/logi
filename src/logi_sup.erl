@@ -31,6 +31,6 @@ start_link() ->
 init([]) ->
     Children =
         [
-         #{id => logi_logger_sup, start => {logi_logger_sup, start_link, []}, type => supervisor}
+         {logi_channel_sup, {logi_channel_sup, start_link, []}, permanent, infinity, supervisor, [logi_channel_sup]}
         ],
-    {ok, {#{}, Children}}.
+    {ok, {{one_for_one, 1, 5}, Children}}.

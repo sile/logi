@@ -17,11 +17,11 @@
 %% -export([default_on_expire/4]).  % TODO: default_on_expire
 
 %%----------------------------------------------------------
-%% Logger
+%% Channel
 %%----------------------------------------------------------
--export([start_logger/1, ensure_logger_started/1]).
--export([stop_logger/1]).
--export([which_loggers/0]).
+-export([start_channel/1, ensure_channel_started/1]).
+-export([stop_channel/1]).
+-export([which_channels/0]).
 
 %%----------------------------------------------------------
 %% Appender
@@ -31,6 +31,20 @@
 -export([find_appender/2]).
 -export([which_appenders/1]).
 -export([set_condition/3]).
+
+%%----------------------------------------------------------
+%% Logger
+%%---------------------------------------------------------
+-export([new/1, new/2]).
+-export([to_map/1, from_map/1]).
+-export([save/1, save/2]).
+-export([load/0, load/1]).
+%% -export([set_headers/1, set_headers/2]).
+%% -export([set_metadata/1, set_metadata/2]).
+
+%%----------------------------------------------------------
+%% Logging
+%%---------------------------------------------------------
 
 %% %%----------------------------------------------------------
 %% %% Client
@@ -67,8 +81,13 @@
 %%----------------------------------------------------------
 %% Types
 %%----------------------------------------------------------
--export_type([log_level/0]).
--export_type([logger/0, logger_id/0, logger_instance/0]).
+-export_type([log_level/0, severity/0]).
+-export_type([channel_id/0]).
+-export_type([logger/0, logger_id/0, logger_instance/0, save_id/0]).
+-export_type([key/0, headers/0, metadata/0]).
+-export_type([context_handler/0]).
+-export_type([frequency_controller/0]).
+
 %%               severity/0,
 
 %%               metadata/0,
@@ -89,30 +108,31 @@
 %%               frequency_policy/0
 %%              ]).
 
-%% %%----------------------------------------------------------------------------------------------------------------------
-%% %% Types
-%% %%----------------------------------------------------------------------------------------------------------------------
+%%----------------------------------------------------------------------------------------------------------------------
+%% Types
+%%----------------------------------------------------------------------------------------------------------------------
 -type log_level() :: debug | verbose | info | notice | warning | error | critical | alert | emergency.
-%% -type severity()  :: log_level().
+-type severity()  :: log_level().
 
--type logger() :: logger_id() | logger_instance().
--type logger_id() :: atom().
--type logger_instance() :: todo.
+-type channel_id() :: atom().
+
+-type logger_id()         :: atom().
+-type logger()            :: save_id() | logger_instance().
+-type save_id()           :: atom().
+-opaque logger_instance() :: logi_client:client().
+
+-type key() :: atom().
+-type headers() :: maps:map(key(), term()).
+-type metadata() :: maps:map(key(), term()).
+
+-type context_handler() :: {module(), term()}. % TODO:
+
+-opaque frequency_controller() :: logi_frequency_controller:controller().
 
 %% -type context()     :: logi_context:context(). % opaqueにしたい
 %% -type context_id()  :: atom().
 %% -type context_ref() :: context() | context_id().
 %% -type client_ref() :: context_ref().
-
-%% -type headers()      :: [header()].
-%% -type header()       :: {header_key(), header_value()}.
-%% -type header_key()   :: term().
-%% -type header_value() :: term().
-
-%% -type metadata()             :: [metadata_entry()].
-%% -type metadata_entry()       :: {metadata_entry_key(), metadata_entry_value()}.
-%% -type metadata_entry_key()   :: term().
-%% -type metadata_entry_value() :: term().
 
 %% -type seconds() :: non_neg_integer().
 
@@ -137,13 +157,6 @@
 %% %%----------------------------------------------------------------------------------------------------------------------
 %% -define(CONTEXT_TAG, '__LOGI_CONTEXT__').
 
-%% %% TODO: move to logi_logger module
-%% -define(LOGGER_RUNNING_CHECK(LoggerId),
-%%         _ = case whereis(LoggerId) of
-%%                 undefined -> erlang:error({logger_is_not_running, LoggerId});
-%%                 _         -> ok
-%%             end).
-
 %% -define(WITH_CONTEXT(ContextRef, Fun),
 %%         case is_atom(ContextRef) of
 %%             false -> (Fun)(ContextRef);
@@ -159,9 +172,9 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%%------------------------------------------------------------------------------
+%%----------------------------------------------------------
 %% Constants
-%%------------------------------------------------------------------------------
+%%----------------------------------------------------------
 %% @doc Returns the default logger
 %%
 %% The default logger is started automatically when `logi' application was started.
@@ -185,48 +198,48 @@ log_levels() -> [debug, verbose, info, notice, warning, error, critical, alert, 
 %%           headers => logi_msg_info:get_headers(Info),
 %%           metadata => logi_msg_info:get_metadata(Info)}).
 
-%%------------------------------------------------------------------------------
+%%----------------------------------------------------------
 %% Logger
-%%------------------------------------------------------------------------------
-%% @doc Starts a new logger
+%%----------------------------------------------------------
+%% @doc Starts a channel
 %%
-%% If a logger with the same Id already exists, it will return `{error, {already_started, pid()}}'.
--spec start_logger(logger_id()) -> {ok, pid()} | {error, {already_started, pid()}}.
-start_logger(LoggerId) when is_atom(LoggerId) ->
-    case logi_logger_sup:start_child(LoggerId) of
+%% If a channel with the same Id already exists, it will return `{error, {already_started, pid()}}'.
+-spec start_channel(channel_id()) -> {ok, pid()} | {error, {already_started, pid()}}.
+start_channel(ChannelId) when is_atom(ChannelId) ->
+    case logi_channel_sup:start_child(ChannelId) of
         {ok, Pid}                       -> {ok, Pid};
         {error, {already_started, Pid}} -> {error, {already_started, Pid}};
-        Other                           -> erlang:error({unexpected_result, Other}, [LoggerId])
+        Other                           -> erlang:error({unexpected_result, Other}, [ChannelId])
     end;
-start_logger(LoggerId) -> erlang:error(badarg, [LoggerId]).
+start_channel(ChannelId) -> erlang:error(badarg, [ChannelId]).
 
-%% @doc Equivalent to {@link start_logger/1} except it returns `{ok, pid()}' for already started loggers
--spec ensure_logger_started(logger_id()) -> {ok, pid()}.
-ensure_logger_started(LoggerId) ->
-    case start_logger(LoggerId) of
+%% @doc Equivalent to {@link start_channel/1} except it returns `{ok, pid()}' for already started channels
+-spec ensure_channel_started(channel_id()) -> {ok, pid()}.
+ensure_channel_started(ChannelId) ->
+    case start_channel(ChannelId) of
         {ok, Pid}                       -> {ok, Pid};
         {error, {already_started, Pid}} -> {ok, Pid}
     end.
 
-%% @doc Stops the logger
+%% @doc Stops a channel
 %%
-%% If the logger `LoggerId' have not been started, it will be silently ignored.
--spec stop_logger(logger_id()) -> ok.
-stop_logger(LoggerId) when is_atom(LoggerId) -> logi_logger_sup:stop_child(LoggerId);
-stop_logger(LoggerId)                        -> erlang:error(badarg, [LoggerId]).
+%% If the channel `ChannelId' have not been started, it will be silently ignored.
+-spec stop_channel(channel_id()) -> ok.
+stop_channel(ChannelId) when is_atom(ChannelId) -> logi_channel_sup:stop_child(ChannelId);
+stop_channel(ChannelId)                         -> erlang:error(badarg, [ChannelId]).
 
-%% @doc Returns a list of all running loggers
--spec which_loggers() -> [logger_id()].
-which_loggers() -> logi_logger_sup:which_children().
+%% @doc Returns a list of all running channels
+-spec which_channels() -> [channel_id()].
+which_channels() -> logi_channel_sup:which_children().
 
 %% @doc TODO
--spec set_condition(logger_id(), logi_appender:id(), logi_appender:condition()) -> {ok, logi_appender:condition()} | error.
-set_condition(LoggerId, AppenderId, Condition) ->
-    logi_logger:set_condition(LoggerId, AppenderId, Condition).
+-spec set_condition(channel_id(), logi_appender:id(), logi_appender:condition()) -> {ok, logi_appender:condition()} | error.
+set_condition(ChannelId, AppenderId, Condition) ->
+    logi_channel:set_condition(ChannelId, AppenderId, Condition).
 
-%%------------------------------------------------------------------------------
+%%----------------------------------------------------------
 %% Appender
-%%------------------------------------------------------------------------------
+%%----------------------------------------------------------
 %% @equiv register_appender(LoggerId, Appender, #{})
 -spec register_appender(logger_id(), logi_appender:appender()) -> {ok, undefined} | {error, Reason} when
       Reason :: {already_registered, logi_appender:appender()}.
@@ -244,80 +257,79 @@ register_appender(LoggerId, Appender) ->
       OldAppender :: undefined | logi_appender:appender(),
       Reason :: {already_registered, logi_appender:appender()}.
 register_appender(LoggerId, Appender, Options) ->
-    logi_logger:register_appender(LoggerId, Appender, Options).
+    logi_channel:register_appender(LoggerId, Appender, Options).
 
 %% @doc Deregisters an appender
 -spec deregister_appender(logger_id(), logi_appender:id()) -> {ok, logi_appender:appender()} | error.
 deregister_appender(LoggerId, AppenderId) ->
-    logi_logger:deregister_appender(LoggerId, AppenderId).
+    logi_channel:deregister_appender(LoggerId, AppenderId).
 
 %% @doc TODO
 -spec find_appender(logger_id(), logi_appender:id()) -> {ok, logi_appender:appender()} | error.
 find_appender(LoggerId, AppenderId) ->
-    logi_logger:find_appender(LoggerId, AppenderId).
+    logi_channel:find_appender(LoggerId, AppenderId).
 
 %% @doc Returns a list of registered appenders
 -spec which_appenders(logger_id()) -> [logi_appender:id()].
 which_appenders(LoggerId) ->
-    logi_logger:which_appenders(LoggerId).
+    logi_channel:which_appenders(LoggerId).
 
-%% %%------------------------------------------------------------------------------
-%% %% Exported Functions: Logging API
-%% %%------------------------------------------------------------------------------
-%% %% @equiv log(Severity, Format, [])
-%% -spec log(severity(), io:format()) -> client_ref().
-%% log(Severity, Format) -> log(Severity, Format, []).
+%%----------------------------------------------------------
+%% Logger Instance
+%%----------------------------------------------------------
+%% @equiv new(LoggerId, #{})
+-spec new(logger_id()) -> logger_instance().
+new(LoggerId) -> new(LoggerId, #{}).
 
-%% %% @equiv log(Severity, Format, Args, #{})
-%% -spec log(severity(), io:format(), [term()]) -> client_ref().
-%% log(Severity, Format, Args) -> log(Severity, Format, Args, #{}).
+%% @doc TODO
+-spec new(logger_id(), Options) -> logger_instance() when
+      Options :: #{
+        headers               => headers(),
+        metadata             => metadata(),
+        context_handler      => context_handler(),
+        frequency_controller => frequency_controller()
+       }.
+new(LoggerId, Options) ->
+    logi_client:make(LoggerId, Options).
 
-%% %% @doc Outputs the log message
-%% %%
-%% %% TODO: doc: logi_transform
-%% -spec log(severity(), io:format(), [term()], log_options()) -> client_ref().
-%% log(Severity, Format, Args, Options) ->
-%%     ClientRef = maps:get(logger, Options, default_logger()),
-%%     ?WITH_CONTEXT(ClientRef,
-%%                   fun (Client0) ->
-%%                           case logi_client:ready(Client0, Severity, Options) of
-%%                               {skip, Client1}                  -> Client1;
-%%                               {ok, Backends, MsgInfo, Client1} -> _ = logi_client:write(Backends, MsgInfo, Format, Args), Client1
-%%                           end
-%%                   end).
+%% @doc TODO
+-spec to_map(logger_instance()) -> Map when
+      Map :: #{
+        logger_id            => logger_id(),
+        headers              => headers(),
+        metadata             => metadata(),
+        context_handler      => context_handler(),
+        frequency_controller => frequency_controller()
+       }.
+to_map(LoggerInstance) ->
+    logi_client:to_map(LoggerInstance).
 
-%% -spec debug(io:format()) -> context_ref().
-%% debug(Format) -> debug(Format, []).
+-spec from_map(Map) -> logger_instance() when
+      Map :: #{
+        logger_id            => logger_id(),
+        headers              => headers(),
+        metadata             => metadata(),
+        context_handler      => context_handler(),
+        frequency_controller => frequency_controller()
+       }.
+from_map(Map) ->
+    erlang:error(unimplemented, [Map]).
 
-%% -spec debug(io:format(), [term()]) -> context_ref().
-%% debug(Format, Args) -> debug(Format, Args, #{}).
+%% @equiv save(default_logger(), LoggerInstance)
+-spec save(logger_instance()) -> ok. % TODO: save_as_default
+save(LoggerInstance) -> save(default_logger(), LoggerInstance).
 
-%% -spec debug(io:format(), [term()], log_options()) -> context_ref().
-%% debug(Format, Args, Options) -> log(debug, Format, Args, Options).
+-spec save(save_id(), logger_instance()) -> ok.
+save(SaveId, LoggerInstance) ->
+    erlang:error(unimplemented, [SaveId, LoggerInstance]).
 
-%% -spec verbose(io:format()) -> context_ref().
-%% verbose(Format) -> verbose(Format, []).
+%% @equiv load(default_logger())
+-spec load() -> logger_instance().
+load() -> load(default_logger()).
 
-%% -spec verbose(io:format(), [term()]) -> context_ref().
-%% verbose(Format, Args) -> verbose(Format, Args, #{}).
-
-%% -spec verbose(io:format(), [term()], log_options()) -> context_ref().
-%% verbose(Format, Args, Options) -> log(verbose, Format, Args, Options).
-
-%% -spec info(io:format()) -> context_ref().
-%% info(Format) -> info(Format, []).
-
-%% -spec info(io:format(), [term()]) -> context_ref().
-%% info(Format, Args) -> info(Format, Args, #{}).
-
-%% -spec info(io:format(), [term()], log_options()) -> context_ref().
-%% info(Format, Args, Options) -> log(info, Format, Args, Options).
-
-%% -spec notice(io:format()) -> context_ref().
-%% notice(Format) -> notice(Format, []).
-
-%% -spec notice(io:format(), [term()]) -> context_ref().
-%% notice(Format, Args) -> notice(Format, Args, #{}).
+-spec load(save_id()) -> logger_instance().
+load(SaveId) ->
+    erlang:error(unimplemented, [SaveId]).
 
 %% -spec notice(io:format(), [term()], log_options()) -> context_ref().
 %% notice(Format, Args, Options) -> log(notice, Format, Args, Options).

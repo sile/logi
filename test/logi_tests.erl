@@ -18,43 +18,43 @@ default_logger_test_() ->
      ?_assertEqual(logi_default_logger, logi:default_logger())}.
 
 %%----------------------------------------------------------
-%% Logger
+%% Channel
 %%----------------------------------------------------------
-logger_test_() ->
+channel_test_() ->
     {setup,
      fun () -> ok = application:start(logi) end,
      fun (_) -> ok = application:stop(logi) end,
      [
-      {"The default logger always exists",
+      {"The default channel always exists",
        fun () ->
-               ?assertEqual([logi:default_logger()], logi:which_loggers())
+               ?assertEqual([logi:default_logger()], logi:which_channels())
        end},
-      {"Starts and stops a logger",
+      {"Starts and stops a channel",
        fun () ->
                %% Starts
-               ?assertMatch({ok, _}, logi:start_logger(hoge_logger)),
-               ?assertEqual(lists:sort([logi:default_logger(), hoge_logger]), lists:sort(logi:which_loggers())),
+               ?assertMatch({ok, _}, logi:start_channel(hoge_channel)),
+               ?assertEqual(lists:sort([logi:default_logger(), hoge_channel]), lists:sort(logi:which_channels())),
 
                %% Stops
-               ?assertEqual(ok, logi:stop_logger(hoge_logger)),
-               ?assertEqual([logi:default_logger()], logi:which_loggers())
+               ?assertEqual(ok, logi:stop_channel(hoge_channel)),
+               ?assertEqual([logi:default_logger()], logi:which_channels())
        end},
-      {"Every logger must have a unique ID",
+      {"Every channel must have a unique ID",
        fun () ->
-               {ok, _} = logi:start_logger(hoge_logger),
-               ?assertMatch({error, {already_started, _}}, logi:start_logger(hoge_logger)), % Duplicated ID
-               ok = logi:stop_logger(hoge_logger)
+               {ok, _} = logi:start_channel(hoge_channel),
+               ?assertMatch({error, {already_started, _}}, logi:start_channel(hoge_channel)), % Duplicated ID
+               ok = logi:stop_channel(hoge_channel)
        end},
-      {"`logi:ensure_logger_started/1` allows duplicated logger ID",
+      {"`logi:ensure_channel_started/1` allows duplicated channel ID",
        fun () ->
-               {ok, Pid} = logi:ensure_logger_started(hoge_logger),
-               ?assertEqual({ok, Pid}, logi:ensure_logger_started(hoge_logger)),
-               ok = logi:stop_logger(hoge_logger)
+               {ok, Pid} = logi:ensure_channel_started(hoge_channel),
+               ?assertEqual({ok, Pid}, logi:ensure_channel_started(hoge_channel)),
+               ok = logi:stop_channel(hoge_channel)
        end},
-      {"Tries stopping an unexisting logger",
+      {"Tries stopping an unexisting channel",
        fun () ->
-               ?assertEqual([logi:default_logger()], logi:which_loggers()),
-               ?assertEqual(ok, logi:stop_logger(hoge_logger))
+               ?assertEqual([logi:default_logger()], logi:which_channels()),
+               ?assertEqual(ok, logi:stop_channel(hoge_channel))
        end}
      ]}.
 
@@ -62,7 +62,7 @@ logger_test_() ->
 %% Appender
 %%----------------------------------------------------------
 appender_test_() ->
-    Logger = hoge_logger,
+    Channel = hoge_channel,
     NullAppender = logi_appender:make(null, logi_appender_null),
     {setup,
      fun () -> ok = application:start(logi) end,
@@ -73,71 +73,88 @@ appender_test_() ->
                ?assertEqual([], logi:which_appenders(logi:default_logger()))
        end},
       {foreach,
-       fun () -> {ok, _} = logi:start_logger(Logger) end,
-       fun (_) -> ok = logi:stop_logger(Logger) end,
+       fun () -> {ok, _} = logi:start_channel(Channel) end,
+       fun (_) -> ok = logi:stop_channel(Channel) end,
        [
         {"Registers an appender",
          fun () ->
-                 ?assertEqual({ok, undefined}, logi:register_appender(Logger, NullAppender)),
-                 ?assertEqual([null], logi:which_appenders(Logger))
+                 ?assertEqual({ok, undefined}, logi:register_appender(Channel, NullAppender)),
+                 ?assertEqual([null], logi:which_appenders(Channel))
          end},
         {"Finds an appender",
          fun () ->
-                 ?assertEqual(error, logi:find_appender(Logger, null)),
-                 {ok, undefined} = logi:register_appender(Logger, NullAppender),
-                 ?assertEqual({ok, NullAppender}, logi:find_appender(Logger, null))
+                 ?assertEqual(error, logi:find_appender(Channel, null)),
+                 {ok, undefined} = logi:register_appender(Channel, NullAppender),
+                 ?assertEqual({ok, NullAppender}, logi:find_appender(Channel, null))
          end},
         {"Deregisters an appender",
          fun () ->
-                 ?assertEqual(error, logi:deregister_appender(Logger, null)),
-                 {ok, undefined} = logi:register_appender(Logger, NullAppender),
-                 ?assertEqual({ok, NullAppender}, logi:deregister_appender(Logger, null)),
-                 ?assertEqual(error, logi:find_appender(Logger, null))
+                 ?assertEqual(error, logi:deregister_appender(Channel, null)),
+                 {ok, undefined} = logi:register_appender(Channel, NullAppender),
+                 ?assertEqual({ok, NullAppender}, logi:deregister_appender(Channel, null)),
+                 ?assertEqual(error, logi:find_appender(Channel, null))
          end},
         {"logi:register_appender/3: `if_exists` option",
          fun () ->
-                 {ok, undefined} = logi:register_appender(Logger, NullAppender),
+                 {ok, undefined} = logi:register_appender(Channel, NullAppender),
 
                  %% if_exists == error
                  ?assertEqual({error, {already_registered, NullAppender}},
-                              logi:register_appender(Logger, NullAppender, #{if_exists => error})),
+                              logi:register_appender(Channel, NullAppender, #{if_exists => error})),
 
                  %% if_exists == ignore
                  ?assertEqual({ok, NullAppender},
-                              logi:register_appender(Logger, NullAppender, #{if_exists => ignore})),
+                              logi:register_appender(Channel, NullAppender, #{if_exists => ignore})),
 
                  %% if_exists == supersede
                  AnotherAppender = logi_appender:make(null, logi_appender_null, info),
                  ?assertEqual({ok, NullAppender},
-                              logi:register_appender(Logger, AnotherAppender, #{if_exists => supersede})),
+                              logi:register_appender(Channel, AnotherAppender, #{if_exists => supersede})),
                  ?assertNotEqual(NullAppender, AnotherAppender),
-                 ?assertEqual({ok, AnotherAppender}, logi:find_appender(Logger, null))
+                 ?assertEqual({ok, AnotherAppender}, logi:find_appender(Channel, null))
          end},
         {"logi:register_appender/3: `lifetime` option",
          fun () ->
                  %% lifetime == 50
-                 {ok, undefined} = logi:register_appender(Logger, NullAppender, #{lifetime => 50}),
-                 ?assertMatch({ok, _}, logi:find_appender(Logger, null)),
+                 {ok, undefined} = logi:register_appender(Channel, NullAppender, #{lifetime => 50}),
+                 ?assertMatch({ok, _}, logi:find_appender(Channel, null)),
                  timer:sleep(100),
-                 ?assertEqual(error, logi:find_appender(Logger, null)),
+                 ?assertEqual(error, logi:find_appender(Channel, null)),
 
                  %% lifetime == pid()
                  {Pid, Ref} = spawn_monitor(timer, sleep, [infinity]),
-                 {ok, undefined} = logi:register_appender(Logger, NullAppender, #{lifetime => Pid}),
-                 ?assertMatch({ok, _}, logi:find_appender(Logger, null)),
+                 {ok, undefined} = logi:register_appender(Channel, NullAppender, #{lifetime => Pid}),
+                 ?assertMatch({ok, _}, logi:find_appender(Channel, null)),
                  exit(Pid, kill),
                  receive {'DOWN', Ref, _, _, _} -> ok end,
-                 ?assertEqual(error, logi:find_appender(Logger, null))
+                 ?assertEqual(error, logi:find_appender(Channel, null))
          end},
         {"logi:set_condition/3",
          fun () ->
-                 ?assertEqual(error, logi:set_condition(Logger, null, info)),
+                 ?assertEqual(error, logi:set_condition(Channel, null, info)),
 
-                 {ok, undefined} = logi:register_appender(Logger, NullAppender),
-                 ?assertEqual({ok, debug}, logi:set_condition(Logger, null, info)),
+                 {ok, undefined} = logi:register_appender(Channel, NullAppender),
+                 ?assertEqual({ok, debug}, logi:set_condition(Channel, null, info)),
 
-                 {ok, Appender} = logi:find_appender(Logger, null),
+                 {ok, Appender} = logi:find_appender(Channel, null),
                  ?assertEqual(info, logi_appender:get_condition(Appender))
          end}
        ]}
      ]}.
+
+%%----------------------------------------------------------
+%% Logger
+%%----------------------------------------------------------
+logger_instance_test_() ->
+    LoggerId = hoge_logger,
+    [
+     {"Makes a logger instance",
+      fun () ->
+              Logger = logi:new(LoggerId),
+              ?assertEqual(#{logger_id => hoge_logger}, logi:to_map(Logger))
+      end},
+     {"Makes a logger instance with options",
+      fun () ->
+              todo
+      end}
+    ].

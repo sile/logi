@@ -1,8 +1,8 @@
 %% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc A logger process
+%% @doc A channel process
 %% @private
--module(logi_logger).
+-module(logi_channel).
 
 -behaviour(gen_server).
 
@@ -24,12 +24,12 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros & Records
 %%----------------------------------------------------------------------------------------------------------------------
--define(VALIDATE_AND_GET_LOGGER_PID(LoggerId, Args),
-        case is_atom(LoggerId) of
+-define(VALIDATE_AND_GET_CHANNEL_PID(ChannelId, Args),
+        case is_atom(ChannelId) of
             false -> error(badarg, Args);
-            true  -> case whereis(LoggerId) of
-                         undefined -> error({logger_is_not_running, LoggerId}, Args);
-                         LoggerPid -> LoggerPid
+            true  -> case whereis(ChannelId) of
+                         undefined -> error({channel_is_not_running, ChannelId}, Args);
+                         ChannelPid -> ChannelPid
                      end
         end).
 
@@ -37,7 +37,7 @@
 
 -record(?STATE,
         {
-          id             :: logi:logger_id(),
+          id             :: logi:channel_id(),
           table          :: logi_appender_table:table(),
           appenders = [] :: appenders()
         }).
@@ -50,14 +50,14 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @doc Starts a logger process
--spec start_link(logi:logger_id()) -> {ok, pid()} | {error, Reason} when
+%% @doc Starts a channel process
+-spec start_link(logi:channel_id()) -> {ok, pid()} | {error, Reason} when
       Reason :: {already_started, pid()} | term().
 start_link(Id) ->
     gen_server:start_link({local, Id}, ?MODULE, [Id], []).
 
 %% @doc Registers an appender
--spec register_appender(logi:logger_id(), logi_appender:appender(), Options) -> Result when
+-spec register_appender(logi:channel_id(), logi_appender:appender(), Options) -> Result when
       Options :: #{
         lifetime  => timeout() | pid(),
         if_exists => error | ignore | supersede
@@ -72,36 +72,36 @@ register_appender(Id, Appender, Options) ->
         #{if_exists := X} when X =/= error, X =/= ignore, X =/= supersede -> error(badarg, Args);
         #{lifetime := Lifetime, if_exists := IfExists}                    ->
             _ = is_valid_lifetime(Lifetime) orelse error(badarg, Args),
-            Pid = ?VALIDATE_AND_GET_LOGGER_PID(Id, Args),
+            Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Id, Args),
             gen_server:call(Pid, {register_appender, {Appender, Lifetime, IfExists}})
     end.
 
 %% @doc Deregisters an appender
--spec deregister_appender(logi:logger_id(), logi_appender:id()) -> {ok, logi_appender:appender()} | error.
+-spec deregister_appender(logi:channel_id(), logi_appender:id()) -> {ok, logi_appender:appender()} | error.
 deregister_appender(Id, AppenderId) ->
     _ = is_atom(AppenderId) orelse error(badarg, [Id, AppenderId]),
-    Pid = ?VALIDATE_AND_GET_LOGGER_PID(Id, [Id, AppenderId]),
+    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Id, [Id, AppenderId]),
     gen_server:call(Pid, {deregister_appender, AppenderId}).
 
 %% @doc TODO
--spec find_appender(logi:logger_id(), logi_appender:id()) -> {ok, logi_appender:appender()} | error.
+-spec find_appender(logi:channel_id(), logi_appender:id()) -> {ok, logi_appender:appender()} | error.
 find_appender(Id, AppenderId) ->
     _ = is_atom(AppenderId) orelse error(badarg, [Id, AppenderId]),
-    Pid = ?VALIDATE_AND_GET_LOGGER_PID(Id, [Id, AppenderId]),
+    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Id, [Id, AppenderId]),
     gen_server:call(Pid, {find_appender, AppenderId}).
 
 %% @doc Returns a list of registered appenders
--spec which_appenders(logi:logger_id()) -> [logi_appender:id()].
+-spec which_appenders(logi:channel_id()) -> [logi_appender:id()].
 which_appenders(Id) ->
-    _ = ?VALIDATE_AND_GET_LOGGER_PID(Id, [Id]),
+    _ = ?VALIDATE_AND_GET_CHANNEL_PID(Id, [Id]),
     logi_appender_table:which_appenders(Id).
 
 %% @doc TODO
--spec set_condition(logi:logger_id(), logi_appender:id(), logi_appender:condition()) -> {ok, logi_appender:condition()} | error.
+-spec set_condition(logi:channel_id(), logi_appender:id(), logi_appender:condition()) -> {ok, logi_appender:condition()} | error.
 set_condition(Id, AppenderId, Condition) ->
     _ = is_atom(AppenderId) orelse error(badarg, [Id, AppenderId, Condition]),
     _ = logi_appender:is_valid_condition(Condition) orelse error(badarg, [Id, AppenderId, Condition]),
-    Pid = ?VALIDATE_AND_GET_LOGGER_PID(Id, [Id, AppenderId, Condition]),
+    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Id, [Id, AppenderId, Condition]),
     gen_server:call(Pid, {set_condition, {AppenderId, Condition}}).
 
 %%----------------------------------------------------------------------------------------------------------------------

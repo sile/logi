@@ -19,9 +19,9 @@ start(_StartType, _StartArgs) ->
     SupResult = logi_sup:start_link(),
     case SupResult of
         {ok, _} ->
-            case logi:start_logger(logi:default_logger()) of
+            case logi:start_channel(logi:default_logger()) of
                 {ok, _}         -> SupResult;
-                {error, Reason} -> {error, {cannot_start_default_logger, Reason}}
+                {error, Reason} -> {error, {cannot_start_default_channel, Reason}}
             end;
         Other -> Other
     end.

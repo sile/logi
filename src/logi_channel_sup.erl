@@ -1,8 +1,8 @@
 %% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc The supervisor for `logi_logger' processes
+%% @doc The supervisor for `logi_channel' processes
 %% @private
--module(logi_logger_sup).
+-module(logi_channel_sup).
 
 -behaviour(supervisor).
 
@@ -25,22 +25,22 @@
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-%% @doc Starts a new logger process
--spec start_child(logi:logger_id()) -> {ok, pid()} | {error, Reason} when
+%% @doc Starts a new channel process
+-spec start_child(logi:channel_id()) -> {ok, pid()} | {error, Reason} when
       Reason :: {already_started, pid()} | term().
-start_child(LoggerId) ->
-    Child = #{id => LoggerId, start => {logi_logger, start_link, [LoggerId]}},
+start_child(ChannelId) ->
+    Child = {ChannelId, {logi_channel, start_link, [ChannelId]}, permanent, 5000, worker, [logi_channel]},
     supervisor:start_child(?MODULE, Child).
 
-%% @doc Stops a logger process which name is `LoggerId'
--spec stop_child(logi:logger_id()) -> ok.
-stop_child(LoggerId) ->
-    _ = supervisor:terminate_child(?MODULE, LoggerId),
-    _ = supervisor:delete_child(?MODULE, LoggerId),
+%% @doc Stops a channel process which name is `ChannelId'
+-spec stop_child(logi:channel_id()) -> ok.
+stop_child(ChannelId) ->
+    _ = supervisor:terminate_child(?MODULE, ChannelId),
+    _ = supervisor:delete_child(?MODULE, ChannelId),
     ok.
 
-%% @doc Returns a logger list
--spec which_children() -> [logi:logger_id()].
+%% @doc Returns a channel list
+-spec which_children() -> [logi:channel_id()].
 which_children() ->
     [Id || {Id, _, _, _} <- supervisor:which_children(?MODULE)].
 
@@ -49,4 +49,4 @@ which_children() ->
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
 init([]) ->
-    {ok, {#{}, []}}.
+    {ok, {{one_for_one, 1, 5}, []}}.
