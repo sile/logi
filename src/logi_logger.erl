@@ -10,15 +10,11 @@
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([start_link/1]).
--export([register_appender/4]).
+-export([register_appender/3]).
+-export([deregister_appender/2]).
+-export([find_appender/2]).
 -export([which_appenders/1]).
-         %% set_backend/3,
-         %% delete_backend/2,
-         %% find_backend/2,
-         %% which_backends/1,
-         %% select_backends/5,
-         %% get_condition/2,
-         %% set_condition/3]).
+-export([set_condition/3]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'gen_server' Callback API
@@ -41,9 +37,15 @@
 
 -record(?STATE,
         {
-          id    :: logi:logger_id(),
-          table :: logi_appender_table:table()
+          id             :: logi:logger_id(),
+          table          :: logi_appender_table:table(),
+          appenders = [] :: appenders()
         }).
+
+-type appenders() :: [{logi_appender:id(), lifetime_ref(), cancel_lifetime_fun(), logi_appender:appender()}].
+
+-type lifetime_ref() :: undefined | reference().
+-type cancel_lifetime_fun() :: fun (() -> any()).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
@@ -55,26 +57,38 @@ start_link(Id) ->
     gen_server:start_link({local, Id}, ?MODULE, [Id], []).
 
 %% @doc Registers an appender
--spec register_appender(logi:logger_id(), logi_appender:id(), logi_appender:appender(), Options) -> Result when
+-spec register_appender(logi:logger_id(), logi_appender:appender(), Options) -> Result when
       Options :: #{
-        condition => todo,
-        owner     => undefined | pid(),
+        lifetime  => timeout() | pid(),
         if_exists => error | ignore | supersede
        },
       Result :: {ok, OldAppender} | {error, Reason},
       OldAppender :: undefined | logi_appender:appender(),
       Reason :: {already_registered, logi_appender:appender()}.
-register_appender(Id, AppenderId, Appender, Options) ->
-    Args = [Id, AppenderId, Appender, Options],
-    Defaults = #{condition => [], owner => undefined, if_exists => error},
+register_appender(Id, Appender, Options) ->
+    Args = [Id, Appender, Options],
+    Defaults = #{lifetime => infinity, if_exists => error},
     case maps:merge(Defaults, Options) of
-        #{owner := X}     when X =/= undefined, not is_pid(X)                 -> error(badarg, Args);
-        #{if_exists := X} when X =/= error, X =/= ignore, X =/= supersede     -> error(badarg, Args);
-        #{condition := ConditionSpec, owner := Owner, if_exists := IfExists}  ->
+        #{if_exists := X} when X =/= error, X =/= ignore, X =/= supersede -> error(badarg, Args);
+        #{lifetime := Lifetime, if_exists := IfExists}                    ->
+            _ = is_valid_lifetime(Lifetime) orelse error(badarg, Args),
             Pid = ?VALIDATE_AND_GET_LOGGER_PID(Id, Args),
-            Condition = logi_condition:make(ConditionSpec),
-            gen_server:call(Pid, {register_appender, {AppenderId, Appender, Condition, Owner, IfExists}})
+            gen_server:call(Pid, {register_appender, {Appender, Lifetime, IfExists}})
     end.
+
+%% @doc Deregisters an appender
+-spec deregister_appender(logi:logger_id(), logi_appender:id()) -> {ok, logi_appender:appender()} | error.
+deregister_appender(Id, AppenderId) ->
+    _ = is_atom(AppenderId) orelse error(badarg, [Id, AppenderId]),
+    Pid = ?VALIDATE_AND_GET_LOGGER_PID(Id, [Id, AppenderId]),
+    gen_server:call(Pid, {deregister_appender, AppenderId}).
+
+%% @doc TODO
+-spec find_appender(logi:logger_id(), logi_appender:id()) -> {ok, logi_appender:appender()} | error.
+find_appender(Id, AppenderId) ->
+    _ = is_atom(AppenderId) orelse error(badarg, [Id, AppenderId]),
+    Pid = ?VALIDATE_AND_GET_LOGGER_PID(Id, [Id, AppenderId]),
+    gen_server:call(Pid, {find_appender, AppenderId}).
 
 %% @doc Returns a list of registered appenders
 -spec which_appenders(logi:logger_id()) -> [logi_appender:id()].
@@ -82,39 +96,13 @@ which_appenders(Id) ->
     _ = ?VALIDATE_AND_GET_LOGGER_PID(Id, [Id]),
     logi_appender_table:which_appenders(Id).
 
-%% %% @doc Sets the backend
-%% %%
-%% %% If a backend which have the same ID exists, it will be overwritten
-%% -spec set_backend(logi:logger(), logi_backend:backend(), logi_condition:condition()) -> ok.
-%% set_backend(ManagerRef, Backend, Condition) ->
-%%     gen_server:call(ManagerRef, {set_backend, {Backend, Condition}}).
-
-%% %% @doc Deletes the backend
-%% %%
-%% %% This functions always returns `ok'
-%% -spec delete_backend(logi:logger(), logi_backend:id()) -> ok.
-%% delete_backend(ManagerRef, BackendId) ->
-%%     gen_server:cast(ManagerRef, {delete_backend, BackendId}).
-
-%% %% @doc Finds a backend which have the ID `BackendId'
-%% -spec find_backend(logi:logger(), logi_backend:id()) -> {ok, logi_backend:backend()} | error.
-%% find_backend(ManagerRef, BackendId) ->
-%%     logi_backend_table:find_backend(ManagerRef, BackendId).
-
-%% %% @doc Selects backends which satisfies the specified condition
-%% -spec select_backends(logi:logger(), logi:severity(), logi_location:location(), logi:headers(), logi:metadata()) -> [logi_backend:backend()].
-%% select_backends(ManagerRef, Severity, Location, Headers, MetaData) ->
-%%     logi_backend_table:select_backends(ManagerRef, Severity, Location, Headers, MetaData).
-
-%% %% @doc Gets the output condition of the backend
-%% -spec get_condition(logi:logger(), logi_backend:id()) -> {ok, logi_condition:condition()} | {error, not_found}.
-%% get_condition(ManagerRef, BackendId) ->
-%%     gen_server:call(ManagerRef, {get_condition, BackendId}).
-
-%% %% @doc Sets the output condition of the backend
-%% -spec set_condition(logi:logger(), logi_backend:id(), logi_condition:condition()) -> ok | {error, not_found}.
-%% set_condition(ManagerRef, BackendId, Condition) ->
-%%     gen_server:call(ManagerRef, {set_condition, {BackendId, Condition}}).
+%% @doc TODO
+-spec set_condition(logi:logger_id(), logi_appender:id(), logi_appender:condition()) -> {ok, logi_appender:condition()} | error.
+set_condition(Id, AppenderId, Condition) ->
+    _ = is_atom(AppenderId) orelse error(badarg, [Id, AppenderId, Condition]),
+    _ = logi_appender:is_valid_condition(Condition) orelse error(badarg, [Id, AppenderId, Condition]),
+    Pid = ?VALIDATE_AND_GET_LOGGER_PID(Id, [Id, AppenderId, Condition]),
+    gen_server:call(Pid, {set_condition, {AppenderId, Condition}}).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'gen_server' Callback Functions
@@ -130,12 +118,17 @@ init([Id]) ->
     {ok, State}.
 
 %% @private
-handle_call(_, _, State)                        -> {noreply, State}.
+handle_call({register_appender,   Arg}, _, State) -> handle_register_appender(Arg, State);
+handle_call({deregister_appender, Arg}, _, State) -> handle_deregister_appender(Arg, State);
+handle_call({find_appender,       Arg}, _, State) -> handle_find_appender(Arg, State);
+handle_call({set_condition,       Arg}, _, State) -> handle_set_condition(Arg, State);
+handle_call(_, _, State)                          -> {noreply, State}.
 
 %% @private
-handle_cast(_, State)                     -> {noreply, State}.
+handle_cast(_, State) -> {noreply, State}.
 
 %% @private
+handle_info({'DOWN', Ref, _, _, _}, State) -> handle_down(Ref, State);
 handle_info(_, State) ->
     %% TODO: logi:warning
     {noreply, State}.
@@ -151,3 +144,89 @@ code_change(_OldVsn, State, _Extra) ->
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
 %%----------------------------------------------------------------------------------------------------------------------
+-spec handle_register_appender(Arg, #?STATE{}) -> {reply, Result, #?STATE{}} when
+      Arg         :: {logi_appender:appender(), Lifetime, IfExists},
+      Lifetime    :: timeout() | pid(),
+      IfExists    :: error | ignore | supersede,
+      Result      :: {ok, OldAppender} | {error, Reason},
+      OldAppender :: undefined | logi_appender:appender(),
+      Reason      :: {already_registered, logi_appender:appender()}.
+handle_register_appender({Appender, Lifetime, IfExists}, State0) ->
+    {OldAppender, OldCancelLifetimeFun, Appenders0} = take_appender(logi_appender:get_id(Appender), State0#?STATE.appenders),
+    case OldAppender =:= undefined orelse IfExists =:= supersede of
+        false ->
+            case IfExists of
+                error  -> {reply, {error, {already_registered, OldAppender}}, State0};
+                ignore -> {reply, {ok, OldAppender}, State0}
+            end;
+        true ->
+            _  = OldCancelLifetimeFun(),
+            ok = logi_appender_table:register(State0#?STATE.table, Appender, OldAppender),
+            {LifetimeRef, CancelLifetimeFun} = set_lifetime(Lifetime),
+            Appenders1 = [{logi_appender:get_id(Appender), LifetimeRef, CancelLifetimeFun, Appender} | Appenders0],
+            State1 = State0#?STATE{appenders = Appenders1},
+            {reply, {ok, OldAppender}, State1}
+    end.
+
+-spec handle_deregister_appender(logi_appender:id(), #?STATE{}) -> {reply, Result, #?STATE{}} when
+      Result :: undefined | logi_appender:appender().
+handle_deregister_appender(AppenderId, State0) ->
+    case take_appender(AppenderId, State0#?STATE.appenders) of
+        {undefined, _, _}                        -> {reply, error, State0};
+        {Appender, CancelLifetimeFun, Appenders} ->
+            _ = CancelLifetimeFun(),
+            State1 = State0#?STATE{appenders = Appenders},
+            {reply, {ok, Appender}, State1}
+    end.
+
+-spec handle_find_appender(logi_appender:id(), #?STATE{}) -> {reply, Result, #?STATE{}} when
+      Result :: {ok, logi_appender:appender()} | error.
+handle_find_appender(AppenderId, State) ->
+    case lists:keyfind(AppenderId, 1, State#?STATE.appenders) of
+        false               -> {reply, error, State};
+        {_, _, _, Appender} -> {reply, {ok, Appender}, State}
+    end.
+
+-spec handle_set_condition({logi_appender:id(), logi_appender:condition()}, #?STATE{}) -> {reply, Result, #?STATE{}} when
+      Result :: {ok, logi_appender:condition()} | error.
+handle_set_condition({AppenderId, Condition}, State0) ->
+    case lists:keytake(AppenderId, 1, State0#?STATE.appenders) of
+        false                                            -> {reply, error, State0};
+        {value, Entry = {_, _, _, Appender0}, Appenders} ->
+            Appender1 = logi_appender:from_map(maps:merge(logi_appender:to_map(Appender0), #{condition => Condition})),
+            ok = logi_appender_table:register(State0#?STATE.table, Appender1, Appender0),
+            State1 = State0#?STATE{appenders = [setelement(4, Entry, Appender1) | Appenders]},
+            {reply, {ok, logi_appender:get_condition(Appender0)}, State1}
+    end.
+
+-spec handle_down(reference(), #?STATE{}) -> {noreply, #?STATE{}}.
+handle_down(Ref, State0) ->
+    case lists:keytake(Ref, 2, State0#?STATE.appenders) of
+        false                                   -> {noreply, State0};
+        {value, {_, _, _, Appender}, Appenders} ->
+            ok = logi_appender_table:deregister(State0#?STATE.table, Appender),
+            State1 = State0#?STATE{appenders = Appenders},
+            {noreply, State1}
+    end.
+
+-spec take_appender(logi_appender:id(), appenders()) -> {MaybeAppender, cancel_lifetime_fun(), appenders()} when
+      MaybeAppender :: undefined | logi_appender:appender().
+take_appender(AppenderId, Appenders0) ->
+    case lists:keytake(AppenderId, 1, Appenders0) of
+        false                                                    -> {undefined, fun () -> ok end, Appenders0};
+        {value, {_, _, CancelLifetimeFun, Appender}, Appenders1} -> {Appender, CancelLifetimeFun, Appenders1}
+    end.
+
+-spec set_lifetime(timeout() | pid()) -> {lifetime_ref(), cancel_lifetime_fun()}.
+set_lifetime(infinity)             -> {undefined, fun () -> ok end};
+set_lifetime(Pid) when is_pid(Pid) -> {monitor(process, Pid), fun erlang:demonitor/1};
+set_lifetime(Time)                 ->
+    TimeoutRef = make_ref(),
+    TimerRef = erlang:send_after(Time, self(), {'DOWN', TimeoutRef, timeout, undefined, timeout}),
+    {TimeoutRef, fun () -> erlang:cancel_timer(TimerRef, [{async, true}]) end}.
+
+-spec is_valid_lifetime(timeout() | pid() | term()) -> boolean().
+is_valid_lifetime(infinity)                                                               -> true;
+is_valid_lifetime(Pid) when is_pid(Pid)                                                   -> true;
+is_valid_lifetime(Timeout) when is_integer(Timeout), Timeout >= 0, Timeout < 16#100000000 -> true;
+is_valid_lifetime(_)                                                                      -> false.

@@ -26,17 +26,11 @@
 %%----------------------------------------------------------
 %% Appender
 %%----------------------------------------------------------
--export([register_appender/3]).
--export([which_appenders/0, which_appenders/1]).
-
-%% %%----------------------------------------------------------
-%% %% Backend
-%% %%----------------------------------------------------------
-%% -export([register_backend/3]).
-%% -export([update_backend/2]).
-%% -export([deregister_backend/1, deregister_backend/2]).
-%% -export([find_backend/1, find_backend/2]).
-%% -export([which_backends/0, which_backends/1]).
+-export([register_appender/2, register_appender/3]).
+-export([deregister_appender/2]).
+-export([find_appender/2]).
+-export([which_appenders/1]).
+-export([set_condition/3]).
 
 %% %%----------------------------------------------------------
 %% %% Client
@@ -138,42 +132,6 @@
 %%          }. % default: always
 %% %% TODO: location (?)
 
-%% %% TODO: export
-%% -type register_backend_options() ::
-%%         #{
-%%            extra_arg => logi_backend:extra_arg(),
-%%            condition => logi_condition:spec(),
-%%            ttl       => timeout(),
-%%            owner     => pid(),
-%%            if_exists => error | ignore | supersede,
-%%            logger    => logger()
-%%          }.
-
-%% -type update_backend_options() ::
-%%         #{
-%%            extra_arg => logi_backend:extra_arg(),
-%%            condition => logi_condition:spec(),
-%%            ttl       => timeout(),
-%%            owner     => undefined | pid(),
-%%            logger    => logger()
-%%          }.
-
-%% -type deregister_backend_options() :: #{logger => logger()}.
-
-%% -type find_backend_options() :: #{logger => logger()}.
-
-%% -type which_backends_options() :: #{logger => logger()}.
-
-%% -type backend_info() ::
-%%         #{
-%%            id        => logi_backend:id(),
-%%            module    => logi_backend:callback_module(),
-%%            extra_arg => logi_backend:extra_arg(),
-%%            condition => logi_condition:spec(),
-%%            ttl       => timeout(),
-%%            owner     => pid()
-%%          }.
-
 %% %%----------------------------------------------------------------------------------------------------------------------
 %% %% Macros
 %% %%----------------------------------------------------------------------------------------------------------------------
@@ -261,89 +219,47 @@ stop_logger(LoggerId)                        -> erlang:error(badarg, [LoggerId])
 -spec which_loggers() -> [logger_id()].
 which_loggers() -> logi_logger_sup:which_children().
 
+%% @doc TODO
+-spec set_condition(logger_id(), logi_appender:id(), logi_appender:condition()) -> {ok, logi_appender:condition()} | error.
+set_condition(LoggerId, AppenderId, Condition) ->
+    logi_logger:set_condition(LoggerId, AppenderId, Condition).
+
 %%------------------------------------------------------------------------------
 %% Appender
 %%------------------------------------------------------------------------------
+%% @equiv register_appender(LoggerId, Appender, #{})
+-spec register_appender(logger_id(), logi_appender:appender()) -> {ok, undefined} | {error, Reason} when
+      Reason :: {already_registered, logi_appender:appender()}.
+register_appender(LoggerId, Appender) ->
+    register_appender(LoggerId, Appender, #{}).
+
 %% @doc Registers an appender
 %%
 %% TODO: doc
--spec register_appender(logi_appender:id(), logi_appender:callback_module(), Options) -> {ok, OldAppender} | {error, Reason} when
+-spec register_appender(logger_id(), logi_appender:appender(), Options) -> {ok, OldAppender} | {error, Reason} when
       Options :: #{
-        extra_data => logi_appender:extra_data(),
-        condition  => todo,
-        logger     => logger_id(),
-        ower       => undefined | pid(),
+        lifetime   => timeout() | pid(),
         if_exists  => error | ignore | supersede
        },
       OldAppender :: undefined | logi_appender:appender(),
       Reason :: {already_registered, logi_appender:appender()}.
-register_appender(AppenderId, Module, Options) ->
-    LoggerId = maps:get(logger, Options, default_logger()),
-    Appender = logi_appender:make(Module, maps:get(extra_data, Options, undefined)),
-    logi_logger:register_appender(LoggerId, AppenderId, Appender, Options).
+register_appender(LoggerId, Appender, Options) ->
+    logi_logger:register_appender(LoggerId, Appender, Options).
 
-%% @equiv which_appenders(#{logger => default_logger()})
--spec which_appenders() -> [logi_appender:id()].
-which_appenders() -> which_appenders(#{}).
+%% @doc Deregisters an appender
+-spec deregister_appender(logger_id(), logi_appender:id()) -> {ok, logi_appender:appender()} | error.
+deregister_appender(LoggerId, AppenderId) ->
+    logi_logger:deregister_appender(LoggerId, AppenderId).
+
+%% @doc TODO
+-spec find_appender(logger_id(), logi_appender:id()) -> {ok, logi_appender:appender()} | error.
+find_appender(LoggerId, AppenderId) ->
+    logi_logger:find_appender(LoggerId, AppenderId).
 
 %% @doc Returns a list of registered appenders
-%%
-%% Default option: <br />
-%% - logger: `default_logger()' <br />
--spec which_appenders(Options) -> [logi_appender:id()] when
-      Options :: #{logger => logger_id()}.
-which_appenders(Options) ->
-    logi_logger:which_appenders(maps:get(logger, Options, default_logger())).
-
-%% %%------------------------------------------------------------------------------
-%% %% Exported Functions: Backend API
-%% %%------------------------------------------------------------------------------
-%% %% @doc Registers the backend
-%% -spec register_backend(logi_backend:id(), logi_backend:callback_module(), register_backend_options()) ->
-%%                               {ok, OldBackend} | {error, Reason} when
-%%       OldBackend :: undefined | backend_info(),
-%%       Reason     :: {already_registered, backend_info()}.
-%% register_backend(BackendId, BackendModlue, Options) ->
-%%     logi_backend_manager:register_backend(BackendId, BackendModlue, Options).
-
-%% %% @doc Updates the backend
-%% -spec update_backend(logi_backend:id(), update_backend_options()) -> {ok, OldBackend} | {error, Reason} when
-%%       OldBackend :: undefined | backend_info(),
-%%       Reason     :: unregistered.
-%% update_backend(BackendId, Options) ->
-%%     logi_backend_manager:update_backend(BackendId, Options).
-
-%% %% @equiv deregister_backend(BackendId, #{})
-%% -spec deregister_backend(logi_backend:id()) -> DeregisteredBackend when
-%%       DeregisteredBackend :: undefined | backend_info().
-%% deregister_backend(BackendId) ->
-%%     deregister_backend(BackendId, #{}).
-
-%% %% @doc Deregisters the backend
-%% -spec deregister_backend(logi_backend:id(), deregister_backend_options()) -> DeregisteredBackend when
-%%       DeregisteredBackend :: undefined | backend_info().
-%% deregister_backend(BackendId, Options) ->
-%%     logi_backend_manager:deregister_backend(BackendId, Options).
-
-%% %% @equiv find_backend(BackendId, #{})
-%% -spec find_backend(logi_backend:id()) -> {ok, backend_info()} | {error, not_found}.
-%% find_backend(BackendId) ->
-%%     find_backend(BackendId, #{}).
-
-%% %% @doc Finds the backend
-%% -spec find_backend(logi_backend:id(), find_backend_options()) -> {ok, backend_info()} | {error, not_found}.
-%% find_backend(BackendId, Options) ->
-%%     logi_backend_manager:find_backend(BackendId, Options).
-
-%% %% @equiv which_backends(#{})
-%% -spec which_backends() -> [logi_backend:id()].
-%% which_backends() ->
-%%     which_backends(#{}).
-
-%% %% @doc Returns a list of registered backends
-%% -spec which_backends(which_backends_options()) -> [logi_backend:id()].
-%% which_backends(Options) ->
-%%     logi_backend_manager:which_backends(Options).
+-spec which_appenders(logger_id()) -> [logi_appender:id()].
+which_appenders(LoggerId) ->
+    logi_logger:which_appenders(LoggerId).
 
 %% %%------------------------------------------------------------------------------
 %% %% Exported Functions: Logging API
