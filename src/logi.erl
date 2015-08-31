@@ -1,6 +1,6 @@
 %% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc A Logger Interface Library
+%% @doc Logger Interface
 -module(logi).
 
 -compile({no_auto_import, [error/1, error/2]}).
@@ -14,19 +14,18 @@
 %%----------------------------------------------------------
 -export([log_levels/0]).
 -export([default_logger/0]).
-%% -export([default_on_expire/4]).  % TODO: default_on_expire
 
 %%----------------------------------------------------------
 %% Channel
 %%----------------------------------------------------------
--export([start_channel/1, ensure_channel_started/1]).
+-export([start_channel/1, ensure_channel_started/1]). % TODO: move to logi_channel
 -export([stop_channel/1]).
 -export([which_channels/0]).
 
 %%----------------------------------------------------------
 %% Appender
 %%----------------------------------------------------------
--export([register_appender/2, register_appender/3]).
+-export([register_appender/2, register_appender/3]). % TODO: move to logi_channel
 -export([deregister_appender/2]).
 -export([find_appender/2]).
 -export([which_appenders/1]).
@@ -35,21 +34,22 @@
 %%----------------------------------------------------------
 %% Logger
 %%---------------------------------------------------------
--export([new/1, new/2]).
--export([to_map/1, from_map/1]).
--export([save/1, save/2]).
--export([load/0, load/1]).
-%% -export([set_headers/1, set_headers/2]).
-%% -export([set_metadata/1, set_metadata/2]).
+-export([new/1]).
+-export([to_map/1]).
+-export([save_as_default/1, save/2]).
+-export([load/1]). % load_or_new
+-export([erase/1]).
+-export([which_loggers/0]).
+-export([set_headers/1, set_headers/2]).
+-export([set_metadata/1, set_metadata/2]).
+-export([delete_headers/1, delete_headers/2]).
+-export([delete_metadata/1, delete_metadata/2]).
 
 %%----------------------------------------------------------
 %% Logging
-%%---------------------------------------------------------
+%%----------------------------------------------------------
+-export([log/4]).
 
-%% %%----------------------------------------------------------
-%% %% Client
-%% %%----------------------------------------------------------
-%% -export([log/2, log/3, log/4]).
 %% -export([debug/1, debug/2, debug/3]).
 %% -export([verbose/1, verbose/2, verbose/3]).
 %% -export([info/1, info/2, info/3]).
@@ -60,53 +60,16 @@
 %% -export([alert/1, alert/2, alert/3]).
 %% -export([emergency/1, emergency/2, emergency/3]).
 
-%% -export([make_client/1]).
-%% -export([save_client/2]). % TODO: save_client/1
-%% -export([load_client/1]).
-%% -export([erase_client/1]).
-%% -export([which_clients/0]).
-%% -export([client_to_map/1]).
-
-%% -export([set_headers/1]).
-%% -export([set_metadata/1]).
-%% -export([delete_headers/1]).
-%% -export([delete_metadata/1]).
-
-%% %%----------------------------------------------------------
-%% %% Location
-%% %%----------------------------------------------------------
-%% -export([location/0, location/3, location/6]).
-%% -export([location_to_map/1]).
-
 %%----------------------------------------------------------
 %% Types
 %%----------------------------------------------------------
 -export_type([log_level/0, severity/0]).
 -export_type([channel_id/0]).
--export_type([logger/0, logger_id/0, logger_instance/0, save_id/0]).
+-export_type([logger/0, logger_id/0, logger_instance/0]).
 -export_type([key/0, headers/0, metadata/0]).
 -export_type([context_handler/0]).
--export_type([frequency_controller/0]).
-
-%%               severity/0,
-
-%%               metadata/0,
-%%               metadata_entry/0,
-%%               metadata_entry_key/0,
-%%               metadata_entry_value/0,
-
-%%               headers/0,
-%%               header/0,
-%%               header_key/0,
-%%               header_value/0,
-
-%%               context/0,
-%%               context_id/0,
-%%               context_ref/0,
-
-%%               log_options/0,
-%%               frequency_policy/0
-%%              ]).
+-export_type([frequency_controller/0, frequency_spec/0]).
+-export_type([log_options/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
@@ -116,9 +79,8 @@
 
 -type channel_id() :: atom().
 
+-type logger()            :: logger_id() | logger_instance().
 -type logger_id()         :: atom().
--type logger()            :: save_id() | logger_instance().
--type save_id()           :: atom().
 -opaque logger_instance() :: logi_client:client().
 
 -type key() :: atom().
@@ -128,29 +90,16 @@
 -type context_handler() :: {module(), term()}. % TODO:
 
 -opaque frequency_controller() :: logi_frequency_controller:controller().
+-type frequency_spec() :: todo.
 
-%% -type context()     :: logi_context:context(). % opaqueにしたい
-%% -type context_id()  :: atom().
-%% -type context_ref() :: context() | context_id().
-%% -type client_ref() :: context_ref().
-
-%% -type seconds() :: non_neg_integer().
-
-%% -type frequency_policy() :: #{intensity => non_neg_integer(),
-%%                               period    => seconds(),
-%%                               on_expire => function(), % XXX:
-%%                               max_flush_count => pos_integer(),
-%%                               id => term()}. % TODO: description
-
-%% -type log_options() ::
-%%         #{
-%%            logger => client_ref(),
-%%            location => logi_location:location(),
-%%            headers => headers(),  % default: []
-%%            metadata => metadata(), % default: []
-%%            frequency => frequency_policy()
-%%          }. % default: always
-%% %% TODO: location (?)
+-type log_options() ::
+        #{
+           logger    => logger(),
+           location  => logi_location:location(),
+           headers   => headers(),
+           metadata  => metadata(),
+           frequency => frequency_spec()
+         }.
 
 %% %%----------------------------------------------------------------------------------------------------------------------
 %% %% Macros
@@ -277,59 +226,90 @@ which_appenders(LoggerId) ->
 %%----------------------------------------------------------
 %% Logger Instance
 %%----------------------------------------------------------
-%% @equiv new(LoggerId, #{})
--spec new(logger_id()) -> logger_instance().
-new(LoggerId) -> new(LoggerId, #{}).
-
 %% @doc TODO
--spec new(logger_id(), Options) -> logger_instance() when
+-spec new(Options) -> logger_instance() when
       Options :: #{
-        headers               => headers(),
-        metadata             => metadata(),
-        context_handler      => context_handler(),
-        frequency_controller => frequency_controller()
-       }.
-new(LoggerId, Options) ->
-    logi_client:make(LoggerId, Options).
-
-%% @doc TODO
--spec to_map(logger_instance()) -> Map when
-      Map :: #{
-        logger_id            => logger_id(),
+        channel_id           => channel_id(),
         headers              => headers(),
         metadata             => metadata(),
         context_handler      => context_handler(),
         frequency_controller => frequency_controller()
        }.
+new(Options) ->
+    logi_client:make(maps:get(channel_id, Options, default_logger()), Options).
+
+%% @doc TODO
+-spec to_map(logger()) -> Map when
+      Map :: #{
+        channel_id           => channel_id(),
+        headers              => headers(),
+        metadata             => metadata(),
+        context_handler      => context_handler(),
+        frequency_controller => frequency_controller()
+       }.
+to_map(LoggerId) when is_atom(LoggerId) ->
+    to_map(load(LoggerId));
 to_map(LoggerInstance) ->
     logi_client:to_map(LoggerInstance).
 
--spec from_map(Map) -> logger_instance() when
-      Map :: #{
-        logger_id            => logger_id(),
-        headers              => headers(),
-        metadata             => metadata(),
-        context_handler      => context_handler(),
-        frequency_controller => frequency_controller()
-       }.
-from_map(Map) ->
-    erlang:error(unimplemented, [Map]).
-
 %% @equiv save(default_logger(), LoggerInstance)
--spec save(logger_instance()) -> ok. % TODO: save_as_default
-save(LoggerInstance) -> save(default_logger(), LoggerInstance).
+-spec save_as_default(logger_instance()) -> ok.
+save_as_default(LoggerInstance) -> save(default_logger(), LoggerInstance).
 
--spec save(save_id(), logger_instance()) -> ok.
-save(SaveId, LoggerInstance) ->
-    erlang:error(unimplemented, [SaveId, LoggerInstance]).
+-spec save(logger_id(), logger_instance()) -> ok.
+save(LoggerId, LoggerInstance) ->
+    erlang:error(unimplemented, [LoggerId, LoggerInstance]).
 
-%% @equiv load(default_logger())
--spec load() -> logger_instance().
-load() -> load(default_logger()).
+-spec load(logger_id()) -> logger_instance().
+load(LoggerId) ->
+    erlang:error(unimplemented, [LoggerId]).
 
--spec load(save_id()) -> logger_instance().
-load(SaveId) ->
-    erlang:error(unimplemented, [SaveId]).
+-spec erase(logger_id()) -> undefined | logger_instance().
+erase(LoggerId) ->
+    erlang:error(unimplemented, [LoggerId]).
+
+-spec which_loggers() -> [logger_id()].
+which_loggers() ->
+    erlang:error(unimplemented, []).
+
+%% @equiv set_headers(Headers, default_logger())
+-spec set_headers(headers()) -> logger_instance().
+set_headers(Headers) -> set_headers(Headers, default_logger()).
+
+-spec set_headers(headers(), logger()) -> logger_instance().
+set_headers(Headers, Logger) ->
+   erlang:error(unimplemented, [Headers, Logger]).
+
+%% @equiv set_metadata(Metadata, default_logger())
+-spec set_metadata(metadata()) -> logger_instance().
+set_metadata(Metadata) -> set_metadata(Metadata, default_logger()).
+
+-spec set_metadata(metadata(), logger()) -> logger_instance().
+set_metadata(Metadata, Logger) ->
+   erlang:error(unimplemented, [Metadata, Logger]).
+
+%% @equiv delete_headers(Keys, default_logger())
+-spec delete_headers([key()]) -> logger_instance().
+delete_headers(Keys) -> delete_headers(Keys, default_logger()).
+
+-spec delete_headers([key()], logger()) -> logger_instance().
+delete_headers(Keys, Logger) ->
+    erlang:error(unimplemented, [Keys, Logger]).
+
+%% @equiv delete_metadata(Keys, default_logger())
+-spec delete_metadata([key()]) -> logger_instance().
+delete_metadata(Keys) -> delete_metadata(Keys, default_logger()).
+
+-spec delete_metadata([key()], logger()) -> logger_instance().
+delete_metadata(Keys, Logger) ->
+    erlang:error(unimplemented, [Keys, Logger]).
+
+%%----------------------------------------------------------
+%% Logging
+%%----------------------------------------------------------
+-spec log(severity(), io:format(), [term()], log_options()) -> logger_instance().
+log(Severity, Format, FormatArgs, Options) ->
+    erlang:erlang(unimplemented, [Severity, Format, FormatArgs, Options]).
 
 %% -spec notice(io:format(), [term()], log_options()) -> context_ref().
 %% notice(Format, Args, Options) -> log(notice, Format, Args, Options).
@@ -379,82 +359,3 @@ load(SaveId) ->
 
 %% -spec emergency(io:format(), [term()], log_options()) -> context_ref(). % TODO: -> client() (?)
 %% emergency(Format, Args, Options) -> log(emergency, Format, Args, Options).
-
-%% %%------------------------------------------------------------------------------
-%% %% Exported Functions: Client
-%% %%------------------------------------------------------------------------------
-%% %% @doc Makes a new logger client instance
-%% -spec make_client(Options) -> client() when
-%%       Options :: #{
-%%         logger   => logger(),
-%%         headers  => headers(),
-%%         metadata => metadata()
-%%        }.
-%% make_client(Options) -> logi_client:make(Options).
-
-%% %% @doc Saves the client in the process dictionary
-%% -spec save_client(client_id(), client()) -> ok.
-%% save_client(Id, Client) ->
-%%     case is_atom(Id) andalso logi_client:is_client(Client) of
-%%         false -> erlang:error(badarg, [Client, Id]);
-%%         true  -> _ = put({?CLIENT_TAG, Id}, Client), ok
-%%     end.
-
-%% %% @doc Loads the client from the process dictionary
-%% %%
-%% %% If the client does not exist, the result of `make_client(#{logger => Id})' will return.
-%% -spec load_client(client_id()) -> client().
-%% load_client(Id) when is_atom(Id) ->
-%%     case get({?CLIENT_TAG, Id}) of
-%%         undefined -> make_client(#{logger => Id});
-%%         Client    -> Client
-%%     end;
-%% load_client(Id) -> erlang:error(badarg, [Id]).
-
-%% %% @doc Erases the client from the process dictionary
-%% -spec erase_client(client_id()) -> undefined | client().
-%% erase_client(Id) when is_atom(Id) -> erase({?CLIENT_TAG, Id});
-%% erase_client(Id)                  -> error(badarg, [Id]).
-
-%% %% @doc Returns a list of saved clients
-%% -spec which_clients() -> [client_id()].
-%% which_clients() ->
-%%     [Id || {{?CLIENT_TAG, Id}, _} <- get()].
-
-%% %%------------------------------------------------------------------------------
-%% %% Exported Functions: Headers
-%% %%------------------------------------------------------------------------------
-%% %% @doc Sets the client TODO
-%% -spec set(Options) -> client_instance() when
-%%       Options :: #{
-%%         logger   => client(),
-%%         headers  => headers(),
-%%         metadata => metadata()
-%%         %% TODO: severity_mapper, etc
-%%        }.
-%% set(_Options) ->
-%%     todo.
-
-%% %% @doc Gets the client as a map
-%% -spec get(Options) -> Map when
-%%       Options :: #{logger => client()},
-%%       Map :: #{headers => headers(),
-%%                metadata => metadata()}.
-%% get(_Options) ->
-%%     todo.
-
-%% %% @doc Deletes ...
-%% -spec delete(Options) -> client_instance() when
-%%       Options :: #{
-%%         logger => client(),
-%%         headers => [atom()],
-%%         metadata => [atom()]
-%%        }.
-%% delete(_Options) ->
-
-%% location(_) ->
-%%     todo.
-
-%% logi:client_to_map(
-%% logi:set(#{headers => #{sid => SessionId}}).
-%% logi:set_headers(#{sid => SessionId}).

@@ -19,7 +19,7 @@
 
 -record(?CLIENT,
         {
-          logger_id                   :: logi:logger_id(),
+          channel_id                  :: logi:channel_id(),
           headers              = none :: none | logi:headers(),
           metadata             = none :: none | logi:metadata(),
           context_handler      = none :: none | logi:context_handler(),
@@ -32,25 +32,25 @@
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @doc TODO
--spec make(logi:logger_id(), Options) -> client() when
+-spec make(logi:channel_id(), Options) -> client() when
       Options :: #{
         headers         => logi:headers(),
         metadata        => logi:metadata(),
         context_handler => logi:context_handler()
        }.
-make(LoggerId, Options) ->
-    _ = is_atom(LoggerId) orelse error(badarg, [LoggerId, Options]),
-    _ = is_map(Options)   orelse error(badarg, [LoggerId, Options]),
-    Client = #?CLIENT{logger_id = LoggerId},
+make(ChannelId, Options) ->
+    _ = is_atom(ChannelId) orelse error(badarg, [ChannelId, Options]),
+    _ = is_map(Options)    orelse error(badarg, [ChannelId, Options]),
+    Client = #?CLIENT{channel_id = ChannelId},
     maps:fold(
       fun (headers, Headers, Acc) ->
-              _ = logi_context:is_valid_headers(Headers) orelse error(badarg, [LoggerId, Options]),
+              _ = logi_context:is_valid_headers(Headers) orelse error(badarg, [ChannelId, Options]),
               Acc#?CLIENT{headers = Headers};
           (metadata, Metadata, Acc) ->
-              _ = logi_context:is_valid_metadata(Metadata) orelse error(badarg, [LoggerId, Options]),
+              _ = logi_context:is_valid_metadata(Metadata) orelse error(badarg, [ChannelId, Options]),
               Acc#?CLIENT{metadata = Metadata};
           (context_handler, ContextHandler, Acc) ->
-              _ = logi_context:is_valid_context_handler(ContextHandler) orelse error(badarg, [LoggerId, Options]),
+              _ = logi_context:is_valid_context_handler(ContextHandler) orelse error(badarg, [ChannelId, Options]),
               Acc#?CLIENT{context_handler = ContextHandler}
       end,
       Client,
@@ -59,7 +59,7 @@ make(LoggerId, Options) ->
 %% @doc TODO
 -spec to_map(client()) -> Map when
       Map :: #{
-        logger_id            => logi:logger_id(),
+        channel_id           => logi:channel_id(),
         headers              => logi:headers(),
         metadata             => logi:metadata(),
         context_handler      => logi:context_handler(),
@@ -67,12 +67,12 @@ make(LoggerId, Options) ->
        }.
 to_map(Client) ->
     maps:filter(
-      fun (logger_id, _) -> true;
-          (_, none)      -> false;
-          (_, _)         -> true
+      fun (channel_id, _) -> true;
+          (_, none)       -> false;
+          (_, _)          -> true
       end,
       #{
-        logger_id            => Client#?CLIENT.logger_id,
+        channel_id           => Client#?CLIENT.channel_id,
         headers              => Client#?CLIENT.headers,
         metadata             => Client#?CLIENT.metadata,
         context_handler      => Client#?CLIENT.context_handler,

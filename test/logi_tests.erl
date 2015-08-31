@@ -146,12 +146,12 @@ appender_test_() ->
 %% Logger
 %%----------------------------------------------------------
 logger_instance_test_() ->
-    LoggerId = hoge_logger,
+    Chanel = hoge_channel,
     [
      {"Makes a logger instance",
       fun () ->
-              Logger = logi:new(LoggerId),
-              ?assertEqual(#{logger_id => hoge_logger}, logi:to_map(Logger))
+              Logger = logi:new(#{channel_id => Chanel}),
+              ?assertEqual(#{channel_id => Chanel}, logi:to_map(Logger))
       end},
      {"Makes a logger instance with options",
       fun () ->
