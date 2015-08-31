@@ -23,6 +23,12 @@
 -export([stop_logger/1]).
 -export([which_loggers/0]).
 
+%%----------------------------------------------------------
+%% Appender
+%%----------------------------------------------------------
+-export([register_appender/3]).
+-export([which_appenders/0, which_appenders/1]).
+
 %% %%----------------------------------------------------------
 %% %% Backend
 %% %%----------------------------------------------------------
@@ -254,6 +260,40 @@ stop_logger(LoggerId)                        -> erlang:error(badarg, [LoggerId])
 %% @doc Returns a list of all running loggers
 -spec which_loggers() -> [logger_id()].
 which_loggers() -> logi_logger_sup:which_children().
+
+%%------------------------------------------------------------------------------
+%% Appender
+%%------------------------------------------------------------------------------
+%% @doc Registers an appender
+%%
+%% TODO: doc
+-spec register_appender(logi_appender:id(), logi_appender:callback_module(), Options) -> {ok, OldAppender} | {error, Reason} when
+      Options :: #{
+        extra_data => logi_appender:extra_data(),
+        condition  => todo,
+        logger     => logger_id(),
+        ower       => undefined | pid(),
+        if_exists  => error | ignore | supersede
+       },
+      OldAppender :: undefined | logi_appender:appender(),
+      Reason :: {already_registered, logi_appender:appender()}.
+register_appender(AppenderId, Module, Options) ->
+    LoggerId = maps:get(logger, Options, default_logger()),
+    Appender = logi_appender:make(Module, maps:get(extra_data, Options, undefined)),
+    logi_logger:register_appender(LoggerId, AppenderId, Appender, Options).
+
+%% @equiv which_appenders(#{logger => default_logger()})
+-spec which_appenders() -> [logi_appender:id()].
+which_appenders() -> which_appenders(#{}).
+
+%% @doc Returns a list of registered appenders
+%%
+%% Default option: <br />
+%% - logger: `default_logger()' <br />
+-spec which_appenders(Options) -> [logi_appender:id()] when
+      Options :: #{logger => logger_id()}.
+which_appenders(Options) ->
+    logi_logger:which_appenders(maps:get(logger, Options, default_logger())).
 
 %% %%------------------------------------------------------------------------------
 %% %% Exported Functions: Backend API

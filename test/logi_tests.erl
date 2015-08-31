@@ -51,9 +51,35 @@ logger_test_() ->
                ?assertEqual({ok, Pid}, logi:ensure_logger_started(hoge_logger)),
                ok = logi:stop_logger(hoge_logger)
        end},
-      {"Trys stopping an unexisting logger",
+      {"Tries stopping an unexisting logger",
        fun () ->
                ?assertEqual([logi:default_logger()], logi:which_loggers()),
                ?assertEqual(ok, logi:stop_logger(hoge_logger))
        end}
+     ]}.
+
+%%----------------------------------------------------------
+%% Appender
+%%----------------------------------------------------------
+appender_test_() ->
+    Logger = hoge_logger,
+    {setup,
+     fun () -> ok = application:start(logi) end,
+     fun (_) -> ok = application:stop(logi) end,
+     [
+      {"Initially no appenders are registered",
+       fun () ->
+               ?assertEqual([], logi:which_appenders()),
+               ?assertEqual([], logi:which_appenders(#{logger => logi:default_logger()}))
+       end},
+      {foreach,
+       fun () -> {ok, _} = logi:start_logger(Logger) end,
+       fun (_) -> ok = logi:stop_logger(Logger) end,
+       [
+        {"Registers an appender",
+         fun () ->
+                 ?assertEqual({ok, undefined}, logi:register_appender(test, logi_appender_null, #{logger => Logger})),
+                 ?assertEqual([test], logi:which_appenders(#{logger => Logger}))
+         end}
+       ]}
      ]}.

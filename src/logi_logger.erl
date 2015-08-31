@@ -10,6 +10,8 @@
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([start_link/1]).
+-export([register_appender/4]).
+-export([which_appenders/1]).
          %% set_backend/3,
          %% delete_backend/2,
          %% find_backend/2,
@@ -26,13 +28,21 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros & Records
 %%----------------------------------------------------------------------------------------------------------------------
+-define(VALIDATE_AND_GET_LOGGER_PID(LoggerId, Args),
+        case is_atom(LoggerId) of
+            false -> error(badarg, Args);
+            true  -> case whereis(LoggerId) of
+                         undefined -> error({logger_is_not_running, LoggerId}, Args);
+                         LoggerPid -> LoggerPid
+                     end
+        end).
+
 -define(STATE, ?MODULE).
 
 -record(?STATE,
         {
-          id                   :: logi:logger_id(),
-          table                :: logi_backend_table:table(),
-          backend_to_condition :: gb_trees:tree(logi_backend:id(), logi_condition:condition())
+          id    :: logi:logger_id(),
+          table :: logi_appender_table:table()
         }).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -43,6 +53,34 @@
       Reason :: {already_started, pid()} | term().
 start_link(Id) ->
     gen_server:start_link({local, Id}, ?MODULE, [Id], []).
+
+%% @doc Registers an appender
+-spec register_appender(logi:logger_id(), logi_appender:id(), logi_appender:appender(), Options) -> Result when
+      Options :: #{
+        condition => todo,
+        owner     => undefined | pid(),
+        if_exists => error | ignore | supersede
+       },
+      Result :: {ok, OldAppender} | {error, Reason},
+      OldAppender :: undefined | logi_appender:appender(),
+      Reason :: {already_registered, logi_appender:appender()}.
+register_appender(Id, AppenderId, Appender, Options) ->
+    Args = [Id, AppenderId, Appender, Options],
+    Defaults = #{condition => [], owner => undefined, if_exists => error},
+    case maps:merge(Defaults, Options) of
+        #{owner := X}     when X =/= undefined, not is_pid(X)                 -> error(badarg, Args);
+        #{if_exists := X} when X =/= error, X =/= ignore, X =/= supersede     -> error(badarg, Args);
+        #{condition := ConditionSpec, owner := Owner, if_exists := IfExists}  ->
+            Pid = ?VALIDATE_AND_GET_LOGGER_PID(Id, Args),
+            Condition = logi_condition:make(ConditionSpec),
+            gen_server:call(Pid, {register_appender, {AppenderId, Appender, Condition, Owner, IfExists}})
+    end.
+
+%% @doc Returns a list of registered appenders
+-spec which_appenders(logi:logger_id()) -> [logi_appender:id()].
+which_appenders(Id) ->
+    _ = ?VALIDATE_AND_GET_LOGGER_PID(Id, [Id]),
+    logi_appender_table:which_appenders(Id).
 
 %% %% @doc Sets the backend
 %% %%
@@ -62,11 +100,6 @@ start_link(Id) ->
 %% -spec find_backend(logi:logger(), logi_backend:id()) -> {ok, logi_backend:backend()} | error.
 %% find_backend(ManagerRef, BackendId) ->
 %%     logi_backend_table:find_backend(ManagerRef, BackendId).
-
-%% %% @doc Returns existing backends
-%% -spec which_backends(logi:logger()) -> [logi_backend:backend()].
-%% which_backends(ManagerRef) ->
-%%     logi_backend_table:which_backends(ManagerRef).
 
 %% %% @doc Selects backends which satisfies the specified condition
 %% -spec select_backends(logi:logger(), logi:severity(), logi_location:location(), logi:headers(), logi:metadata()) -> [logi_backend:backend()].
@@ -91,21 +124,15 @@ init([Id]) ->
     _ = process_flag(trap_exit, true),
     State =
         #?STATE{
-            id                   = Id,
-            table                = logi_backend_table:new(Id),
-            backend_to_condition = gb_trees:empty()
+            id    = Id,
+            table = logi_appender_table:new(Id)
            },
     {ok, State}.
 
 %% @private
-handle_call(get_id, _From, State)               -> {reply, State#?STATE.id, State};
-handle_call({get_condition, Arg}, _From, State) -> handle_get_condition(Arg, State);
-handle_call({set_condition, Arg}, _From, State) -> handle_set_condition(Arg, State);
-handle_call({set_backend, Arg},   _From, State) -> handle_set_backend(Arg, State);
 handle_call(_, _, State)                        -> {noreply, State}.
 
 %% @private
-handle_cast({delete_backend, Arg}, State) -> handle_delete_backend(Arg, State);
 handle_cast(_, State)                     -> {noreply, State}.
 
 %% @private
@@ -124,30 +151,3 @@ code_change(_OldVsn, State, _Extra) ->
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
 %%----------------------------------------------------------------------------------------------------------------------
--spec handle_set_backend({logi_backend:backend(), logi_condition:condition()}, #?STATE{}) -> {reply, ok, #?STATE{}}.
-handle_set_backend({Backend, Condition}, State) ->
-    ok = logi_backend_table:register_backend(State#?STATE.table, Condition, Backend),
-    BackendToCondition = gb_trees:enter(logi_backend:get_id(Backend), Condition, State#?STATE.backend_to_condition),
-    {reply, ok, State#?STATE{backend_to_condition = BackendToCondition}}.
-
--spec handle_delete_backend(logi_backend:id(), #?STATE{}) -> {noreply, #?STATE{}}.
-handle_delete_backend(BackendId, State) ->
-    ok = logi_backend_table:deregister_backend(State#?STATE.table, BackendId),
-    BackendToCondition = gb_trees:delete_any(BackendId, State#?STATE.backend_to_condition),
-    {noreply, State#?STATE{backend_to_condition = BackendToCondition}}.
-
--spec handle_get_condition(logi_backend:id(), #?STATE{}) -> {reply, Result, #?STATE{}} when
-      Result :: {ok, logi_condition:condition()} | {error, not_found}.
-handle_get_condition(BackendId, State) ->
-    case gb_trees:lookup(BackendId, State#?STATE.backend_to_condition) of
-        none               -> {reply, {error, not_found}, State};
-        {value, Condition} -> {reply, {ok, Condition}, State}
-    end.
-
--spec handle_set_condition({logi_backend:id(), logi_condition:condition()}, #?STATE{}) -> {reply, Result, #?STATE{}} when
-      Result :: ok | {error, not_found}.
-handle_set_condition({BackendId, Condition}, State) ->
-    case logi_backend_table:find_backend(State#?STATE.table, BackendId) of
-        error         -> {reply, {error, not_found}, State};
-        {ok, Backend} -> handle_set_backend({Backend, Condition}, State)
-    end.

@@ -1,79 +1,96 @@
-%% @copyright 2014 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc ログ出力条件情報を扱うためのモジュール
+%% @doc log output condition
 %% @private
 -module(logi_condition).
 
-%%------------------------------------------------------------------------------------------------------------------------
+
+%%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
-%%------------------------------------------------------------------------------------------------------------------------
--export([
-         make/1,
-         is_condition/1,
-         get_spec/1,
-         get_normalized_spec/1
-        ]).
+%%----------------------------------------------------------------------------------------------------------------------
+-export([make/1]).
 
--export_type([
-              condition/0,
-              spec/0
-             ]).
+-export_type([spec/0, severity_spec/0, location_spec/0]).
+-export_type([condition/0]).
 
-%%------------------------------------------------------------------------------------------------------------------------
+%%----------------------------------------------------------------------------------------------------------------------
 %% Macros & Records & Types
-%%------------------------------------------------------------------------------------------------------------------------
--define(CONDITION, ?MODULE).
+%%----------------------------------------------------------------------------------------------------------------------
+-define(COND, ?MODULE).
 
--record(?CONDITION,
+-record(?COND,
         {
           spec :: spec()
         }).
 
--opaque condition() :: #?CONDITION{}.
+-opaque condition() :: #?COND{}.
 
--type spec() :: logi:log_level() | {logi:log_level(), logi:log_level()} | [logi:log_level()]. % XXX:
+-type spec() :: severity_spec()
+              | location_spec().
 
-%%------------------------------------------------------------------------------------------------------------------------
+-type severity_spec() :: logi:log_level()
+                       | {logi:log_level(), logi:log_level()}
+                       | [logi:log_level()].
+%% TODO: doc
+
+-type location_spec() ::
+        #{
+           severity    => severity_spec(),
+           application => atom() | [atom()],
+           module      => module() | [module()]
+         }.
+
+%%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
-%%------------------------------------------------------------------------------------------------------------------------
-%% @doc ログ出力条件オブジェクトを再生する
+%%----------------------------------------------------------------------------------------------------------------------
+%% @doc Makes a condition object from `Spec'
 -spec make(spec()) -> condition().
 make(Spec) ->
-    case is_condition_spec(Spec) of
+    case is_valid_spec(Spec) of
         false -> error(badarg, [Spec]);
-        true  -> #?CONDITION{spec = Spec}
+        true  -> #?COND{spec = Spec}
     end.
 
-%% @doc 引数の値がcondition()型かどうかを判定する
--spec is_condition(condition()) -> boolean().
-is_condition(X) -> is_record(X, ?CONDITION).
-
-%% @doc 出力指定を取得する
--spec get_spec(condition()) -> spec().
-get_spec(#?CONDITION{spec = Spec}) -> Spec.
-
-%% TODO:
--spec get_normalized_spec(condition()) -> [logi:loglevel()].
-get_normalized_spec(#?CONDITION{spec = Spec}) ->
-    case Spec of
-        {Min, Max} ->
-            lists:reverse(
-              lists:dropwhile(fun (L) -> Max =/= L end,
-                              lists:reverse(lists:dropwhile(fun (L) -> Min =/= L end, logi:log_levels()))));
-        Level when is_atom(Level) ->
-            lists:dropwhile(fun (L) -> Level =/= L end, logi:log_levels());
-        Levels ->
-            lists:filter(fun (L) -> lists:member(L, Levels) end, logi:log_levels())
-    end.
-
-%%------------------------------------------------------------------------------------------------------------------------
+%%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
-%%------------------------------------------------------------------------------------------------------------------------
--spec is_condition_spec(spec()) -> boolean().
-is_condition_spec(Level) when is_atom(Level) -> is_log_level(Level);
-is_condition_spec({MinLevel, MaxLevel})      -> is_log_level(MinLevel) andalso is_log_level(MaxLevel);
-is_condition_spec(List) when is_list(List)   -> lists:all(fun is_log_level/1, List);
-is_condition_spec(_)                         -> false.
+%%----------------------------------------------------------------------------------------------------------------------
+-spec is_valid_spec(spec() | term()) -> boolean().
+is_valid_spec(Spec) when is_map(Spec) -> is_valid_location_spec(Spec);
+is_valid_spec(Spec)                   -> is_valid_severity_spec(Spec).
 
--spec is_log_level(logi:log_level() | term()) -> boolean().
-is_log_level(X) -> lists:member(X, logi:log_levels()).
+-spec is_valid_severity_spec(severity_spec() | term()) -> boolean().
+is_valid_severity_spec({MinSeverity, MaxSeverity}) ->
+    lists:member(MinSeverity, logi:log_levels()) andalso lists:member(MaxSeverity, logi:log_levels());
+is_valid_severity_spec(Severities) when is_list(Severities) ->
+    lists:all(fun (S) -> lists:member(S, logi:log_levels()) end, Severities);
+is_valid_severity_spec(MinSeverity) ->
+    lists:member(MinSeverity, logi:log_levels()).
+
+-spec is_valid_location_spec(location_spec() | term()) -> boolean().
+is_valid_location_spec(Spec = #{severity := Severity}) ->
+    is_valid_location_spec(Severity) andalso is_valid_location_spec(maps:without([severity], Spec));
+is_valid_location_spec(Spec = #{application := Application}) ->
+    Valid =
+        case is_list(Application) of
+            false -> is_atom(Application);
+            true  -> lists:all(fun erlang:is_atom/1, Application)
+        end,
+    Valid andalso is_valid_location_spec(maps:without([application], Spec));
+is_valid_location_spec(Spec = #{module := Module}) ->
+    Valid =
+        case is_list(Module) of
+            false -> is_valid_module(Module);
+            true  -> lists:all(fun is_valid_module/1, Module)
+        end,
+    Valid andalso is_valid_location_spec(maps:without([module], Spec));
+is_valid_location_spec(_) ->
+    true.
+
+-spec is_valid_module(module() | term()) -> boolean().
+is_valid_module(Module) when is_atom(Module) ->
+    case application:get_application(Module) of
+        {ok, _} -> true;
+        _       -> false
+    end;
+is_valid_module(_) ->
+    false.
