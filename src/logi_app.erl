@@ -16,15 +16,12 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
 start(_StartType, _StartArgs) ->
-    SupResult = logi_sup:start_link(),
-    case SupResult of
-        {ok, _} ->
-            case logi:start_channel(logi:default_logger()) of
-                {ok, _}         -> SupResult;
-                {error, Reason} -> {error, {cannot_start_default_channel, Reason}}
-            end;
-        Other -> Other
-    end.
+    Result = logi_sup:start_link(),
+    ok = case Result of
+             {ok, _} -> logi_channel:create(logi_channel:default_channel());
+             _       -> ok
+         end,
+    Result.
 
 %% @private
 stop(_State) ->

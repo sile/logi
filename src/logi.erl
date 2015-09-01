@@ -16,13 +16,6 @@
 -export([default_logger/0]).
 
 %%----------------------------------------------------------
-%% Channel
-%%----------------------------------------------------------
--export([start_channel/1, ensure_channel_started/1]). % TODO: move to logi_channel
--export([stop_channel/1]).
--export([which_channels/0]).
-
-%%----------------------------------------------------------
 %% Appender
 %%----------------------------------------------------------
 -export([register_appender/2, register_appender/3]). % TODO: move to logi_channel
@@ -146,40 +139,6 @@ log_levels() -> [debug, verbose, info, notice, warning, error, critical, alert, 
 %%           location => logi_msg_info:get_location(Info),
 %%           headers => logi_msg_info:get_headers(Info),
 %%           metadata => logi_msg_info:get_metadata(Info)}).
-
-%%----------------------------------------------------------
-%% Logger
-%%----------------------------------------------------------
-%% @doc Starts a channel
-%%
-%% If a channel with the same Id already exists, it will return `{error, {already_started, pid()}}'.
--spec start_channel(channel_id()) -> {ok, pid()} | {error, {already_started, pid()}}.
-start_channel(ChannelId) when is_atom(ChannelId) ->
-    case logi_channel_sup:start_child(ChannelId) of
-        {ok, Pid}                       -> {ok, Pid};
-        {error, {already_started, Pid}} -> {error, {already_started, Pid}};
-        Other                           -> erlang:error({unexpected_result, Other}, [ChannelId])
-    end;
-start_channel(ChannelId) -> erlang:error(badarg, [ChannelId]).
-
-%% @doc Equivalent to {@link start_channel/1} except it returns `{ok, pid()}' for already started channels
--spec ensure_channel_started(channel_id()) -> {ok, pid()}.
-ensure_channel_started(ChannelId) ->
-    case start_channel(ChannelId) of
-        {ok, Pid}                       -> {ok, Pid};
-        {error, {already_started, Pid}} -> {ok, Pid}
-    end.
-
-%% @doc Stops a channel
-%%
-%% If the channel `ChannelId' have not been started, it will be silently ignored.
--spec stop_channel(channel_id()) -> ok.
-stop_channel(ChannelId) when is_atom(ChannelId) -> logi_channel_sup:stop_child(ChannelId);
-stop_channel(ChannelId)                         -> erlang:error(badarg, [ChannelId]).
-
-%% @doc Returns a list of all running channels
--spec which_channels() -> [channel_id()].
-which_channels() -> logi_channel_sup:which_children().
 
 %% @doc TODO
 -spec set_condition(channel_id(), logi_appender:id(), logi_appender:condition()) -> {ok, logi_appender:condition()} | error.

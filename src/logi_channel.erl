@@ -9,12 +9,24 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
+-export([create/1]).
+-export([delete/1]).
+-export([which_channels/0]).
+-export([default_channel/0]).
+
+-export_type([id/0]).
+
+%% -export([install_sink/2, install_sink/3]).
+%% -export([uninstall_sink/2]).
+%% -export([find_sink/2]).
+%% -export([which_sinks/2]).
+%% -export([set_condition/3]).
+
+%%----------------------------------------------------------------------------------------------------------------------
+%% Application Internal API
+%%----------------------------------------------------------------------------------------------------------------------
 -export([start_link/1]).
--export([register_appender/3]).
--export([deregister_appender/2]).
--export([find_appender/2]).
--export([which_appenders/1]).
--export([set_condition/3]).
+%% -export([select_sink/2]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'gen_server' Callback API
@@ -22,7 +34,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 %%----------------------------------------------------------------------------------------------------------------------
-%% Macros & Records
+%% Macros & Records & Types
 %%----------------------------------------------------------------------------------------------------------------------
 -define(VALIDATE_AND_GET_CHANNEL_PID(ChannelId, Args),
         case is_atom(ChannelId) of
@@ -47,8 +59,46 @@
 -type lifetime_ref() :: undefined | reference().
 -type cancel_lifetime_fun() :: fun (() -> any()).
 
+-type id() :: atom().
+
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
+%%----------------------------------------------------------------------------------------------------------------------
+%% @doc Creates a new channel
+%%
+%% If the channel exists, nothing happens.
+%%
+%% TODO: badarg (ets or process name conflict)
+-spec create(id()) -> ok.
+create(Id) ->
+    case logi_channel_sup:start_child(Id) of
+        {ok, _} -> ok;
+        _       ->
+            case lists:member(Id, which_channels()) of
+                true  -> ok;
+                false -> error(badarg, [Id])
+            end
+    end.
+
+%% @doc Deletes a channel
+%%
+%% If the channel does not exists, it will be silently ignored.
+-spec delete(id()) -> ok.
+delete(Id) when is_atom(Id) -> logi_channel_sup:stop_child(Id);
+delete(Id)                  -> error(badarg, [Id]).
+
+%% @doc Returns a list of all running channels
+-spec which_channels() -> [id()].
+which_channels() -> logi_channel_sup:which_children().
+
+%% @doc The default channel
+%%
+%% The channel  is created automatically when `logi' application was started.
+-spec default_channel() -> id().
+default_channel() -> logi:default_logger().
+
+%%----------------------------------------------------------------------------------------------------------------------
+%% Application Internal Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @doc Starts a channel process
 -spec start_link(logi:channel_id()) -> {ok, pid()} | {error, Reason} when
@@ -56,53 +106,53 @@
 start_link(Id) ->
     gen_server:start_link({local, Id}, ?MODULE, [Id], []).
 
-%% @doc Registers an appender
--spec register_appender(logi:channel_id(), logi_appender:appender(), Options) -> Result when
-      Options :: #{
-        lifetime  => timeout() | pid(),
-        if_exists => error | ignore | supersede
-       },
-      Result :: {ok, OldAppender} | {error, Reason},
-      OldAppender :: undefined | logi_appender:appender(),
-      Reason :: {already_registered, logi_appender:appender()}.
-register_appender(Id, Appender, Options) ->
-    Args = [Id, Appender, Options],
-    Defaults = #{lifetime => infinity, if_exists => error},
-    case maps:merge(Defaults, Options) of
-        #{if_exists := X} when X =/= error, X =/= ignore, X =/= supersede -> error(badarg, Args);
-        #{lifetime := Lifetime, if_exists := IfExists}                    ->
-            _ = is_valid_lifetime(Lifetime) orelse error(badarg, Args),
-            Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Id, Args),
-            gen_server:call(Pid, {register_appender, {Appender, Lifetime, IfExists}})
-    end.
+%% %% @doc Registers an appender
+%% -spec register_appender(logi:channel_id(), logi_appender:appender(), Options) -> Result when
+%%       Options :: #{
+%%         lifetime  => timeout() | pid(),
+%%         if_exists => error | ignore | supersede
+%%        },
+%%       Result :: {ok, OldAppender} | {error, Reason},
+%%       OldAppender :: undefined | logi_appender:appender(),
+%%       Reason :: {already_registered, logi_appender:appender()}.
+%% register_appender(Id, Appender, Options) ->
+%%     Args = [Id, Appender, Options],
+%%     Defaults = #{lifetime => infinity, if_exists => error},
+%%     case maps:merge(Defaults, Options) of
+%%         #{if_exists := X} when X =/= error, X =/= ignore, X =/= supersede -> error(badarg, Args);
+%%         #{lifetime := Lifetime, if_exists := IfExists}                    ->
+%%             _ = is_valid_lifetime(Lifetime) orelse error(badarg, Args),
+%%             Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Id, Args),
+%%             gen_server:call(Pid, {register_appender, {Appender, Lifetime, IfExists}})
+%%     end.
 
-%% @doc Deregisters an appender
--spec deregister_appender(logi:channel_id(), logi_appender:id()) -> {ok, logi_appender:appender()} | error.
-deregister_appender(Id, AppenderId) ->
-    _ = is_atom(AppenderId) orelse error(badarg, [Id, AppenderId]),
-    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Id, [Id, AppenderId]),
-    gen_server:call(Pid, {deregister_appender, AppenderId}).
+%% %% @doc Deregisters an appender
+%% -spec deregister_appender(logi:channel_id(), logi_appender:id()) -> {ok, logi_appender:appender()} | error.
+%% deregister_appender(Id, AppenderId) ->
+%%     _ = is_atom(AppenderId) orelse error(badarg, [Id, AppenderId]),
+%%     Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Id, [Id, AppenderId]),
+%%     gen_server:call(Pid, {deregister_appender, AppenderId}).
 
-%% @doc TODO
--spec find_appender(logi:channel_id(), logi_appender:id()) -> {ok, logi_appender:appender()} | error.
-find_appender(Id, AppenderId) ->
-    _ = is_atom(AppenderId) orelse error(badarg, [Id, AppenderId]),
-    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Id, [Id, AppenderId]),
-    gen_server:call(Pid, {find_appender, AppenderId}).
+%% %% @doc TODO
+%% -spec find_appender(logi:channel_id(), logi_appender:id()) -> {ok, logi_appender:appender()} | error.
+%% find_appender(Id, AppenderId) ->
+%%     _ = is_atom(AppenderId) orelse error(badarg, [Id, AppenderId]),
+%%     Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Id, [Id, AppenderId]),
+%%     gen_server:call(Pid, {find_appender, AppenderId}).
 
-%% @doc Returns a list of registered appenders
--spec which_appenders(logi:channel_id()) -> [logi_appender:id()].
-which_appenders(Id) ->
-    _ = ?VALIDATE_AND_GET_CHANNEL_PID(Id, [Id]),
-    logi_appender_table:which_appenders(Id).
+%% %% @doc Returns a list of registered appenders
+%% -spec which_appenders(logi:channel_id()) -> [logi_appender:id()].
+%% which_appenders(Id) ->
+%%     _ = ?VALIDATE_AND_GET_CHANNEL_PID(Id, [Id]),
+%%     logi_appender_table:which_appenders(Id).
 
-%% @doc TODO
--spec set_condition(logi:channel_id(), logi_appender:id(), logi_appender:condition()) -> {ok, logi_appender:condition()} | error.
-set_condition(Id, AppenderId, Condition) ->
-    _ = is_atom(AppenderId) orelse error(badarg, [Id, AppenderId, Condition]),
-    _ = logi_appender:is_valid_condition(Condition) orelse error(badarg, [Id, AppenderId, Condition]),
-    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Id, [Id, AppenderId, Condition]),
-    gen_server:call(Pid, {set_condition, {AppenderId, Condition}}).
+%% %% @doc TODO
+%% -spec set_condition(logi:channel_id(), logi_appender:id(), logi_appender:condition()) -> {ok, logi_appender:condition()} | error.
+%% set_condition(Id, AppenderId, Condition) ->
+%%     _ = is_atom(AppenderId) orelse error(badarg, [Id, AppenderId, Condition]),
+%%     _ = logi_appender:is_valid_condition(Condition) orelse error(badarg, [Id, AppenderId, Condition]),
+%%     Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Id, [Id, AppenderId, Condition]),
+%%     gen_server:call(Pid, {set_condition, {AppenderId, Condition}}).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'gen_server' Callback Functions
@@ -225,8 +275,8 @@ set_lifetime(Time)                 ->
     TimerRef = erlang:send_after(Time, self(), {'DOWN', TimeoutRef, timeout, undefined, timeout}),
     {TimeoutRef, fun () -> erlang:cancel_timer(TimerRef, [{async, true}]) end}.
 
--spec is_valid_lifetime(timeout() | pid() | term()) -> boolean().
-is_valid_lifetime(infinity)                                                               -> true;
-is_valid_lifetime(Pid) when is_pid(Pid)                                                   -> true;
-is_valid_lifetime(Timeout) when is_integer(Timeout), Timeout >= 0, Timeout < 16#100000000 -> true;
-is_valid_lifetime(_)                                                                      -> false.
+%% -spec is_valid_lifetime(timeout() | pid() | term()) -> boolean().
+%% is_valid_lifetime(infinity)                                                               -> true;
+%% is_valid_lifetime(Pid) when is_pid(Pid)                                                   -> true;
+%% is_valid_lifetime(Timeout) when is_integer(Timeout), Timeout >= 0, Timeout < 16#100000000 -> true;
+%% is_valid_lifetime(_)                                                                      -> false.
