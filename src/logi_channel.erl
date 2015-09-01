@@ -27,7 +27,7 @@
 %% Application Internal API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([start_link/1]).
-%% -export([select_sink/2]).
+-export([select_sink/4]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'gen_server' Callback API
@@ -85,6 +85,7 @@ create(ChannelId) ->
     case logi_channel_sup:start_child(ChannelId) of
         {ok, _} -> ok;
         _       ->
+            %% TODO: NOTE: timing related issue
             case lists:member(ChannelId, which_channels()) of
                 true  -> ok;
                 false -> error(badarg, [ChannelId])
@@ -158,10 +159,18 @@ set_condition(ChannelId, SinkId, Condition) ->
 %% Application Internal Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @doc Starts a channel process
--spec start_link(logi:channel_id()) -> {ok, pid()} | {error, Reason} when
+-spec start_link(id()) -> {ok, pid()} | {error, Reason} when
       Reason :: {already_started, pid()} | term().
-start_link(Id) ->
-    gen_server:start_link({local, Id}, ?MODULE, [Id], []).
+start_link(ChannelId) ->
+    gen_server:start_link({local, ChannelId}, ?MODULE, [ChannelId], []).
+
+%% @doc TODO
+%%
+%% If the channel does not exist, it will returns an empty list.
+-spec select_sink(id(), logi:severity(), atom(), module()) -> [Sink] when
+      Sink :: {logi_sink:callback_module(), logi_sink:extra_data()}.
+select_sink(ChannelId, Severity, Application, Module) ->
+    logi_sink_table:select(ChannelId, Severity, Application, Module).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'gen_server' Callback Functions

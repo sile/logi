@@ -217,7 +217,7 @@ delete_metadata(Keys, Logger) ->
 %%----------------------------------------------------------
 -spec log(severity(), io:format(), [term()], log_options()) -> logger_instance().
 log(Severity, Format, FormatArgs, Options) ->
-    erlang:erlang(unimplemented, [Severity, Format, FormatArgs, Options]).
+    erlang:error(unimplemented, [Severity, Format, FormatArgs, Options]).
 
 %% -spec notice(io:format(), [term()], log_options()) -> context_ref().
 %% notice(Format, Args, Options) -> log(notice, Format, Args, Options).

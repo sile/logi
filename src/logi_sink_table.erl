@@ -11,6 +11,7 @@
 -export([register/3]).
 -export([deregister/2]).
 -export([which_sinks/1]).
+-export([select/4]).
 
 -export_type([table/0]).
 
@@ -49,6 +50,23 @@ deregister(Table, Sink) ->
 -spec which_sinks(table()) -> [logi_sink:id()].
 which_sinks(Table) ->
     [Id || {Id, _} <- ets:tab2list(Table), is_atom(Id)].
+
+%% @doc TODO
+-spec select(table(), logi:severity(), atom(), module()) -> [{logi_sink:callback_module(), logi_sink:extra_data()}].
+select(Table, Severity, Application, Module) ->
+    try
+        SinkIds = select_id(Table, Severity, Application, Module),
+        lists:filtermap(
+          fun (SinkId) ->
+                  case ets:lookup(Table, SinkId) of
+                      []       -> false; % maybe uninstalled
+                      [{_, V}] -> {true, V}
+                  end
+          end,
+          SinkIds)
+    catch
+        error:badarg -> []
+    end.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
@@ -116,14 +134,14 @@ increment_descendant_count(Table, Key) ->
 decrement_descendant_count(Table, Key) ->
     _ = case fetch(Table, Key) of
             [1]                           -> ets:delete(Table, Key);
-            [Count | List] when Count > 1 -> ets:insert(Table, {Key, [Count - 1 | List]})
+            [Count | List] when Count > 0 -> ets:insert(Table, {Key, [Count - 1 | List]})
         end,
     ok.
 
 -spec push_sink_id(table(), term(), logi_sink:id()) -> ok.
 push_sink_id(Table, Key, SinkId) ->
     [DescendantCount | SinkIds] = fetch(Table, Key, [0]),
-    _ = ets:insert(Table, {Key, [DescendantCount, SinkId | SinkIds]}),
+    _ = ets:insert(Table, {Key, [DescendantCount | lists:sort([SinkId | SinkIds])]}),
     ok.
 
 -spec pop_sink_id(table(), term(), logi_sink:id()) -> ok.
@@ -148,4 +166,17 @@ fetch(Table, Key, Default) ->
     case ets:lookup(Table, Key) of
         []       -> Default;
         [{_, V}] -> V
+    end.
+
+-spec select_id(table(), logi:severity(), atom(), module()) -> [logi_sink:id()].
+select_id(Table, Severity, Application, Module) ->
+    case fetch(Table, {Severity}, [0]) of
+        [0 | Ids0] -> Ids0;
+        [_ | Ids0] ->
+            case fetch(Table, {Severity, Application}, [0]) of
+                [0 | Ids1] -> lists:umerge(Ids0, Ids1);
+                [_ | Ids1] ->
+                    [_ | Ids2] = fetch(Table, {Severity, Application, Module}, [0]),
+                    lists:umerge([Ids0, Ids1, Ids2])
+            end
     end.

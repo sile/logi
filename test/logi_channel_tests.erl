@@ -132,3 +132,143 @@ sink_test_() ->
          end}
        ]}
      ]}.
+
+select_test_() ->
+    Channel = test_channel,
+    Install =
+        fun (Id, Condition) ->
+                Sink = logi_sink:new(Id, logi_sink_null, Condition, Id),
+                {ok, _} = logi_channel:install_sink(Channel, Sink),
+                ok
+        end,
+    SetCond =
+        fun (Id, Condition) ->
+                {ok, _} = logi_channel:set_condition(Channel, Id, Condition),
+                ok
+        end,
+    Select =
+        fun (Severity, Application, Module) ->
+                lists:sort(logi_channel:select_sink(Channel, Severity, Application, Module))
+        end,
+    {setup,
+     fun () -> ok = application:start(logi) end,
+     fun (_) -> ok = application:stop(logi) end,
+     [
+      {foreach,
+       fun () -> ok = logi_channel:create(Channel) end,
+       fun (_) -> ok = logi_channel:delete(Channel) end,
+       [
+        {"simple",
+         fun () ->
+                 ok = Install(aaa, info),
+                 ok = Install(bbb, debug),
+
+                 ?assertEqual([{logi_sink_null, bbb}],                        Select(debug,   stdlib, lists)),
+                 ?assertEqual([{logi_sink_null, bbb}],                        Select(verbose, stdlib, lists)),
+                 ?assertEqual([{logi_sink_null, aaa}, {logi_sink_null, bbb}], Select(info,    stdlib, lists)),
+                 ?assertEqual([{logi_sink_null, aaa}, {logi_sink_null, bbb}], Select(alert,   stdlib, lists))
+         end},
+        {"range",
+         fun () ->
+                 ok = Install(aaa, {debug, info}),
+                 ok = Install(bbb, {verbose, critical}),
+
+                 ?assertEqual([{logi_sink_null, aaa}],                        Select(debug,   stdlib, lists)),
+                 ?assertEqual([{logi_sink_null, aaa}, {logi_sink_null, bbb}], Select(verbose, stdlib, lists)),
+                 ?assertEqual([{logi_sink_null, aaa}, {logi_sink_null, bbb}], Select(info,    stdlib, lists)),
+                 ?assertEqual([{logi_sink_null, bbb}],                        Select(notice,  stdlib, lists)),
+                 ?assertEqual([],                                             Select(alert,   stdlib, lists))
+         end},
+        {"list",
+         fun () ->
+                 ok = Install(aaa, [debug, info, notice]),
+                 ok = Install(bbb, [verbose, notice, critical]),
+                 ok = Install(ccc, [info]),
+
+                 ?assertEqual([{logi_sink_null, aaa}],                        Select(debug,   stdlib, lists)),
+                 ?assertEqual([{logi_sink_null, bbb}],                        Select(verbose, stdlib, lists)),
+                 ?assertEqual([{logi_sink_null, aaa}, {logi_sink_null, ccc}], Select(info,    stdlib, lists)),
+                 ?assertEqual([{logi_sink_null, aaa}, {logi_sink_null, bbb}], Select(notice,  stdlib, lists)),
+                 ?assertEqual([],                                             Select(alert,   stdlib, lists))
+         end},
+        {"severity + application",
+         fun () ->
+                 ok = Install(aaa, #{severity => debug,          application => stdlib}),
+                 ok = Install(bbb, #{severity => [info, notice], application => [stdlib, kernel]}),
+                 ok = Install(ccc, #{severity => verbose,        application => kernel}),
+
+                 ?assertEqual([{logi_sink_null, aaa}],                        Select(debug,   stdlib, lists)),
+                 ?assertEqual([{logi_sink_null, aaa}],                        Select(verbose, stdlib, lists)),
+                 ?assertEqual([{logi_sink_null, aaa}, {logi_sink_null, bbb}], Select(info,    stdlib, lists)),
+                 ?assertEqual([{logi_sink_null, aaa}, {logi_sink_null, bbb}], Select(notice,  stdlib, lists)),
+                 ?assertEqual([{logi_sink_null, aaa}],                        Select(alert,   stdlib, lists))
+         end},
+        {"severity + application + module",
+         fun () ->
+                 ok = Install(aaa, #{severity => debug,          application => kernel, module => [lists, dict]}),
+                 ok = Install(bbb, #{severity => [info, notice], application => stdlib, module => net_kernel}),
+                 ok = Install(ccc, #{severity => verbose,        application => kernel, module => net_kernel}),
+
+                 ?assertEqual([{logi_sink_null, aaa}],                        Select(debug,   stdlib, lists)),
+                 ?assertEqual([{logi_sink_null, aaa}],                        Select(verbose, stdlib, lists)),
+                 ?assertEqual([{logi_sink_null, aaa}, {logi_sink_null, bbb}], Select(info,    stdlib, lists)),
+                 ?assertEqual([{logi_sink_null, aaa}, {logi_sink_null, bbb}], Select(notice,  stdlib, lists)),
+                 ?assertEqual([{logi_sink_null, aaa}],                        Select(alert,   stdlib, lists))
+         end},
+        {"change condition",
+         fun () ->
+                 ok = Install(aaa, debug),
+                 ok = Install(bbb, info),
+                 ok = Install(ccc, alert),
+                 ok = Install(ddd, emergency),
+
+                 random:seed(os:timestamp()),
+                 Applications = applications(),
+                 Modules = modules(),
+                 lists:foreach(
+                   fun (_) ->
+                           ok = SetCond(aaa, random_condition(Applications, Modules)),
+                           ok = SetCond(bbb, random_condition(Applications, Modules)),
+                           ok = SetCond(ccc, random_condition(Applications, Modules)),
+                           ok = SetCond(ddd, random_condition(Applications, Modules))
+                   end,
+                   lists:seq(1, 100)),
+
+                 ok = SetCond(aaa, #{severity => debug,          module => [lists, dict]}),
+                 ok = SetCond(bbb, #{severity => [info, notice], application => stdlib, module => net_kernel}),
+                 ok = SetCond(ccc, #{severity => verbose,        application => kernel, module => net_kernel}),
+                 ok = SetCond(ddd, emergency),
+
+                 ?assertEqual([{logi_sink_null, aaa}],                        Select(debug,   stdlib, lists)),
+                 ?assertEqual([{logi_sink_null, aaa}],                        Select(verbose, stdlib, lists)),
+                 ?assertEqual([{logi_sink_null, aaa}, {logi_sink_null, bbb}], Select(info,    stdlib, lists)),
+                 ?assertEqual([{logi_sink_null, aaa}, {logi_sink_null, bbb}], Select(notice,  stdlib, lists)),
+                 ?assertEqual([{logi_sink_null, aaa}],                        Select(alert,   stdlib, lists))
+         end}
+       ]}
+     ]}.
+
+%%----------------------------------------------------------------------------------------------------------------------
+%% Internal Functions
+%%----------------------------------------------------------------------------------------------------------------------
+-spec random_condition([atom()], [module()]) -> logi_sink:condition().
+random_condition(Applications, Modules) ->
+    Levels = logi:log_levels(),
+    case random:uniform(3) of
+        1 -> subshuffle(Levels);
+        2 -> #{severity => subshuffle(Levels), application => subshuffle(Applications)};
+        3 -> #{severity => subshuffle(Levels), application => subshuffle(Applications), module => subshuffle(Modules)}
+    end.
+
+-spec subshuffle(list()) -> list().
+subshuffle(List) ->
+    lists:sublist([X || {_, X} <- lists:sort([{random:uniform(), X} || X <- List])],
+                  random:uniform(max(20, length(List))) -1).
+
+-spec applications() -> [atom()].
+applications() ->
+    [A || {A, _, _} <- application:which_applications()].
+
+-spec modules() -> [module()].
+modules() ->
+    [M || {M, _} <- code:all_loaded(), application:get_application(M) =/= undefined].
