@@ -13,7 +13,6 @@
 -export([delete/1]).
 -export([which_channels/0]).
 
-
 -export([install_sink/2, install_sink/3]).
 -export([uninstall_sink/2]).
 -export([find_sink/2]).
@@ -159,6 +158,8 @@ set_condition(ChannelId, SinkId, Condition) ->
 %% Application Internal Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @doc Starts a channel process
+%%
+%% @private
 -spec start_link(id()) -> {ok, pid()} | {error, Reason} when
       Reason :: {already_started, pid()} | term().
 start_link(ChannelId) ->
@@ -167,6 +168,8 @@ start_link(ChannelId) ->
 %% @doc TODO
 %%
 %% If the channel does not exist, it will returns an empty list.
+%%
+%% @private
 -spec select_sink(id(), logi:severity(), atom(), module()) -> [Sink] when
       Sink :: {logi_sink:callback_module(), logi_sink:extra_data()}.
 select_sink(ChannelId, Severity, Application, Module) ->

@@ -1,1 +1,0 @@
--module(logi_backend_null).
