@@ -1,18 +1,19 @@
 %% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc Appender object
--module(logi_appender).
+%% @doc Sink object
+-module(logi_sink).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([make/2, make/3, make/4]).
+-export([new/2, new/3, new/4]).
+-export([is_sink/1]).
 -export([get_id/1, get_module/1, get_condition/1, get_extra_data/1]).
 -export([get_expanded_condition/1]).
 -export([to_map/1, from_map/1]).
 -export([is_valid_condition/1]).
 
--export_type([appender/0]).
+-export_type([sink/0]).
 -export_type([id/0]).
 -export_type([callback_module/0]).
 -export_type([condition/0, severity_condition/0, location_condition/0, expanded_condition/0]).
@@ -26,9 +27,9 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros & Records & Types
 %%----------------------------------------------------------------------------------------------------------------------
--define(APPENDER, ?MODULE).
+-define(SINK, ?MODULE).
 
--record(?APPENDER,
+-record(?SINK,
         {
           id         :: id(),
           module     :: callback_module(),
@@ -36,7 +37,7 @@
           extra_data :: extra_data()
         }).
 
--opaque appender()      :: #?APPENDER{}.
+-opaque sink()      :: #?SINK{}.
 -type id()              :: atom().
 -type callback_module() :: module().
 -type extra_data()      :: term().
@@ -59,59 +60,63 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @equiv make(Id, Module, debug)
--spec make(id(), callback_module()) -> appender().
-make(Id, Module) -> make(Id, Module, debug).
+%% @equiv new(Id, Module, debug)
+-spec new(id(), callback_module()) -> sink().
+new(Id, Module) -> new(Id, Module, debug).
 
-%% @equiv make(Id, Module, Condition, undefined)
--spec make(id(), callback_module(), condition()) -> appender().
-make(Id, Module, Condition) -> make(Id, Module, Condition, undefined).
+%% @equiv new(Id, Module, Condition, undefined)
+-spec new(id(), callback_module(), condition()) -> sink().
+new(Id, Module, Condition) -> new(Id, Module, Condition, undefined).
 
-%% @doc Makes a new appender
--spec make(id(), callback_module(), condition(), extra_data()) -> appender().
-make(Id, Module, Condition, ExtraData) ->
+%% @doc Makes a new sink
+-spec new(id(), callback_module(), condition(), extra_data()) -> sink().
+new(Id, Module, Condition, ExtraData) ->
     case is_atom(Id) andalso is_atom(Module) andalso is_valid_condition(Condition) of
         false -> error(badarg, [Id, Module, Condition, ExtraData]);
-        true  -> #?APPENDER{id = Id, module = Module, condition = Condition, extra_data = ExtraData}
+        true  -> #?SINK{id = Id, module = Module, condition = Condition, extra_data = ExtraData}
     end.
 
-%% @doc Makes a new appender from a map
+%% @doc TODO
+-spec is_sink(sink() | term()) -> boolean().
+is_sink(X) -> is_record(X, ?SINK).
+
+%% @doc Makes a new sink from a map
 %%
 %% Default Value: <br />
 %% - id: none (mandatory) <br />
 %% - module: none (mandatory) <br />
 %% - condition: `debug' <br />
 %% - extra_data: `undefined' <br />
--spec from_map(Map) -> appender() when
+-spec from_map(Map) -> sink() when
       Map :: #{id => id(), module => callback_module(), condition => condition(), extra_data => extra_data()}.
 from_map(Map) ->
-    make(maps:get(id, Map), maps:get(module, Map), maps:get(condition, Map, debug), maps:get(extra_data, Map, undefined)).
+    new(maps:get(id, Map), maps:get(module, Map), maps:get(condition, Map, debug), maps:get(extra_data, Map, undefined)).
 
-%% @doc Converts `Appender' into a map
--spec to_map(Appender :: appender()) -> Map when
+%% @doc Converts `Sink' into a map
+-spec to_map(Sink :: sink()) -> Map when
       Map :: #{id => id(), module => callback_module(), condition => condition(), extra_data => extra_data()}.
-to_map(#?APPENDER{id = Id, module = Module, condition = Condition, extra_data = ExtraData}) ->
+to_map(#?SINK{id = Id, module = Module, condition = Condition, extra_data = ExtraData}) ->
     #{id => Id, module => Module, condition => Condition, extra_data => ExtraData}.
 
-%% @doc Gets the ID of `Appender'
--spec get_id(Appender :: appender()) -> id().
-get_id(#?APPENDER{id = Id}) -> Id.
+%% @doc Gets the ID of `Sink'
+-spec get_id(Sink :: sink()) -> id().
+get_id(#?SINK{id = Id}) -> Id.
 
-%% @doc Gets the module of `Appender'
--spec get_module(Appender :: appender()) -> callback_module().
-get_module(#?APPENDER{module = Module}) -> Module.
+%% @doc Gets the module of `Sink'
+-spec get_module(Sink :: sink()) -> callback_module().
+get_module(#?SINK{module = Module}) -> Module.
 
-%% @doc Gets the condition of `Appender'
--spec get_condition(Appender :: appender()) -> condition().
-get_condition(#?APPENDER{condition = Condition}) -> Condition.
+%% @doc Gets the condition of `Sink'
+-spec get_condition(Sink :: sink()) -> condition().
+get_condition(#?SINK{condition = Condition}) -> Condition.
 
-%% @doc Gets the extra data of `Appender'
--spec get_extra_data(Appender :: appender()) -> extra_data().
-get_extra_data(#?APPENDER{extra_data = ExtraData}) -> ExtraData.
+%% @doc Gets the extra data of `Sink'
+-spec get_extra_data(Sink :: sink()) -> extra_data().
+get_extra_data(#?SINK{extra_data = ExtraData}) -> ExtraData.
 
-%% @doc Gets the expanded condition of `Appender'
--spec get_expanded_condition(Appender :: appender()) -> expanded_condition().
-get_expanded_condition(#?APPENDER{condition = Condition}) -> expand_condition(Condition).
+%% @doc Gets the expanded condition of `Sink'
+-spec get_expanded_condition(Sink :: sink()) -> expanded_condition().
+get_expanded_condition(#?SINK{condition = Condition}) -> expand_condition(Condition).
 
 %% @doc Returns `true' if `X' is a valid `condition()' value, and `false' otherwise
 -spec is_valid_condition(condition() | term()) -> boolean().

@@ -1,7 +1,6 @@
 %% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc A channel process
-%% @private
+%% @doc Channel management module
 -module(logi_channel).
 
 -behaviour(gen_server).
@@ -9,18 +8,20 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
+-export([default_channel/0]).
 -export([create/1]).
 -export([delete/1]).
 -export([which_channels/0]).
--export([default_channel/0]).
+
+
+-export([install_sink/2, install_sink/3]).
+-export([uninstall_sink/2]).
+-export([find_sink/2]).
+-export([which_sinks/1]).
+-export([set_condition/3]).
 
 -export_type([id/0]).
-
-%% -export([install_sink/2, install_sink/3]).
-%% -export([uninstall_sink/2]).
-%% -export([find_sink/2]).
-%% -export([which_sinks/2]).
-%% -export([set_condition/3]).
+-export_type([install_sink_option/0,  install_sink_options/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Application Internal API
@@ -49,34 +50,44 @@
 
 -record(?STATE,
         {
-          id             :: logi:channel_id(),
-          table          :: logi_appender_table:table(),
-          appenders = [] :: appenders()
+          id         :: logi:channel_id(),
+          table      :: logi_sink_table:table(),
+          sinks = [] :: sinks()
         }).
 
--type appenders() :: [{logi_appender:id(), lifetime_ref(), cancel_lifetime_fun(), logi_appender:appender()}].
+-type sinks() :: [{logi_sink:id(), lifetime_ref(), cancel_lifetime_fun(), logi_sink:sink()}].
 
 -type lifetime_ref() :: undefined | reference().
 -type cancel_lifetime_fun() :: fun (() -> any()).
 
 -type id() :: atom().
 
+-type install_sink_options() :: [install_sink_option()].
+-type install_sink_option() :: {lifetime, timeout() | pid()}
+                             | {if_exists, error | ignored | supersede}.
+
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
+%% @doc The default channel
+%%
+%% The channel  is created automatically when `logi' application was started.
+-spec default_channel() -> id().
+default_channel() -> logi:default_logger().
+
 %% @doc Creates a new channel
 %%
 %% If the channel exists, nothing happens.
 %%
 %% TODO: badarg (ets or process name conflict)
 -spec create(id()) -> ok.
-create(Id) ->
-    case logi_channel_sup:start_child(Id) of
+create(ChannelId) ->
+    case logi_channel_sup:start_child(ChannelId) of
         {ok, _} -> ok;
         _       ->
-            case lists:member(Id, which_channels()) of
+            case lists:member(ChannelId, which_channels()) of
                 true  -> ok;
-                false -> error(badarg, [Id])
+                false -> error(badarg, [ChannelId])
             end
     end.
 
@@ -84,18 +95,64 @@ create(Id) ->
 %%
 %% If the channel does not exists, it will be silently ignored.
 -spec delete(id()) -> ok.
-delete(Id) when is_atom(Id) -> logi_channel_sup:stop_child(Id);
-delete(Id)                  -> error(badarg, [Id]).
+delete(ChannelId) when is_atom(ChannelId) -> logi_channel_sup:stop_child(ChannelId);
+delete(ChannelId)                         -> error(badarg, [ChannelId]).
 
 %% @doc Returns a list of all running channels
 -spec which_channels() -> [id()].
 which_channels() -> logi_channel_sup:which_children().
 
-%% @doc The default channel
+%% @equiv install_sink(ChannelId, Sink, [])
+-spec install_sink(id(), logi_sink:sink()) -> {ok, undefined} | {error, Reason} when
+      Reason :: {already_installed, logi_sink:sink()}.
+install_sink(ChannelId, Sink) -> install_sink(ChannelId, Sink, []).
+
+%% @doc Installs a sink
 %%
-%% The channel  is created automatically when `logi' application was started.
--spec default_channel() -> id().
-default_channel() -> logi:default_logger().
+%% TODO: more doc
+-spec install_sink(id(), logi_sink:sink(), install_sink_options()) -> {ok, OldSink} | {error, Reason} when
+      OldSink :: undefined | logi_sink:sink(),
+      Reason  :: {already_installed, logi_sink:sink()}.
+install_sink(ChannelId, Sink, Options) ->
+    Args = [ChannelId, Sink, Options],
+    _ = logi_sink:is_sink(Sink) orelse error(badarg, Args),
+    _ = is_list(Options) orelse error(badarg, Args),
+
+    IfExists = proplists:get_value(if_exists, Options, error),
+    Lifetime = proplists:get_value(lifetime, Options, infinity),
+    _ = lists:member(IfExists, [error, ignore, supersede]) orelse error(badarg, Args),
+    _ = is_valid_lifetime(Lifetime) orelse error(badarg, Args),
+
+    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(ChannelId, Args),
+    gen_server:call(Pid, {install_sink, {Sink, Lifetime, IfExists}}).
+
+%% @doc Uninstalls a sink
+-spec uninstall_sink(id(), logi_sink:id()) -> {ok, logi_sink:sink()} | error.
+uninstall_sink(ChannelId, SinkId) ->
+    _ = is_atom(SinkId) orelse error(badarg, [ChannelId, SinkId]),
+    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(ChannelId, [ChannelId, SinkId]),
+    gen_server:call(Pid, {uninstall_sink, SinkId}).
+
+%% @doc TODO
+-spec find_sink(id(), logi_sink:id()) -> {ok, logi_sink:sink()} | error.
+find_sink(ChannelId, SinkId) ->
+    _ = is_atom(SinkId) orelse error(badarg, [ChannelId, SinkId]),
+    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(ChannelId, [ChannelId, SinkId]),
+    gen_server:call(Pid, {find_sink, SinkId}).
+
+%% @doc Returns a list of installed sinks
+-spec which_sinks(id()) -> [logi_sink:id()].
+which_sinks(ChannelId) ->
+    _ = ?VALIDATE_AND_GET_CHANNEL_PID(ChannelId, [ChannelId]),
+    logi_sink_table:which_sinks(ChannelId).
+
+%% @doc TODO
+-spec set_condition(id(), logi_sink:id(), logi_sink:condition()) -> {ok, logi_sink:condition()} | error.
+set_condition(ChannelId, SinkId, Condition) ->
+    _ = is_atom(SinkId) orelse error(badarg, [ChannelId, SinkId, Condition]),
+    _ = logi_sink:is_valid_condition(Condition) orelse error(badarg, [ChannelId, SinkId, Condition]),
+    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(ChannelId, [ChannelId, SinkId, Condition]),
+    gen_server:call(Pid, {set_condition, {SinkId, Condition}}).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Application Internal Functions
@@ -106,54 +163,6 @@ default_channel() -> logi:default_logger().
 start_link(Id) ->
     gen_server:start_link({local, Id}, ?MODULE, [Id], []).
 
-%% %% @doc Registers an appender
-%% -spec register_appender(logi:channel_id(), logi_appender:appender(), Options) -> Result when
-%%       Options :: #{
-%%         lifetime  => timeout() | pid(),
-%%         if_exists => error | ignore | supersede
-%%        },
-%%       Result :: {ok, OldAppender} | {error, Reason},
-%%       OldAppender :: undefined | logi_appender:appender(),
-%%       Reason :: {already_registered, logi_appender:appender()}.
-%% register_appender(Id, Appender, Options) ->
-%%     Args = [Id, Appender, Options],
-%%     Defaults = #{lifetime => infinity, if_exists => error},
-%%     case maps:merge(Defaults, Options) of
-%%         #{if_exists := X} when X =/= error, X =/= ignore, X =/= supersede -> error(badarg, Args);
-%%         #{lifetime := Lifetime, if_exists := IfExists}                    ->
-%%             _ = is_valid_lifetime(Lifetime) orelse error(badarg, Args),
-%%             Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Id, Args),
-%%             gen_server:call(Pid, {register_appender, {Appender, Lifetime, IfExists}})
-%%     end.
-
-%% %% @doc Deregisters an appender
-%% -spec deregister_appender(logi:channel_id(), logi_appender:id()) -> {ok, logi_appender:appender()} | error.
-%% deregister_appender(Id, AppenderId) ->
-%%     _ = is_atom(AppenderId) orelse error(badarg, [Id, AppenderId]),
-%%     Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Id, [Id, AppenderId]),
-%%     gen_server:call(Pid, {deregister_appender, AppenderId}).
-
-%% %% @doc TODO
-%% -spec find_appender(logi:channel_id(), logi_appender:id()) -> {ok, logi_appender:appender()} | error.
-%% find_appender(Id, AppenderId) ->
-%%     _ = is_atom(AppenderId) orelse error(badarg, [Id, AppenderId]),
-%%     Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Id, [Id, AppenderId]),
-%%     gen_server:call(Pid, {find_appender, AppenderId}).
-
-%% %% @doc Returns a list of registered appenders
-%% -spec which_appenders(logi:channel_id()) -> [logi_appender:id()].
-%% which_appenders(Id) ->
-%%     _ = ?VALIDATE_AND_GET_CHANNEL_PID(Id, [Id]),
-%%     logi_appender_table:which_appenders(Id).
-
-%% %% @doc TODO
-%% -spec set_condition(logi:channel_id(), logi_appender:id(), logi_appender:condition()) -> {ok, logi_appender:condition()} | error.
-%% set_condition(Id, AppenderId, Condition) ->
-%%     _ = is_atom(AppenderId) orelse error(badarg, [Id, AppenderId, Condition]),
-%%     _ = logi_appender:is_valid_condition(Condition) orelse error(badarg, [Id, AppenderId, Condition]),
-%%     Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Id, [Id, AppenderId, Condition]),
-%%     gen_server:call(Pid, {set_condition, {AppenderId, Condition}}).
-
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'gen_server' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
@@ -163,16 +172,16 @@ init([Id]) ->
     State =
         #?STATE{
             id    = Id,
-            table = logi_appender_table:new(Id)
+            table = logi_sink_table:new(Id)
            },
     {ok, State}.
 
 %% @private
-handle_call({register_appender,   Arg}, _, State) -> handle_register_appender(Arg, State);
-handle_call({deregister_appender, Arg}, _, State) -> handle_deregister_appender(Arg, State);
-handle_call({find_appender,       Arg}, _, State) -> handle_find_appender(Arg, State);
-handle_call({set_condition,       Arg}, _, State) -> handle_set_condition(Arg, State);
-handle_call(_, _, State)                          -> {noreply, State}.
+handle_call({install_sink,   Arg}, _, State) -> handle_install_sink(Arg, State);
+handle_call({uninstall_sink, Arg}, _, State) -> handle_uninstall_sink(Arg, State);
+handle_call({find_sink,      Arg}, _, State) -> handle_find_sink(Arg, State);
+handle_call({set_condition,  Arg}, _, State) -> handle_set_condition(Arg, State);
+handle_call(_, _, State)                     -> {noreply, State}.
 
 %% @private
 handle_cast(_, State) -> {noreply, State}.
@@ -194,77 +203,73 @@ code_change(_OldVsn, State, _Extra) ->
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
 %%----------------------------------------------------------------------------------------------------------------------
--spec handle_register_appender(Arg, #?STATE{}) -> {reply, Result, #?STATE{}} when
-      Arg         :: {logi_appender:appender(), Lifetime, IfExists},
-      Lifetime    :: timeout() | pid(),
-      IfExists    :: error | ignore | supersede,
-      Result      :: {ok, OldAppender} | {error, Reason},
-      OldAppender :: undefined | logi_appender:appender(),
-      Reason      :: {already_registered, logi_appender:appender()}.
-handle_register_appender({Appender, Lifetime, IfExists}, State0) ->
-    {OldAppender, OldCancelLifetimeFun, Appenders0} = take_appender(logi_appender:get_id(Appender), State0#?STATE.appenders),
-    case OldAppender =:= undefined orelse IfExists =:= supersede of
+-spec handle_install_sink(Arg, #?STATE{}) -> {reply, Result, #?STATE{}} when
+      Arg     :: {logi_sink:sink(), timeout() | pid(), error | if_exists | supersede},
+      Result  :: {ok, OldSink} | {error, Reason},
+      OldSink :: undefined | logi_sink:sink(),
+      Reason  :: {already_installed, logi_sink:sink()}.
+handle_install_sink({Sink, Lifetime, IfExists}, State0) ->
+    {OldSink, OldCancelLifetimeFun, Sinks0} = take_sink(logi_sink:get_id(Sink), State0#?STATE.sinks),
+    case OldSink =:= undefined orelse IfExists =:= supersede of
         false ->
             case IfExists of
-                error  -> {reply, {error, {already_registered, OldAppender}}, State0};
-                ignore -> {reply, {ok, OldAppender}, State0}
+                error  -> {reply, {error, {already_installed, Sink}}, State0};
+                ignore -> {reply, {ok, OldSink}, State0}
             end;
         true ->
             _  = OldCancelLifetimeFun(),
-            ok = logi_appender_table:register(State0#?STATE.table, Appender, OldAppender),
+            ok = logi_sink_table:register(State0#?STATE.table, Sink, OldSink),
             {LifetimeRef, CancelLifetimeFun} = set_lifetime(Lifetime),
-            Appenders1 = [{logi_appender:get_id(Appender), LifetimeRef, CancelLifetimeFun, Appender} | Appenders0],
-            State1 = State0#?STATE{appenders = Appenders1},
-            {reply, {ok, OldAppender}, State1}
+            Sinks1 = [{logi_sink:get_id(Sink), LifetimeRef, CancelLifetimeFun, Sink} | Sinks0],
+            State1 = State0#?STATE{sinks = Sinks1},
+            {reply, {ok, OldSink}, State1}
     end.
 
--spec handle_deregister_appender(logi_appender:id(), #?STATE{}) -> {reply, Result, #?STATE{}} when
-      Result :: undefined | logi_appender:appender().
-handle_deregister_appender(AppenderId, State0) ->
-    case take_appender(AppenderId, State0#?STATE.appenders) of
-        {undefined, _, _}                        -> {reply, error, State0};
-        {Appender, CancelLifetimeFun, Appenders} ->
+-spec handle_uninstall_sink(logi_sink:id(), #?STATE{}) -> {reply, Result, #?STATE{}} when
+      Result :: {ok, logi_sink:sink()} | error.
+handle_uninstall_sink(SinkId, State0) ->
+    case take_sink(SinkId, State0#?STATE.sinks) of
+        {undefined, _, _}                -> {reply, error, State0};
+        {Sink, CancelLifetimeFun, Sinks} ->
             _ = CancelLifetimeFun(),
-            State1 = State0#?STATE{appenders = Appenders},
-            {reply, {ok, Appender}, State1}
+            State1 = State0#?STATE{sinks = Sinks},
+            {reply, {ok, Sink}, State1}
     end.
 
--spec handle_find_appender(logi_appender:id(), #?STATE{}) -> {reply, Result, #?STATE{}} when
-      Result :: {ok, logi_appender:appender()} | error.
-handle_find_appender(AppenderId, State) ->
-    case lists:keyfind(AppenderId, 1, State#?STATE.appenders) of
-        false               -> {reply, error, State};
-        {_, _, _, Appender} -> {reply, {ok, Appender}, State}
+-spec handle_find_sink(logi_sink:id(), #?STATE{}) -> {reply, {ok, logi_sink:sink()} | error, #?STATE{}}.
+handle_find_sink(SinkId, State) ->
+    case lists:keyfind(SinkId, 1, State#?STATE.sinks) of
+        false           -> {reply, error, State};
+        {_, _, _, Sink} -> {reply, {ok, Sink}, State}
     end.
 
--spec handle_set_condition({logi_appender:id(), logi_appender:condition()}, #?STATE{}) -> {reply, Result, #?STATE{}} when
-      Result :: {ok, logi_appender:condition()} | error.
-handle_set_condition({AppenderId, Condition}, State0) ->
-    case lists:keytake(AppenderId, 1, State0#?STATE.appenders) of
-        false                                            -> {reply, error, State0};
-        {value, Entry = {_, _, _, Appender0}, Appenders} ->
-            Appender1 = logi_appender:from_map(maps:merge(logi_appender:to_map(Appender0), #{condition => Condition})),
-            ok = logi_appender_table:register(State0#?STATE.table, Appender1, Appender0),
-            State1 = State0#?STATE{appenders = [setelement(4, Entry, Appender1) | Appenders]},
-            {reply, {ok, logi_appender:get_condition(Appender0)}, State1}
+-spec handle_set_condition({logi_sink:id(), logi_sink:condition()}, #?STATE{}) -> {reply, Result, #?STATE{}} when
+      Result :: {ok, logi_sink:condition()} | error.
+handle_set_condition({SinkId, Condition}, State0) ->
+    case lists:keytake(SinkId, 1, State0#?STATE.sinks) of
+        false                                        -> {reply, error, State0};
+        {value, Entry = {_, _, _, Sink0}, Sinks} ->
+            Sink1 = logi_sink:from_map(maps:put(condition, Condition, logi_sink:to_map(Sink0))),
+            ok = logi_sink_table:register(State0#?STATE.table, Sink1, Sink0),
+            State1 = State0#?STATE{sinks = [setelement(4, Entry, Sink1) | Sinks]},
+            {reply, {ok, logi_sink:get_condition(Sink0)}, State1}
     end.
 
 -spec handle_down(reference(), #?STATE{}) -> {noreply, #?STATE{}}.
 handle_down(Ref, State0) ->
-    case lists:keytake(Ref, 2, State0#?STATE.appenders) of
-        false                                   -> {noreply, State0};
-        {value, {_, _, _, Appender}, Appenders} ->
-            ok = logi_appender_table:deregister(State0#?STATE.table, Appender),
-            State1 = State0#?STATE{appenders = Appenders},
+    case lists:keytake(Ref, 2, State0#?STATE.sinks) of
+        false                           -> {noreply, State0};
+        {value, {_, _, _, Sink}, Sinks} ->
+            ok = logi_sink_table:deregister(State0#?STATE.table, Sink),
+            State1 = State0#?STATE{sinks = Sinks},
             {noreply, State1}
     end.
 
--spec take_appender(logi_appender:id(), appenders()) -> {MaybeAppender, cancel_lifetime_fun(), appenders()} when
-      MaybeAppender :: undefined | logi_appender:appender().
-take_appender(AppenderId, Appenders0) ->
-    case lists:keytake(AppenderId, 1, Appenders0) of
-        false                                                    -> {undefined, fun () -> ok end, Appenders0};
-        {value, {_, _, CancelLifetimeFun, Appender}, Appenders1} -> {Appender, CancelLifetimeFun, Appenders1}
+-spec take_sink(logi_sink:id(), sinks()) -> {undefined | logi_sink:sink(), cancel_lifetime_fun(), sinks()}.
+take_sink(SinkId, Sinks0) ->
+    case lists:keytake(SinkId, 1, Sinks0) of
+        false                                            -> {undefined, fun () -> ok end, Sinks0};
+        {value, {_, _, CancelLifetimeFun, Sink}, Sinks1} -> {Sink, CancelLifetimeFun, Sinks1}
     end.
 
 -spec set_lifetime(timeout() | pid()) -> {lifetime_ref(), cancel_lifetime_fun()}.
@@ -275,8 +280,8 @@ set_lifetime(Time)                 ->
     TimerRef = erlang:send_after(Time, self(), {'DOWN', TimeoutRef, timeout, undefined, timeout}),
     {TimeoutRef, fun () -> erlang:cancel_timer(TimerRef, [{async, true}]) end}.
 
-%% -spec is_valid_lifetime(timeout() | pid() | term()) -> boolean().
-%% is_valid_lifetime(infinity)                                                               -> true;
-%% is_valid_lifetime(Pid) when is_pid(Pid)                                                   -> true;
-%% is_valid_lifetime(Timeout) when is_integer(Timeout), Timeout >= 0, Timeout < 16#100000000 -> true;
-%% is_valid_lifetime(_)                                                                      -> false.
+-spec is_valid_lifetime(timeout() | pid() | term()) -> boolean().
+is_valid_lifetime(infinity)                                                               -> true;
+is_valid_lifetime(Pid) when is_pid(Pid)                                                   -> true;
+is_valid_lifetime(Timeout) when is_integer(Timeout), Timeout >= 0, Timeout < 16#100000000 -> true;
+is_valid_lifetime(_)                                                                      -> false.

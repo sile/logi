@@ -16,15 +16,6 @@
 -export([default_logger/0]).
 
 %%----------------------------------------------------------
-%% Appender
-%%----------------------------------------------------------
--export([register_appender/2, register_appender/3]). % TODO: move to logi_channel
--export([deregister_appender/2]).
--export([find_appender/2]).
--export([which_appenders/1]).
--export([set_condition/3]).
-
-%%----------------------------------------------------------
 %% Logger
 %%---------------------------------------------------------
 -export([new/1]).
@@ -121,7 +112,7 @@
 %%
 %% The default logger is started automatically when `logi' application was started.
 -spec default_logger() -> logger_id().
-default_logger() -> logi_default_logger.
+default_logger() -> logi_default_log.
 
 %% @doc Returns the available log level list
 %%
@@ -139,48 +130,6 @@ log_levels() -> [debug, verbose, info, notice, warning, error, critical, alert, 
 %%           location => logi_msg_info:get_location(Info),
 %%           headers => logi_msg_info:get_headers(Info),
 %%           metadata => logi_msg_info:get_metadata(Info)}).
-
-%% @doc TODO
--spec set_condition(channel_id(), logi_appender:id(), logi_appender:condition()) -> {ok, logi_appender:condition()} | error.
-set_condition(ChannelId, AppenderId, Condition) ->
-    logi_channel:set_condition(ChannelId, AppenderId, Condition).
-
-%%----------------------------------------------------------
-%% Appender
-%%----------------------------------------------------------
-%% @equiv register_appender(LoggerId, Appender, #{})
--spec register_appender(logger_id(), logi_appender:appender()) -> {ok, undefined} | {error, Reason} when
-      Reason :: {already_registered, logi_appender:appender()}.
-register_appender(LoggerId, Appender) ->
-    register_appender(LoggerId, Appender, #{}).
-
-%% @doc Registers an appender
-%%
-%% TODO: doc
--spec register_appender(logger_id(), logi_appender:appender(), Options) -> {ok, OldAppender} | {error, Reason} when
-      Options :: #{
-        lifetime   => timeout() | pid(),
-        if_exists  => error | ignore | supersede
-       },
-      OldAppender :: undefined | logi_appender:appender(),
-      Reason :: {already_registered, logi_appender:appender()}.
-register_appender(LoggerId, Appender, Options) ->
-    logi_channel:register_appender(LoggerId, Appender, Options).
-
-%% @doc Deregisters an appender
--spec deregister_appender(logger_id(), logi_appender:id()) -> {ok, logi_appender:appender()} | error.
-deregister_appender(LoggerId, AppenderId) ->
-    logi_channel:deregister_appender(LoggerId, AppenderId).
-
-%% @doc TODO
--spec find_appender(logger_id(), logi_appender:id()) -> {ok, logi_appender:appender()} | error.
-find_appender(LoggerId, AppenderId) ->
-    logi_channel:find_appender(LoggerId, AppenderId).
-
-%% @doc Returns a list of registered appenders
--spec which_appenders(logger_id()) -> [logi_appender:id()].
-which_appenders(LoggerId) ->
-    logi_channel:which_appenders(LoggerId).
 
 %%----------------------------------------------------------
 %% Logger Instance
