@@ -13,17 +13,3 @@ log_levels_test_() ->
 default_logger_test_() ->
     {"The default logger",
      ?_assertEqual(logi_default_log, logi:default_logger())}.
-
-logger_test_() ->
-    Chanel = hoge_channel,
-    [
-     {"Makes a logger instance",
-      fun () ->
-              Logger = logi:new(#{channel_id => Chanel}),
-              ?assertEqual(#{channel_id => Chanel}, logi:to_map(Logger))
-      end},
-     {"Makes a logger instance with options",
-      fun () ->
-              todo
-      end}
-    ].

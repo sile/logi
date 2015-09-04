@@ -18,12 +18,14 @@
 %%----------------------------------------------------------
 %% Logger
 %%---------------------------------------------------------
--export([new/1]).
--export([to_map/1]).
--export([save_as_default/1, save/2]).
--export([load/1]). % load_or_new
+-export([new/1, new/2]).
+-export([is_logger/1]).
+-export([to_map/1, from_map/1]).
+-export([save/2, save_as_default/1]).
+-export([load/1, load_or_new/1, load_or_new/2, load_or_new/3]).
 -export([erase/1]).
 -export([which_loggers/0]).
+
 -export([set_headers/1, set_headers/2]).
 -export([set_metadata/1, set_metadata/2]).
 -export([delete_headers/1, delete_headers/2]).
@@ -48,8 +50,11 @@
 %% Types
 %%----------------------------------------------------------
 -export_type([log_level/0, severity/0]).
--export_type([channel_id/0]).
 -export_type([logger/0, logger_id/0, logger_instance/0]).
+-export_type([logger_map/0]).
+-export_type([new_option/0, new_options/0]).
+
+-export_type([channel_id/0]).
 -export_type([key/0, headers/0, metadata/0]).
 -export_type([context_handler/0]).
 -export_type([frequency_controller/0, frequency_spec/0]).
@@ -58,17 +63,31 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
--type log_level() :: debug | verbose | info | notice | warning | error | critical | alert | emergency.
+-type log_level() :: debug | verbose | info | notice | warning | error | critical | alert | emergency. % TODO: => severity_level/0 (?)
 -type severity()  :: log_level().
-
--type channel_id() :: atom().
 
 -type logger()            :: logger_id() | logger_instance().
 -type logger_id()         :: atom().
--opaque logger_instance() :: logi_client:client().
+-opaque logger_instance() :: logi_logger:logger().
+
+-type logger_map() ::
+        #{
+           channel_id           => logi_channel:id(), % mandatory
+           headers              => headers(), % optional
+           metadata             => metadata(), % optional
+           context_handler      => context_handler(), % optional
+           frequency_controller => frequency_controller() % optional
+         }.
+
+-type new_options() :: [new_option()].
+-type new_option() :: {headers, headers()}
+                    | {metadata, metadata()}
+                    | {context_handler, context_handler()}.
+
+-type channel_id() :: atom().
 
 -type key() :: atom().
--type headers() :: maps:map(key(), term()).
+-type headers() :: maps:map(key(), term()). % TODO: key/0 をアトムに限定しなくても良いのかもしれない (要検討)
 -type metadata() :: maps:map(key(), term()).
 
 -type context_handler() :: {module(), term()}. % TODO:
@@ -85,10 +104,10 @@
            frequency => frequency_spec()
          }.
 
-%% %%----------------------------------------------------------------------------------------------------------------------
-%% %% Macros
-%% %%----------------------------------------------------------------------------------------------------------------------
-%% -define(CONTEXT_TAG, '__LOGI_CONTEXT__').
+%%----------------------------------------------------------------------------------------------------------------------
+%% Macros
+%%----------------------------------------------------------------------------------------------------------------------
+-define(PD_LOGGER_KEY(LoggerId), {'_LOGI_', LoggerId}).
 
 %% -define(WITH_CONTEXT(ContextRef, Fun),
 %%         case is_atom(ContextRef) of
@@ -132,85 +151,111 @@ log_levels() -> [debug, verbose, info, notice, warning, error, critical, alert, 
 %%           metadata => logi_msg_info:get_metadata(Info)}).
 
 %%----------------------------------------------------------
-%% Logger Instance
+%% Logger
 %%----------------------------------------------------------
-%% @doc TODO
--spec new(Options) -> logger_instance() when
-      Options :: #{
-        channel_id           => channel_id(),
-        headers              => headers(),
-        metadata             => metadata(),
-        context_handler      => context_handler(),
-        frequency_controller => frequency_controller()
-       }.
-new(Options) ->
-    logi_client:make(maps:get(channel_id, Options, default_logger()), Options).
+-spec new(logi_channel:id()) -> logger_instance().
+new(ChannelId) -> new(ChannelId, []).
 
-%% @doc TODO
--spec to_map(logger()) -> Map when
-      Map :: #{
-        channel_id           => channel_id(),
-        headers              => headers(),
-        metadata             => metadata(),
-        context_handler      => context_handler(),
-        frequency_controller => frequency_controller()
-       }.
-to_map(LoggerId) when is_atom(LoggerId) ->
-    to_map(load(LoggerId));
-to_map(LoggerInstance) ->
-    logi_client:to_map(LoggerInstance).
+-spec new(logi_channel:id(), new_options()) -> logger_instance().
+new(ChannelId, Options) -> logi_logger:new(ChannelId, Options).
 
-%% @equiv save(default_logger(), LoggerInstance)
--spec save_as_default(logger_instance()) -> ok.
-save_as_default(LoggerInstance) -> save(default_logger(), LoggerInstance).
+-spec is_logger(logger() | term()) -> boolean().
+is_logger(X) -> is_atom(X) orelse logi_logger:is_logger(X).
 
--spec save(logger_id(), logger_instance()) -> ok.
-save(LoggerId, LoggerInstance) ->
-    erlang:error(unimplemented, [LoggerId, LoggerInstance]).
+-spec to_map(logger()) -> logger_map().
+to_map(Logger) when is_atom(Logger) -> to_map(load_or_new(Logger));
+to_map(Logger)                      -> logi_logger:to_map(Logger).
 
--spec load(logger_id()) -> logger_instance().
+-spec from_map(logger_map()) -> logger_instance().
+from_map(Map) -> logi_logger:from_map(Map).
+
+-spec save_as_default(logger()) -> ok.
+save_as_default(Logger) -> save(default_logger(), Logger).
+
+-spec save(logger_id(), logger()) -> undefined | logger_instance(). % TODO: ok | error (?)
+save(LoggerId, Logger) when is_atom(Logger) ->
+    save(LoggerId, load_or_new(Logger));
+save(LoggerId, Logger) ->
+    _ = logi_logger:is_logger(Logger) orelse erlang:error(badarg, [LoggerId, Logger]),
+    put(?PD_LOGGER_KEY(LoggerId), Logger).
+
+-spec load(logger_id()) -> {ok, logger_instance()} | error.
 load(LoggerId) ->
-    erlang:error(unimplemented, [LoggerId]).
+    _ = is_atom(LoggerId) orelse erlang:error(badarg, [LoggerId]),
+    case get(?PD_LOGGER_KEY(LoggerId)) of
+        undefined -> error;
+        Logger    -> {ok, Logger}
+    end.
 
--spec erase(logger_id()) -> undefined | logger_instance().
+-spec load_or_new(logger_id()) -> logger_instance().
+load_or_new(LoggerId) -> load_or_new(LoggerId, LoggerId).
+
+-spec load_or_new(logger_id(), logi_channel:id()) -> logger_instance().
+load_or_new(LoggerId, ChannelId) -> load_or_new(LoggerId, ChannelId, []).
+
+-spec load_or_new(logger_id(), logi_channel:id(), new_options()) -> logger_instance().
+load_or_new(LoggerId, ChannelId, Options) ->
+    case load(LoggerId) of
+        {ok, Logger} -> Logger;
+        error        -> new(ChannelId, Options)
+    end.
+
+-spec erase(logger_id()) -> undefined | logger_instance(). % TODO: ok | error (?)
 erase(LoggerId) ->
-    erlang:error(unimplemented, [LoggerId]).
+    _ = is_atom(LoggerId) orelse erlang:error(badarg, [LoggerId]),
+    erlang:erase(?PD_LOGGER_KEY(LoggerId)).
 
 -spec which_loggers() -> [logger_id()].
 which_loggers() ->
-    erlang:error(unimplemented, []).
+    [LoggerId || ?PD_LOGGER_KEY(LoggerId) <- get()].
 
-%% @equiv set_headers(Headers, default_logger())
 -spec set_headers(headers()) -> logger_instance().
-set_headers(Headers) -> set_headers(Headers, default_logger()).
+set_headers(Headers) -> set_headers(Headers, []).
 
--spec set_headers(headers(), logger()) -> logger_instance().
-set_headers(Headers, Logger) ->
-   erlang:error(unimplemented, [Headers, Logger]).
+-spec set_headers(headers(), Options) -> logger_instance() when
+      Options :: [Option],
+      Option  :: {logger, logger()}
+               | {if_exists, ignore | overwrite | supersede}.
+set_headers(Headers, Options) ->
+    _ = is_list(Options) orelse erlang:error(badarg, [Headers, Options]),
+    Logger = load_or_new(proplists:get_value(logger, Options, default_logger())),
+    IfExists = proplists:get_value(if_exists, Options, overwrite),
+    logi_logger:set_headers(Headers, IfExists, Logger).
 
-%% @equiv set_metadata(Metadata, default_logger())
 -spec set_metadata(metadata()) -> logger_instance().
-set_metadata(Metadata) -> set_metadata(Metadata, default_logger()).
+set_metadata(Metadata) -> set_metadata(Metadata, []).
 
--spec set_metadata(metadata(), logger()) -> logger_instance().
-set_metadata(Metadata, Logger) ->
-   erlang:error(unimplemented, [Metadata, Logger]).
+-spec set_metadata(metadata(), Options) -> logger_instance() when
+      Options :: [Option],
+      Option  :: {logger, logger()}
+               | {if_exists, ignore | overwrite | supersede}.
+set_metadata(Metadata, Options) ->
+    _ = is_list(Options) orelse erlang:error(badarg, [Metadata, Options]),
+    Logger = load_or_new(proplists:get_value(logger, Options, default_logger())),
+    IfExists = proplists:get_value(if_exists, Options, overwrite),
+    logi_logger:set_metadata(Metadata, IfExists, Logger).
 
-%% @equiv delete_headers(Keys, default_logger())
 -spec delete_headers([key()]) -> logger_instance().
-delete_headers(Keys) -> delete_headers(Keys, default_logger()).
+delete_headers(Keys) -> delete_headers(Keys, []).
 
--spec delete_headers([key()], logger()) -> logger_instance().
-delete_headers(Keys, Logger) ->
-    erlang:error(unimplemented, [Keys, Logger]).
+-spec delete_headers([key()], Options) -> logger_instance() when
+      Options :: [Option],
+      Option  :: {logger, logger()}.
+delete_headers(Keys, Options) ->
+    _ = is_list(Options) orelse erlang:error(badarg, [Keys, Options]),
+    Logger = load_or_new(proplists:get_value(logger, Options, default_logger())),
+    logi_logger:delete_headers(Keys, Logger).
 
-%% @equiv delete_metadata(Keys, default_logger())
 -spec delete_metadata([key()]) -> logger_instance().
-delete_metadata(Keys) -> delete_metadata(Keys, default_logger()).
+delete_metadata(Keys) -> delete_metadata(Keys, []).
 
--spec delete_metadata([key()], logger()) -> logger_instance().
-delete_metadata(Keys, Logger) ->
-    erlang:error(unimplemented, [Keys, Logger]).
+-spec delete_metadata([key()], Options) -> logger_instance() when
+      Options :: [Option],
+      Option  :: {logger, logger()}.
+delete_metadata(Keys, Options) ->
+    _ = is_list(Options) orelse erlang:error(badarg, [Keys, Options]),
+    Logger = load_or_new(proplists:get_value(logger, Options, default_logger())),
+    logi_logger:delete_metadata(Keys, Logger).
 
 %%----------------------------------------------------------
 %% Logging
