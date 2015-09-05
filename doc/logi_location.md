@@ -6,7 +6,7 @@
 * [Function Index](#index)
 * [Function Details](#functions)
 
-ログ出力の位置情報を保持するためのモジュール.
+Message issued location.
 
 Copyright (c) 2014 Takeru Ohta <phjgt308@gmail.com>
 
@@ -38,8 +38,8 @@ __abstract datatype__: `location()`
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_application-1">get_application/1</a></td><td>アプリケーション名を取得する.</td></tr><tr><td valign="top"><a href="#get_function-1">get_function/1</a></td><td>関数名を取得する.</td></tr><tr><td valign="top"><a href="#get_line-1">get_line/1</a></td><td>行番号を取得する.</td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>モジュール名を取得する.</td></tr><tr><td valign="top"><a href="#get_node-1">get_node/1</a></td><td>ノード名を取得する.</td></tr><tr><td valign="top"><a href="#get_process-1">get_process/1</a></td><td>プロセスIDを取得する.</td></tr><tr><td valign="top"><a href="#guess_application-1">guess_application/1</a></td><td>モジュール名から、それが属するアプリケーションを推測する.</td></tr><tr><td valign="top"><a href="#make-3">make/3</a></td><td>Equivalent to <a href="#make-6"><tt>make(node(), self(), guess_application(Module), Module,
-Function, Line)</tt></a>.</td></tr><tr><td valign="top"><a href="#make-6">make/6</a></td><td>位置情報オブジェクトを作成する.</td></tr><tr><td valign="top"><a href="#to_list-1">to_list/1</a></td><td>連想リスト形式に変換する.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_application-1">get_application/1</a></td><td>Gets the application of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_function-1">get_function/1</a></td><td>Gets the function of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_line-1">get_line/1</a></td><td>Gets the line of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_node-1">get_node/1</a></td><td>Gets the node name of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_process-1">get_process/1</a></td><td>Gets the PID of <code>Location</code></td></tr><tr><td valign="top"><a href="#guess-0">guess/0</a></td><td></td></tr><tr><td valign="top"><a href="#guess_application-1">guess_application/1</a></td><td>Guesses the application to which <code>Module</code> belongs.</td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td>Equivalent to <a href="#new-6"><tt>new(node(), self(), guess_application(Module), Module,
+Function, Line)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-6">new/6</a></td><td>Creates a new location object.</td></tr><tr><td valign="top"><a href="#to_map-1">to_map/1</a></td><td>Converts <code>Location</code> to a map.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -51,66 +51,75 @@ Function, Line)</tt></a>.</td></tr><tr><td valign="top"><a href="#make-6">make/6
 ### get_application/1 ###
 
 <pre><code>
-get_application(Logi_location::<a href="#type-location">location()</a>) -&gt; atom()
+get_application(Location::<a href="#type-location">location()</a>) -&gt; atom()
 </code></pre>
 <br />
 
-アプリケーション名を取得する
+Gets the application of `Location`
 
 <a name="get_function-1"></a>
 
 ### get_function/1 ###
 
 <pre><code>
-get_function(Logi_location::<a href="#type-location">location()</a>) -&gt; atom()
+get_function(Location::<a href="#type-location">location()</a>) -&gt; atom()
 </code></pre>
 <br />
 
-関数名を取得する
+Gets the function of `Location`
 
 <a name="get_line-1"></a>
 
 ### get_line/1 ###
 
 <pre><code>
-get_line(Logi_location::<a href="#type-location">location()</a>) -&gt; <a href="#type-line">line()</a>
+get_line(Location::<a href="#type-location">location()</a>) -&gt; <a href="#type-line">line()</a>
 </code></pre>
 <br />
 
-行番号を取得する
+Gets the line of `Location`
 
 <a name="get_module-1"></a>
 
 ### get_module/1 ###
 
 <pre><code>
-get_module(Logi_location::<a href="#type-location">location()</a>) -&gt; module()
+get_module(Location::<a href="#type-location">location()</a>) -&gt; module()
 </code></pre>
 <br />
 
-モジュール名を取得する
+Gets the module of `Location`
 
 <a name="get_node-1"></a>
 
 ### get_node/1 ###
 
 <pre><code>
-get_node(Logi_location::<a href="#type-location">location()</a>) -&gt; node()
+get_node(Location::<a href="#type-location">location()</a>) -&gt; node()
 </code></pre>
 <br />
 
-ノード名を取得する
+Gets the node name of `Location`
 
 <a name="get_process-1"></a>
 
 ### get_process/1 ###
 
 <pre><code>
-get_process(Logi_location::<a href="#type-location">location()</a>) -&gt; pid()
+get_process(Location::<a href="#type-location">location()</a>) -&gt; pid()
 </code></pre>
 <br />
 
-プロセスIDを取得する
+Gets the PID of `Location`
+
+<a name="guess-0"></a>
+
+### guess/0 ###
+
+<pre><code>
+guess() -&gt; <a href="#type-location">location()</a>
+</code></pre>
+<br />
 
 <a name="guess_application-1"></a>
 
@@ -121,39 +130,39 @@ guess_application(Module::module()) -&gt; atom() | undefined
 </code></pre>
 <br />
 
-モジュール名から、それが属するアプリケーションを推測する
+Guesses the application to which `Module` belongs
 
-<a name="make-3"></a>
+<a name="new-3"></a>
 
-### make/3 ###
+### new/3 ###
 
 <pre><code>
-make(Module::module(), Function::atom(), Line::<a href="#type-line">line()</a>) -&gt; <a href="#type-location">location()</a>
+new(Module::module(), Function::atom(), Line::<a href="#type-line">line()</a>) -&gt; <a href="#type-location">location()</a>
 </code></pre>
 <br />
 
-Equivalent to [`make(node(), self(), guess_application(Module), Module,Function, Line)`](#make-6).
+Equivalent to [`new(node(), self(), guess_application(Module), Module,Function, Line)`](#new-6).
 
-<a name="make-6"></a>
+<a name="new-6"></a>
 
-### make/6 ###
+### new/6 ###
 
 <pre><code>
-make(Node::node(), Pid::pid(), Application::atom(), Module::module(), Function::atom(), Line::<a href="#type-line">line()</a>) -&gt; <a href="#type-location">location()</a>
+new(Node::node(), Pid::pid(), Application::atom(), Module::module(), Function::atom(), Line::<a href="#type-line">line()</a>) -&gt; <a href="#type-location">location()</a>
 </code></pre>
 <br />
 
-位置情報オブジェクトを作成する
+Creates a new location object
 
-<a name="to_list-1"></a>
+<a name="to_map-1"></a>
 
-### to_list/1 ###
+### to_map/1 ###
 
 <pre><code>
-to_list(Location::<a href="#type-location">location()</a>) -&gt; <a href="ordsets.md#type-ordset">ordsets:ordset</a>(Entry)
+to_map(Location::<a href="#type-location">location()</a>) -&gt; Map
 </code></pre>
 
-<ul class="definitions"><li><code>Entry = {node, node()} | {process, pid()} | {application, atom()} | {module, module()} | {function, atom()} | {line, <a href="#type-line">line()</a>}</code></li></ul>
+<ul class="definitions"><li><code>Map = #{node =&gt; node(), process =&gt; pid(), application =&gt; atom(), module =&gt; module(), function =&gt; atom(), line =&gt; <a href="#type-line">line()</a>}</code></li></ul>
 
-連想リスト形式に変換する
+Converts `Location` to a map
 

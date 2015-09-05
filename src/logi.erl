@@ -82,7 +82,8 @@
 -type new_options() :: [new_option()].
 -type new_option() :: {headers, headers()}
                     | {metadata, metadata()}
-                    | {context_handler, context_handler()}.
+                    | {context_handler, context_handler()}
+                    | {frequency_controller, frequency_controller()}.
 
 -type channel_id() :: atom().
 
@@ -92,7 +93,7 @@
 
 -type context_handler() :: {module(), term()}. % TODO:
 
--opaque frequency_controller() :: logi_frequency_controller:controller().
+-type frequency_controller() :: term().
 -type frequency_spec() :: todo.
 
 -type log_options() ::
@@ -169,7 +170,7 @@ to_map(Logger)                      -> logi_logger:to_map(Logger).
 -spec from_map(logger_map()) -> logger_instance().
 from_map(Map) -> logi_logger:from_map(Map).
 
--spec save_as_default(logger()) -> ok.
+-spec save_as_default(logger()) -> undefined | logger_instance().
 save_as_default(Logger) -> save(default_logger(), Logger).
 
 -spec save(logger_id(), logger()) -> undefined | logger_instance(). % TODO: ok | error (?)
@@ -260,7 +261,7 @@ delete_metadata(Keys, Options) ->
 %%----------------------------------------------------------
 %% Logging
 %%----------------------------------------------------------
--spec log(severity(), io:format(), [term()], log_options()) -> logger_instance().
+-spec log(severity(), io:format(), [term()], log_options()) -> no_return(). %logger_instance().
 log(Severity, Format, FormatArgs, Options) ->
     erlang:error(unimplemented, [Severity, Format, FormatArgs, Options]).
 
