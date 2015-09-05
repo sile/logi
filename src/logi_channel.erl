@@ -49,7 +49,7 @@
 
 -record(?STATE,
         {
-          id         :: logi:channel_id(),
+          id         :: id(),
           table      :: logi_sink_table:table(),
           sinks = [] :: sinks()
         }).

@@ -7,7 +7,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/0, is_empty/1, in/2, out/1, peek/1, merge/2, fold/3]).
+-export([new/0, is_empty/1, in/2, out/1, peek/1, merge/2]).
 
 -export_type([heap/0, heap/1, item/0]).
 
@@ -61,13 +61,6 @@ merge(H1 = {X, Hs1}, H2 = {Y, Hs2}) ->
         true  -> {X, [H2 | Hs1]};
         false -> {Y, [H1 | Hs2]}
     end.
-
-%% @doc Folds `Function' over every item in `Heap' returing the final value of the accumulator
-%%
-%% NOTE: The iteration order is undefined
--spec fold(Function :: heaps:fold_fun(Item), AccInitial :: term(), heap(Item)) -> AccResult :: term().
-fold(_Fun, Acc, empty)  -> Acc;
-fold(Fun, Acc, {X, Hs}) -> lists:foldl(fun (H, A) -> fold(Fun, A, H) end, Fun(X, Acc), Hs).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions

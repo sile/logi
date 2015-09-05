@@ -46,9 +46,9 @@ new(ChannelId, Options) ->
     Args = [ChannelId, Options],
     _ = is_atom(ChannelId) orelse error(badarg, Args),
     _ = is_list(Options) orelse error(badarg, Args),
-    Headers = get_and_validate(headers, Options, none, fun is_kv_map/1),
+    Headers = get_and_validate(headers, Options, none, fun erlang:is_map/1),
     Headers =:= false andalso error(badarg, Args),
-    Metadata = get_and_validate(metadata, Options, none, fun is_kv_map/1),
+    Metadata = get_and_validate(metadata, Options, none, fun erlang:is_map/1),
     Metadata =:= false andalso error(badarg, Args),
     ContextHandler = get_and_validate(context_handler, Options, none, fun is_context_handler/1),
     ContextHandler =:= false andalso error(badarg, Args),
@@ -95,7 +95,7 @@ set_headers(Headers, ignore,    Logger) -> Logger#?LOGGER{headers = maps:merge(H
 set_headers(Headers, overwrite, Logger) -> Logger#?LOGGER{headers = maps:merge(Logger#?LOGGER.headers, Headers)};
 set_headers(Headers, supersede, Logger) -> Logger#?LOGGER{headers = Headers}.
 
--spec delete_headers([logi:key()], logger()) -> logger().
+-spec delete_headers([term()], logger()) -> logger().
 delete_headers(Keys, Logger) ->
     Logger#?LOGGER{headers = maps:without(Keys, Logger#?LOGGER.headers)}.
 
@@ -104,7 +104,7 @@ set_metadata(Metadata, ignore,    Logger) -> Logger#?LOGGER{metadata = maps:merg
 set_metadata(Metadata, overwrite, Logger) -> Logger#?LOGGER{metadata = maps:merge(Logger#?LOGGER.metadata, Metadata)};
 set_metadata(Metadata, supersede, Logger) -> Logger#?LOGGER{metadata = Metadata}.
 
--spec delete_metadata([logi:key()], logger()) -> logger().
+-spec delete_metadata([term()], logger()) -> logger().
 delete_metadata(Keys, Logger) ->
     Logger#?LOGGER{metadata = maps:without(Keys, Logger#?LOGGER.metadata)}.
 
@@ -117,10 +117,6 @@ get_and_validate(Key, List, Default, Validate) ->
         Default -> Default;
         Value   -> Validate(Value) andalso Value
     end.
-
--spec is_kv_map(maps:map(logi:key(), term()) | term()) -> boolean().
-is_kv_map(M) when is_map(M) -> maps:fold(fun (K, _, Acc) -> Acc andalso is_atom(K) end, true, M);
-is_kv_map(_)                -> false.
 
 -spec is_context_handler({module(), term()} | term()) -> boolean().
 is_context_handler({M, _}) -> is_atom(M);

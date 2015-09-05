@@ -54,11 +54,10 @@
 -export_type([logger_map/0]).
 -export_type([new_option/0, new_options/0]).
 
--export_type([channel_id/0]).
--export_type([key/0, headers/0, metadata/0]).
+-export_type([headers/0, metadata/0]).
 -export_type([context_handler/0]).
 -export_type([frequency_controller/0, frequency_spec/0]).
--export_type([log_options/0]).
+-export_type([log_option/0, log_options/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
@@ -85,25 +84,20 @@
                     | {context_handler, context_handler()}
                     | {frequency_controller, frequency_controller()}.
 
--type channel_id() :: atom().
-
--type key() :: atom().
--type headers() :: maps:map(key(), term()). % TODO: key/0 をアトムに限定しなくても良いのかもしれない (要検討)
--type metadata() :: maps:map(key(), term()).
+-type headers() :: #{}.
+-type metadata() :: #{}.
 
 -type context_handler() :: {module(), term()}. % TODO:
 
 -type frequency_controller() :: term().
 -type frequency_spec() :: todo.
 
--type log_options() ::
-        #{
-           logger    => logger(),
-           location  => logi_location:location(),
-           headers   => headers(),
-           metadata  => metadata(),
-           frequency => frequency_spec()
-         }.
+-type log_options() :: [log_option()].
+-type log_option() :: {logger, logger()}
+                    | {location, logi_location:location()}
+                    | {headers, headers()}
+                    | {metadata, metadata()}
+                    | {frequency, frequency_spec()}.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros
@@ -236,10 +230,10 @@ set_metadata(Metadata, Options) ->
     IfExists = proplists:get_value(if_exists, Options, overwrite),
     logi_logger:set_metadata(Metadata, IfExists, Logger).
 
--spec delete_headers([key()]) -> logger_instance().
+-spec delete_headers([term()]) -> logger_instance().
 delete_headers(Keys) -> delete_headers(Keys, []).
 
--spec delete_headers([key()], Options) -> logger_instance() when
+-spec delete_headers([term()], Options) -> logger_instance() when
       Options :: [Option],
       Option  :: {logger, logger()}.
 delete_headers(Keys, Options) ->
@@ -247,10 +241,10 @@ delete_headers(Keys, Options) ->
     Logger = load_or_new(proplists:get_value(logger, Options, default_logger())),
     logi_logger:delete_headers(Keys, Logger).
 
--spec delete_metadata([key()]) -> logger_instance().
+-spec delete_metadata([term()]) -> logger_instance().
 delete_metadata(Keys) -> delete_metadata(Keys, []).
 
--spec delete_metadata([key()], Options) -> logger_instance() when
+-spec delete_metadata([term()], Options) -> logger_instance() when
       Options :: [Option],
       Option  :: {logger, logger()}.
 delete_metadata(Keys, Options) ->

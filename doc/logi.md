@@ -17,16 +17,6 @@ Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
 
 
-### <a name="type-channel_id">channel_id()</a> ###
-
-
-<pre><code>
-channel_id() = atom()
-</code></pre>
-
-
-
-
 ### <a name="type-context_handler">context_handler()</a> ###
 
 
