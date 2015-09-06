@@ -40,7 +40,7 @@
 -opaque sink()      :: #?SINK{}.
 -type id()              :: atom().
 -type callback_module() :: module().
--type extra_data()      :: term().
+-type extra_data()      :: term(). % TODO: extra_arg(?)
 -type condition()       :: severity_condition() | location_condition().
 
 -type severity_condition() :: logi:log_level()
