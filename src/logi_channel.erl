@@ -243,7 +243,8 @@ handle_uninstall_sink(SinkId, State0) ->
     case take_sink(SinkId, State0#?STATE.sinks) of
         {undefined, _, _}                -> {reply, error, State0};
         {Sink, CancelLifetimeFun, Sinks} ->
-            _ = CancelLifetimeFun(),
+            _  = CancelLifetimeFun(),
+            ok = logi_sink_table:deregister(State0#?STATE.table, Sink),
             State1 = State0#?STATE{sinks = Sinks},
             {reply, {ok, Sink}, State1}
     end.

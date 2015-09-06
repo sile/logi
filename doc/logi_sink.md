@@ -10,7 +10,7 @@ Sink object.
 
 Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
-__This module defines the `logi_sink` behaviour.__<br /> Required callback functions: `append/4`.
+__This module defines the `logi_sink` behaviour.__<br /> Required callback functions: `write/4`.
 
 <a name="types"></a>
 

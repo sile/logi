@@ -55,8 +55,6 @@
 -export_type([new_option/0, new_options/0]).
 
 -export_type([headers/0, metadata/0]).
--export_type([context_handler/0]).
--export_type([frequency_controller/0, frequency_spec/0]).
 -export_type([log_option/0, log_options/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -71,33 +69,26 @@
 
 -type logger_map() ::
         #{
-           channel_id           => logi_channel:id(), % mandatory
-           headers              => headers(), % optional
-           metadata             => metadata(), % optional
-           context_handler      => context_handler(), % optional
-           frequency_controller => frequency_controller() % optional
+           channel_id => logi_channel:id(), % mandatory
+           headers    => headers(), % optional
+           metadata   => metadata(), % optional
+           filters    => [logi_filter:filter()] % optional
          }.
 
 -type new_options() :: [new_option()].
 -type new_option() :: {headers, headers()}
                     | {metadata, metadata()}
-                    | {context_handler, context_handler()}
-                    | {frequency_controller, frequency_controller()}.
+                    | {filters, [logi_filter:filter()]}.
 
 -type headers() :: #{}.
 -type metadata() :: #{}.
-
--type context_handler() :: {module(), term()}. % TODO:
-
--type frequency_controller() :: term().
--type frequency_spec() :: todo.
 
 -type log_options() :: [log_option()].
 -type log_option() :: {logger, logger()}
                     | {location, logi_location:location()}
                     | {headers, headers()}
                     | {metadata, metadata()}
-                    | {frequency, frequency_spec()}.
+                    | logi_filter:option().
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros
@@ -215,7 +206,7 @@ set_headers(Headers, Options) ->
     _ = is_list(Options) orelse erlang:error(badarg, [Headers, Options]),
     Logger = load_or_new(proplists:get_value(logger, Options, default_logger())),
     IfExists = proplists:get_value(if_exists, Options, overwrite),
-    logi_logger:set_headers(Headers, IfExists, Logger).
+    save_if_need(Logger, logi_logger:set_headers(Headers, IfExists, Logger)).
 
 -spec set_metadata(metadata()) -> logger_instance().
 set_metadata(Metadata) -> set_metadata(Metadata, []).
@@ -228,7 +219,7 @@ set_metadata(Metadata, Options) ->
     _ = is_list(Options) orelse erlang:error(badarg, [Metadata, Options]),
     Logger = load_or_new(proplists:get_value(logger, Options, default_logger())),
     IfExists = proplists:get_value(if_exists, Options, overwrite),
-    logi_logger:set_metadata(Metadata, IfExists, Logger).
+    save_if_need(Logger, logi_logger:set_metadata(Metadata, IfExists, Logger)).
 
 -spec delete_headers([term()]) -> logger_instance().
 delete_headers(Keys) -> delete_headers(Keys, []).
@@ -239,7 +230,7 @@ delete_headers(Keys) -> delete_headers(Keys, []).
 delete_headers(Keys, Options) ->
     _ = is_list(Options) orelse erlang:error(badarg, [Keys, Options]),
     Logger = load_or_new(proplists:get_value(logger, Options, default_logger())),
-    logi_logger:delete_headers(Keys, Logger).
+    save_if_need(Logger, logi_logger:delete_headers(Keys, Logger)).
 
 -spec delete_metadata([term()]) -> logger_instance().
 delete_metadata(Keys) -> delete_metadata(Keys, []).
@@ -250,14 +241,30 @@ delete_metadata(Keys) -> delete_metadata(Keys, []).
 delete_metadata(Keys, Options) ->
     _ = is_list(Options) orelse erlang:error(badarg, [Keys, Options]),
     Logger = load_or_new(proplists:get_value(logger, Options, default_logger())),
-    logi_logger:delete_metadata(Keys, Logger).
+    save_if_need(Logger, logi_logger:delete_metadata(Keys, Logger)).
 
 %%----------------------------------------------------------
 %% Logging
 %%----------------------------------------------------------
--spec log(severity(), io:format(), [term()], log_options()) -> no_return(). %logger_instance().
+%% @deprecated TODO
+%%
+%% TODO: private(?)
+-spec log(severity(), io:format(), [term()], log_options()) -> logger_instance().
 log(Severity, Format, FormatArgs, Options) ->
-    erlang:error(unimplemented, [Severity, Format, FormatArgs, Options]).
+    _ = is_list(Options) orelse erlang:error(badarg, [Severity, Format, FormatArgs, Options]),
+    DefaultLocation =
+        case lists:keyfind(location, 1, Options) of
+            false         -> todo;
+            {_, Location} -> Location
+        end,
+    case logi_logger:ready(Severity, DefaultLocation, Options) of
+        {Sinks, Context, Logger} ->
+            MaybeLoggerId = proplists:get_value(logger, Options, default_logger()),
+            ok = logi_logger:write(Sinks, Context, Format, FormatArgs),
+            save_if_need(MaybeLoggerId, Logger);
+        Logger ->
+            Logger
+    end.
 
 %% -spec notice(io:format(), [term()], log_options()) -> context_ref().
 %% notice(Format, Args, Options) -> log(notice, Format, Args, Options).
@@ -307,3 +314,13 @@ log(Severity, Format, FormatArgs, Options) ->
 
 %% -spec emergency(io:format(), [term()], log_options()) -> context_ref(). % TODO: -> client() (?)
 %% emergency(Format, Args, Options) -> log(emergency, Format, Args, Options).
+
+%%----------------------------------------------------------------------------------------------------------------------
+%% Internal Functions
+%%----------------------------------------------------------------------------------------------------------------------
+-spec save_if_need(logger(), logger_instance()) -> logger_instance().
+save_if_need(LoggerId, Logger) when is_atom(LoggerId) ->
+    _ = save(LoggerId, Logger),
+    Logger;
+save_if_need(_, Logger) ->
+    Logger.

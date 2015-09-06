@@ -83,7 +83,8 @@ sink_test_() ->
                  {ok, undefined} = logi_channel:install_sink(Channel, NullSink),
                  ?assertEqual({ok, NullSink}, logi_channel:uninstall_sink(Channel, null)),
                  ?assertEqual(error, logi_channel:uninstall_sink(Channel, null)),
-                 ?assertEqual(error, logi_channel:find_sink(Channel, null))
+                 ?assertEqual(error, logi_channel:find_sink(Channel, null)),
+                 ?assertEqual([], logi_channel:select_sink(Channel, info, hoge, fuga))
          end},
         {"INSTALL: `if_exists` option",
          fun () ->

@@ -1,4 +1,4 @@
-%% @copyright 2014 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc Message issued location
 -module(logi_location).
@@ -9,6 +9,7 @@
 -export([
          guess/0,
          new/3, new/6,
+         is_location/1,
          get_node/1,
          get_process/1,
          get_application/1,
@@ -71,6 +72,10 @@ new(Node, Pid, Application, Module, Function, Line) ->
        function    = Function,
        line        = Line
       }.
+
+%% @doc TODO
+-spec is_location(location() | term()) -> boolean().
+is_location(X) -> is_record(X, logi_location).
 
 %% @doc Gets the node name of `Location'
 -spec get_node(Location :: location()) -> node().
