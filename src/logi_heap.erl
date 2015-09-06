@@ -1,6 +1,9 @@
 %% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc Pairing heaps
+%%
+%% TODO: optimize for logi
+%%
 %% @private
 -module(logi_heap).
 

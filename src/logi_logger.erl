@@ -121,7 +121,8 @@ ready(Logger0, Severity, DefaultLocation, Options) ->
         _  ->
             Headers = merge(Logger0#?LOGGER.headers, proplists:get_value(headers, Options, none)),
             Metadata = merge(Logger0#?LOGGER.metadata, proplists:get_value(metadata, Options, none)),
-            Context = logi_context:new(os:timestamp(), Severity, Location, Headers, Metadata), % TODO: reuse the timestamp
+            %% TODO: reuse the timestamp
+            Context = logi_context:new(Logger0#?LOGGER.channel_id, os:timestamp(), Severity, Location, Headers, Metadata),
             case apply_filters(Context, Options, Logger0) of
                 {false, Logger1} -> {[],    Context, Logger1};
                 {true,  Logger1} -> {Sinks, Context, Logger1}

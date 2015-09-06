@@ -46,6 +46,26 @@ install_sink_option() = {lifetime, timeout() | pid()} | {if_exists, error | igno
 install_sink_options() = [<a href="#type-install_sink_option">install_sink_option()</a>]
 </code></pre>
 
+
+
+
+### <a name="type-install_sink_result">install_sink_result()</a> ###
+
+
+<pre><code>
+install_sink_result() = {ok, OldSink::undefined | <a href="logi_sink.md#type-sink">logi_sink:sink()</a>} | {error, {already_installed, <a href="logi_sink.md#type-sink">logi_sink:sink()</a>}}
+</code></pre>
+
+
+
+
+### <a name="type-uninstall_sink_result">uninstall_sink_result()</a> ###
+
+
+<pre><code>
+uninstall_sink_result() = {ok, <a href="logi_sink.md#type-sink">logi_sink:sink()</a>} | error
+</code></pre>
+
 <a name="index"></a>
 
 ## Function Index ##
@@ -102,7 +122,7 @@ If the channel does not exists, it will be silently ignored.
 ### find_sink/2 ###
 
 <pre><code>
-find_sink(ChannelId::<a href="#type-id">id()</a>, SinkId::<a href="logi_sink.md#type-id">logi_sink:id()</a>) -&gt; {ok, <a href="logi_sink.md#type-sink">logi_sink:sink()</a>} | error
+find_sink(ChannelId::<a href="#type-id">id()</a>, SinkId::<a href="logi_sink.md#type-id">logi_sink:id()</a>) -&gt; <a href="#type-uninstall_sink_result">uninstall_sink_result()</a>
 </code></pre>
 <br />
 
@@ -113,10 +133,9 @@ TODO
 ### install_sink/2 ###
 
 <pre><code>
-install_sink(ChannelId::<a href="#type-id">id()</a>, Sink::<a href="logi_sink.md#type-sink">logi_sink:sink()</a>) -&gt; {ok, undefined} | {error, Reason}
+install_sink(ChannelId::<a href="#type-id">id()</a>, Sink::<a href="logi_sink.md#type-sink">logi_sink:sink()</a>) -&gt; <a href="#type-install_sink_result">install_sink_result()</a>
 </code></pre>
-
-<ul class="definitions"><li><code>Reason = {already_installed, <a href="logi_sink.md#type-sink">logi_sink:sink()</a>}</code></li></ul>
+<br />
 
 Equivalent to [`install_sink(ChannelId, Sink, [])`](#install_sink-3).
 
@@ -125,10 +144,9 @@ Equivalent to [`install_sink(ChannelId, Sink, [])`](#install_sink-3).
 ### install_sink/3 ###
 
 <pre><code>
-install_sink(ChannelId::<a href="#type-id">id()</a>, Sink::<a href="logi_sink.md#type-sink">logi_sink:sink()</a>, Options::<a href="#type-install_sink_options">install_sink_options()</a>) -&gt; {ok, OldSink} | {error, Reason}
+install_sink(ChannelId::<a href="#type-id">id()</a>, Sink::<a href="logi_sink.md#type-sink">logi_sink:sink()</a>, Options::<a href="#type-install_sink_options">install_sink_options()</a>) -&gt; <a href="#type-install_sink_result">install_sink_result()</a>
 </code></pre>
-
-<ul class="definitions"><li><code>OldSink = undefined | <a href="logi_sink.md#type-sink">logi_sink:sink()</a></code></li><li><code>Reason = {already_installed, <a href="logi_sink.md#type-sink">logi_sink:sink()</a>}</code></li></ul>
+<br />
 
 Installs a sink
 
@@ -148,7 +166,7 @@ TODO
 ### uninstall_sink/2 ###
 
 <pre><code>
-uninstall_sink(ChannelId::<a href="#type-id">id()</a>, SinkId::<a href="logi_sink.md#type-id">logi_sink:id()</a>) -&gt; {ok, <a href="logi_sink.md#type-sink">logi_sink:sink()</a>} | error
+uninstall_sink(ChannelId::<a href="#type-id">id()</a>, SinkId::<a href="logi_sink.md#type-id">logi_sink:id()</a>) -&gt; <a href="#type-uninstall_sink_result">uninstall_sink_result()</a>
 </code></pre>
 <br />
 

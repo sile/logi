@@ -15,7 +15,7 @@
 %% %%
 %% > logi_builtin_sink_io_device:install(info).
 %% > logi:info("Hello World").
-%% TODO: show output
+%% # TODO: show output
 %% > logi_builtin_sink_io_device:uninstall().
 %%
 %% %%
@@ -26,7 +26,7 @@
 %% > logi:info("Hello World").
 %% > logi_builtin_sink_io_device:uninstall().
 %% > file:read_file("/tmp/hoge").
-%% TODO: show result
+%% # TODO: show result
 %% '''
 -module(logi_builtin_sink_io_device).
 

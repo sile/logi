@@ -12,7 +12,7 @@
 %% > logi_builtin_sink_process:install(info, self(), [{extra, hoge}]).
 %% > logi:info("Hello World").
 %% > flush().
-%% TODO: show output
+%% # TODO: show output
 %% > logi_builtin_sink_process:uninstall().
 %% '''
 -module(logi_builtin_sink_process).

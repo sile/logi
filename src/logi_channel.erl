@@ -21,6 +21,8 @@
 
 -export_type([id/0]).
 -export_type([install_sink_option/0,  install_sink_options/0]).
+-export_type([install_sink_result/0]).
+-export_type([uninstall_sink_result/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Application Internal API
@@ -65,6 +67,11 @@
 -type install_sink_option() :: {lifetime, timeout() | pid()}
                              | {if_exists, error | ignored | supersede}.
 
+-type install_sink_result() :: {ok, OldSink :: undefined | logi_sink:sink()}
+                             | {error, {already_installed, logi_sink:sink()}}.
+
+-type uninstall_sink_result() :: {ok, logi_sink:sink()} | error.
+
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
@@ -103,16 +110,13 @@ delete(ChannelId)                         -> error(badarg, [ChannelId]).
 which_channels() -> logi_channel_sup:which_children().
 
 %% @equiv install_sink(ChannelId, Sink, [])
--spec install_sink(id(), logi_sink:sink()) -> {ok, undefined} | {error, Reason} when
-      Reason :: {already_installed, logi_sink:sink()}.
+-spec install_sink(id(), logi_sink:sink()) -> install_sink_result().
 install_sink(ChannelId, Sink) -> install_sink(ChannelId, Sink, []).
 
 %% @doc Installs a sink
 %%
 %% TODO: more doc
--spec install_sink(id(), logi_sink:sink(), install_sink_options()) -> {ok, OldSink} | {error, Reason} when
-      OldSink :: undefined | logi_sink:sink(),
-      Reason  :: {already_installed, logi_sink:sink()}.
+-spec install_sink(id(), logi_sink:sink(), install_sink_options()) -> install_sink_result().
 install_sink(ChannelId, Sink, Options) ->
     Args = [ChannelId, Sink, Options],
     _ = logi_sink:is_sink(Sink) orelse error(badarg, Args),
@@ -127,14 +131,14 @@ install_sink(ChannelId, Sink, Options) ->
     gen_server:call(Pid, {install_sink, {Sink, Lifetime, IfExists}}).
 
 %% @doc Uninstalls a sink
--spec uninstall_sink(id(), logi_sink:id()) -> {ok, logi_sink:sink()} | error.
+-spec uninstall_sink(id(), logi_sink:id()) -> uninstall_sink_result().
 uninstall_sink(ChannelId, SinkId) ->
     _ = is_atom(SinkId) orelse error(badarg, [ChannelId, SinkId]),
     Pid = ?VALIDATE_AND_GET_CHANNEL_PID(ChannelId, [ChannelId, SinkId]),
     gen_server:call(Pid, {uninstall_sink, SinkId}).
 
 %% @doc TODO
--spec find_sink(id(), logi_sink:id()) -> {ok, logi_sink:sink()} | error.
+-spec find_sink(id(), logi_sink:id()) -> uninstall_sink_result().
 find_sink(ChannelId, SinkId) ->
     _ = is_atom(SinkId) orelse error(badarg, [ChannelId, SinkId]),
     Pid = ?VALIDATE_AND_GET_CHANNEL_PID(ChannelId, [ChannelId, SinkId]),
