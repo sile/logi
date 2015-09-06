@@ -61,7 +61,7 @@ log_options() = [<a href="#type-log_option">log_option()</a>]
 
 
 <pre><code>
-logger() = <a href="#type-logger_id">logger_id()</a> | <a href="#type-logger_instance">logger_instance()</a>
+logger() = <a href="#type-logger_id">logger_id()</a> | [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 
 
@@ -149,7 +149,7 @@ severity() = <a href="#type-log_level">log_level()</a>
 ### alert/1 ###
 
 <pre><code>
-alert(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+alert(Format::<a href="io.md#type-format">io:format()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -158,7 +158,7 @@ alert(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#type-
 ### alert/2 ###
 
 <pre><code>
-alert(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+alert(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -167,7 +167,7 @@ alert(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt;
 ### alert/3 ###
 
 <pre><code>
-alert(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+alert(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -176,7 +176,7 @@ alert(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Optio
 ### critical/1 ###
 
 <pre><code>
-critical(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+critical(Format::<a href="io.md#type-format">io:format()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -185,7 +185,7 @@ critical(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#ty
 ### critical/2 ###
 
 <pre><code>
-critical(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+critical(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -194,7 +194,7 @@ critical(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&
 ### critical/3 ###
 
 <pre><code>
-critical(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+critical(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -203,7 +203,7 @@ critical(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Op
 ### debug/1 ###
 
 <pre><code>
-debug(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+debug(Format::<a href="io.md#type-format">io:format()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -212,7 +212,7 @@ debug(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#type-
 ### debug/2 ###
 
 <pre><code>
-debug(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+debug(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -221,7 +221,7 @@ debug(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt;
 ### debug/3 ###
 
 <pre><code>
-debug(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+debug(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -243,7 +243,7 @@ The default logger is started automatically when `logi` application was started.
 ### delete_headers/1 ###
 
 <pre><code>
-delete_headers(Keys::[term()]) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+delete_headers(Keys::[term()]) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -252,7 +252,7 @@ delete_headers(Keys::[term()]) -&gt; <a href="#type-logger_instance">logger_inst
 ### delete_headers/2 ###
 
 <pre><code>
-delete_headers(Keys::[term()], Options) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+delete_headers(Keys::[term()], Options) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 
 <ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {logger, <a href="#type-logger">logger()</a>}</code></li></ul>
@@ -262,7 +262,7 @@ delete_headers(Keys::[term()], Options) -&gt; <a href="#type-logger_instance">lo
 ### delete_metadata/1 ###
 
 <pre><code>
-delete_metadata(Keys::[term()]) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+delete_metadata(Keys::[term()]) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -271,7 +271,7 @@ delete_metadata(Keys::[term()]) -&gt; <a href="#type-logger_instance">logger_ins
 ### delete_metadata/2 ###
 
 <pre><code>
-delete_metadata(Keys::[term()], Options) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+delete_metadata(Keys::[term()], Options) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 
 <ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {logger, <a href="#type-logger">logger()</a>}</code></li></ul>
@@ -281,7 +281,7 @@ delete_metadata(Keys::[term()], Options) -&gt; <a href="#type-logger_instance">l
 ### emergency/1 ###
 
 <pre><code>
-emergency(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+emergency(Format::<a href="io.md#type-format">io:format()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -290,7 +290,7 @@ emergency(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#t
 ### emergency/2 ###
 
 <pre><code>
-emergency(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+emergency(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -299,7 +299,7 @@ emergency(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -
 ### emergency/3 ###
 
 <pre><code>
-emergency(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+emergency(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -308,7 +308,7 @@ emergency(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], O
 ### erase/1 ###
 
 <pre><code>
-erase(LoggerId::<a href="#type-logger_id">logger_id()</a>) -&gt; undefined | <a href="#type-logger_instance">logger_instance()</a>
+erase(LoggerId::<a href="#type-logger_id">logger_id()</a>) -&gt; Old::[<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -317,7 +317,7 @@ erase(LoggerId::<a href="#type-logger_id">logger_id()</a>) -&gt; undefined | <a 
 ### error/1 ###
 
 <pre><code>
-error(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+error(Format::<a href="io.md#type-format">io:format()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -326,7 +326,7 @@ error(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#type-
 ### error/2 ###
 
 <pre><code>
-error(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+error(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -335,7 +335,7 @@ error(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt;
 ### error/3 ###
 
 <pre><code>
-error(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+error(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -353,7 +353,7 @@ from_map(Map::<a href="#type-logger_map">logger_map()</a>) -&gt; <a href="#type-
 ### info/1 ###
 
 <pre><code>
-info(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+info(Format::<a href="io.md#type-format">io:format()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -362,7 +362,7 @@ info(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#type-l
 ### info/2 ###
 
 <pre><code>
-info(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+info(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -371,7 +371,7 @@ info(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; 
 ### info/3 ###
 
 <pre><code>
-info(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+info(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -389,7 +389,7 @@ is_logger(X::<a href="#type-logger">logger()</a> | term()) -&gt; boolean()
 ### load/1 ###
 
 <pre><code>
-load(LoggerId::<a href="#type-logger_id">logger_id()</a>) -&gt; {ok, <a href="#type-logger_instance">logger_instance()</a>} | error
+load(LoggerId::<a href="#type-logger_id">logger_id()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -398,7 +398,7 @@ load(LoggerId::<a href="#type-logger_id">logger_id()</a>) -&gt; {ok, <a href="#t
 ### load_or_new/1 ###
 
 <pre><code>
-load_or_new(LoggerId::<a href="#type-logger_id">logger_id()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+load_or_new(LoggerId::<a href="#type-logger_id">logger_id()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -407,7 +407,7 @@ load_or_new(LoggerId::<a href="#type-logger_id">logger_id()</a>) -&gt; <a href="
 ### load_or_new/2 ###
 
 <pre><code>
-load_or_new(LoggerId::<a href="#type-logger_id">logger_id()</a>, ChannelId::<a href="logi_channel.md#type-id">logi_channel:id()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+load_or_new(LoggerId::<a href="#type-logger_id">logger_id()</a>, ChannelId::<a href="logi_channel.md#type-id">logi_channel:id()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -416,7 +416,7 @@ load_or_new(LoggerId::<a href="#type-logger_id">logger_id()</a>, ChannelId::<a h
 ### load_or_new/3 ###
 
 <pre><code>
-load_or_new(LoggerId::<a href="#type-logger_id">logger_id()</a>, ChannelId::<a href="logi_channel.md#type-id">logi_channel:id()</a>, Options::<a href="#type-new_options">new_options()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+load_or_new(LoggerId::<a href="#type-logger_id">logger_id()</a>, ChannelId::<a href="logi_channel.md#type-id">logi_channel:id()</a>, Options::<a href="#type-new_options">new_options()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -425,7 +425,7 @@ load_or_new(LoggerId::<a href="#type-logger_id">logger_id()</a>, ChannelId::<a h
 ### log/4 ###
 
 <pre><code>
-log(Severity::<a href="#type-severity">severity()</a>, Format::<a href="io.md#type-format">io:format()</a>, FormatArgs::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+log(Severity::<a href="#type-severity">severity()</a>, Format::<a href="io.md#type-format">io:format()</a>, FormatArgs::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -467,7 +467,7 @@ new(ChannelId::<a href="logi_channel.md#type-id">logi_channel:id()</a>, Options:
 ### notice/1 ###
 
 <pre><code>
-notice(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+notice(Format::<a href="io.md#type-format">io:format()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -476,7 +476,7 @@ notice(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#type
 ### notice/2 ###
 
 <pre><code>
-notice(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+notice(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -485,7 +485,7 @@ notice(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt
 ### notice/3 ###
 
 <pre><code>
-notice(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+notice(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -494,7 +494,7 @@ notice(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Opti
 ### save/2 ###
 
 <pre><code>
-save(LoggerId::<a href="#type-logger_id">logger_id()</a>, Logger::<a href="#type-logger">logger()</a>) -&gt; undefined | <a href="#type-logger_instance">logger_instance()</a>
+save(LoggerId::<a href="#type-logger_id">logger_id()</a>, Logger::<a href="#type-logger">logger()</a>) -&gt; Old::[<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -503,7 +503,7 @@ save(LoggerId::<a href="#type-logger_id">logger_id()</a>, Logger::<a href="#type
 ### save_as_default/1 ###
 
 <pre><code>
-save_as_default(Logger::<a href="#type-logger">logger()</a>) -&gt; undefined | <a href="#type-logger_instance">logger_instance()</a>
+save_as_default(Logger::<a href="#type-logger">logger()</a>) -&gt; Old::[<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -512,7 +512,7 @@ save_as_default(Logger::<a href="#type-logger">logger()</a>) -&gt; undefined | <
 ### set_headers/1 ###
 
 <pre><code>
-set_headers(Headers::<a href="#type-headers">headers()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+set_headers(Headers::<a href="#type-headers">headers()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -521,7 +521,7 @@ set_headers(Headers::<a href="#type-headers">headers()</a>) -&gt; <a href="#type
 ### set_headers/2 ###
 
 <pre><code>
-set_headers(Headers::<a href="#type-headers">headers()</a>, Options) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+set_headers(Headers::<a href="#type-headers">headers()</a>, Options) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 
 <ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {logger, <a href="#type-logger">logger()</a>} | {if_exists, ignore | overwrite | supersede}</code></li></ul>
@@ -531,7 +531,7 @@ set_headers(Headers::<a href="#type-headers">headers()</a>, Options) -&gt; <a hr
 ### set_metadata/1 ###
 
 <pre><code>
-set_metadata(Metadata::<a href="#type-metadata">metadata()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+set_metadata(Metadata::<a href="#type-metadata">metadata()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -540,7 +540,7 @@ set_metadata(Metadata::<a href="#type-metadata">metadata()</a>) -&gt; <a href="#
 ### set_metadata/2 ###
 
 <pre><code>
-set_metadata(Metadata::<a href="#type-metadata">metadata()</a>, Options) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+set_metadata(Metadata::<a href="#type-metadata">metadata()</a>, Options) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 
 <ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {logger, <a href="#type-logger">logger()</a>} | {if_exists, ignore | overwrite | supersede}</code></li></ul>
@@ -550,7 +550,7 @@ set_metadata(Metadata::<a href="#type-metadata">metadata()</a>, Options) -&gt; <
 ### to_map/1 ###
 
 <pre><code>
-to_map(Logger::<a href="#type-logger">logger()</a>) -&gt; <a href="#type-logger_map">logger_map()</a>
+to_map(Logger::<a href="#type-logger_instance">logger_instance()</a>) -&gt; <a href="#type-logger_map">logger_map()</a>
 </code></pre>
 <br />
 
@@ -559,7 +559,7 @@ to_map(Logger::<a href="#type-logger">logger()</a>) -&gt; <a href="#type-logger_
 ### verbose/1 ###
 
 <pre><code>
-verbose(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+verbose(Format::<a href="io.md#type-format">io:format()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -568,7 +568,7 @@ verbose(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#typ
 ### verbose/2 ###
 
 <pre><code>
-verbose(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+verbose(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -577,7 +577,7 @@ verbose(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&g
 ### verbose/3 ###
 
 <pre><code>
-verbose(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+verbose(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -586,7 +586,7 @@ verbose(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Opt
 ### warning/1 ###
 
 <pre><code>
-warning(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+warning(Format::<a href="io.md#type-format">io:format()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -595,7 +595,7 @@ warning(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#typ
 ### warning/2 ###
 
 <pre><code>
-warning(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+warning(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 
@@ -604,7 +604,7 @@ warning(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&g
 ### warning/3 ###
 
 <pre><code>
-warning(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+warning(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
 </code></pre>
 <br />
 

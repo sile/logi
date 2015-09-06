@@ -16,7 +16,7 @@
 -export([set_metadata/3]).
 -export([delete_metadata/2]).
 
--export([ready/3]).
+-export([ready/4]).
 -export([write/4]).
 
 -export_type([logger/0]).
@@ -109,11 +109,10 @@ delete_metadata(_Keys, Logger = #?LOGGER{metadata = none}) -> Logger;
 delete_metadata(Keys, Logger) ->
     Logger#?LOGGER{metadata = maps:without(Keys, Logger#?LOGGER.metadata)}.
 
--spec ready(logi:severity(), logi_location:location(), logi:log_options()) -> Result when
+-spec ready(logger(), logi:severity(), logi_location:location(), logi:log_options()) -> Result when
       Result :: {[logi_sink:sink()], logi_context:context(), logger()} | logger().
-ready(Severity, DefaultLocation, Options) ->
+ready(Logger0, Severity, DefaultLocation, Options) ->
     _ = is_list(Options) orelse error(badarg, [Severity, Options]),
-    Logger0 = logi:load_or_new(proplists:get_value(logger, Options, logi:default_logger())),
     Location = get_and_validate(location, Options, DefaultLocation, fun logi_location:is_location/1),
     Sinks = logi_channel:select_sink(Logger0#?LOGGER.channel_id, Severity,
                                      logi_location:get_application(Location), logi_location:get_module(Location)),

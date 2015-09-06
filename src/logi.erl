@@ -30,6 +30,8 @@
 -export([set_metadata/1, set_metadata/2]).
 -export([delete_headers/1, delete_headers/2]).
 -export([delete_metadata/1, delete_metadata/2]).
+%% TODO: reset
+%% TODO: set_filter
 
 %%----------------------------------------------------------
 %% Logging
@@ -62,8 +64,10 @@
 -type log_level() :: debug | verbose | info | notice | warning | error | critical | alert | emergency. % TODO: => severity_level/0 (?)
 -type severity()  :: log_level().
 
--type logger()            :: logger_id() | logger_instance().
--type logger_id()         :: atom().
+-type logger() :: logger_id()
+                | [logger_instance()].
+
+-type logger_id() :: atom().
 -opaque logger_instance() :: logi_logger:logger().
 
 -type logger_map() ::
@@ -94,18 +98,6 @@
 %%----------------------------------------------------------------------------------------------------------------------
 -define(PD_LOGGER_KEY(LoggerId), {'_LOGI_', LoggerId}).
 
-%% -define(WITH_CONTEXT(ContextRef, Fun),
-%%         case is_atom(ContextRef) of
-%%             false -> (Fun)(ContextRef);
-%%             true  -> ok = save_context(ContextRef, (Fun)(load_context(ContextRef))), ContextRef
-%%         end).
-
-%% -define(WITH_READ_CONTEXT(ContextRef, Fun),
-%%         case logi_context:is_context(ContextRef) of
-%%             true  -> (Fun)(ContextRef);
-%%             false -> (Fun)(load_context(ContextRef))
-%%         end).
-
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
@@ -124,17 +116,6 @@ default_logger() -> logi_default_log.
 -spec log_levels() -> [log_level()].
 log_levels() -> [debug, verbose, info, notice, warning, error, critical, alert, emergency].
 
-%% %% TODO
-%% default_on_expire(Context, Id, Count, Info) ->
-%%     %% TODO: max_flush_count=0
-%%     Duration = timer:now_diff(os:timestamp(), logi_msg_info:get_timestamp(Info)) / 1000 / 1000,
-%%     log(logi_msg_info:get_severity(Info),
-%%         "Over ~p seconds, ~p messages were dropped (id: ~p)", [Duration, Count, Id],
-%%         #{logger => Context,
-%%           location => logi_msg_info:get_location(Info),
-%%           headers => logi_msg_info:get_headers(Info),
-%%           metadata => logi_msg_info:get_metadata(Info)}).
-
 %%----------------------------------------------------------
 %% Logger
 %%----------------------------------------------------------
@@ -144,103 +125,117 @@ new(ChannelId) -> new(ChannelId, []).
 -spec new(logi_channel:id(), new_options()) -> logger_instance().
 new(ChannelId, Options) -> logi_logger:new(ChannelId, Options).
 
--spec is_logger(logger() | term()) -> boolean().
-is_logger(X) -> is_atom(X) orelse logi_logger:is_logger(X).
-
--spec to_map(logger()) -> logger_map().
-to_map(Logger) when is_atom(Logger) -> to_map(load_or_new(Logger));
-to_map(Logger)                      -> logi_logger:to_map(Logger).
+-spec to_map(logger_instance()) -> logger_map().
+to_map(Logger) -> logi_logger:to_map(Logger).
 
 -spec from_map(logger_map()) -> logger_instance().
 from_map(Map) -> logi_logger:from_map(Map).
 
--spec save_as_default(logger()) -> undefined | logger_instance().
+-spec is_logger(logger() | term()) -> boolean().
+is_logger(X) when is_atom(X) -> true;
+is_logger(X) when is_list(X) -> lists:all(fun logi_logger:is_logger/1, X);
+is_logger(_)                 -> false.
+
+-spec save_as_default(logger()) -> Old::[logger_instance()].
 save_as_default(Logger) -> save(default_logger(), Logger).
 
--spec save(logger_id(), logger()) -> undefined | logger_instance(). % TODO: ok | error (?)
+-spec save(logger_id(), logger()) -> Old::[logger_instance()].
 save(LoggerId, Logger) when is_atom(Logger) ->
     save(LoggerId, load_or_new(Logger));
+save(LoggerId, []) ->
+    logi:erase(LoggerId);
 save(LoggerId, Logger) ->
-    _ = logi_logger:is_logger(Logger) orelse erlang:error(badarg, [LoggerId, Logger]),
-    put(?PD_LOGGER_KEY(LoggerId), Logger).
+    _ = is_atom(LoggerId) orelse erlang:error(badarg, [LoggerId, Logger]),
+    _ = is_list(Logger) andalso lists:all(fun logi_logger:is_logger/1, Logger) orelse erlang:error(badarg, [LoggerId, Logger]),
+    case put(?PD_LOGGER_KEY(LoggerId), Logger) of
+        undefined -> [];
+        Old       -> Old
+    end.
 
--spec load(logger_id()) -> {ok, logger_instance()} | error.
+-spec load(logger_id()) -> [logger_instance()].
 load(LoggerId) ->
     _ = is_atom(LoggerId) orelse erlang:error(badarg, [LoggerId]),
     case get(?PD_LOGGER_KEY(LoggerId)) of
-        undefined -> error;
-        Logger    -> {ok, Logger}
+        undefined -> [];
+        Logger    -> Logger
     end.
 
--spec load_or_new(logger_id()) -> logger_instance().
+-spec load_or_new(logger_id()) -> [logger_instance()].
 load_or_new(LoggerId) -> load_or_new(LoggerId, LoggerId).
 
--spec load_or_new(logger_id(), logi_channel:id()) -> logger_instance().
+-spec load_or_new(logger_id(), logi_channel:id()) -> [logger_instance()].
 load_or_new(LoggerId, ChannelId) -> load_or_new(LoggerId, ChannelId, []).
 
--spec load_or_new(logger_id(), logi_channel:id(), new_options()) -> logger_instance().
+-spec load_or_new(logger_id(), logi_channel:id(), new_options()) -> [logger_instance()].
 load_or_new(LoggerId, ChannelId, Options) ->
     case load(LoggerId) of
-        {ok, Logger} -> Logger;
-        error        -> new(ChannelId, Options)
+        []     -> [new(ChannelId, Options)];
+        Logger -> Logger
     end.
 
--spec erase(logger_id()) -> undefined | logger_instance(). % TODO: ok | error (?)
+-spec erase(logger_id()) -> Old :: [logger_instance()].
 erase(LoggerId) ->
     _ = is_atom(LoggerId) orelse erlang:error(badarg, [LoggerId]),
-    erlang:erase(?PD_LOGGER_KEY(LoggerId)).
+    case erlang:erase(?PD_LOGGER_KEY(LoggerId)) of
+        undefined -> [];
+        Logger    -> Logger
+    end.
 
 -spec which_loggers() -> [logger_id()].
 which_loggers() ->
-    [LoggerId || ?PD_LOGGER_KEY(LoggerId) <- get()].
+    [LoggerId || {?PD_LOGGER_KEY(LoggerId), _} <- get()].
 
--spec set_headers(headers()) -> logger_instance().
+-spec set_headers(headers()) -> [logger_instance()].
 set_headers(Headers) -> set_headers(Headers, []).
 
--spec set_headers(headers(), Options) -> logger_instance() when
+-spec set_headers(headers(), Options) -> [logger_instance()] when
       Options :: [Option],
       Option  :: {logger, logger()}
                | {if_exists, ignore | overwrite | supersede}.
 set_headers(Headers, Options) ->
-    _ = is_list(Options) orelse erlang:error(badarg, [Headers, Options]),
-    Logger = load_or_new(proplists:get_value(logger, Options, default_logger())),
+    _ = is_list(Options) orelse erlang:error(badarg, [Headers, Options]), % TODO: redundant error handling
     IfExists = proplists:get_value(if_exists, Options, overwrite),
-    save_if_need(Logger, logi_logger:set_headers(Headers, IfExists, Logger)).
+    {Need, Logger0} = load_if_need(proplists:get_value(logger, Options, default_logger())),
+    Logger1 = [logi_logger:set_headers(Headers, IfExists, Instance) || Instance <- Logger0],
+    save_if_need(Need, Logger1).
 
--spec set_metadata(metadata()) -> logger_instance().
+-spec set_metadata(metadata()) -> [logger_instance()].
 set_metadata(Metadata) -> set_metadata(Metadata, []).
 
--spec set_metadata(metadata(), Options) -> logger_instance() when
+-spec set_metadata(metadata(), Options) -> [logger_instance()] when
       Options :: [Option],
       Option  :: {logger, logger()}
                | {if_exists, ignore | overwrite | supersede}.
 set_metadata(Metadata, Options) ->
-    _ = is_list(Options) orelse erlang:error(badarg, [Metadata, Options]),
-    Logger = load_or_new(proplists:get_value(logger, Options, default_logger())),
+    _ = is_list(Options) orelse erlang:error(badarg, [Metadata, Options]), % TODO: redundant error handling
     IfExists = proplists:get_value(if_exists, Options, overwrite),
-    save_if_need(Logger, logi_logger:set_metadata(Metadata, IfExists, Logger)).
+    {Need, Logger0} = load_if_need(proplists:get_value(logger, Options, default_logger())),
+    Logger1 = [logi_logger:set_metadata(Metadata, IfExists, Instance) || Instance <- Logger0],
+    save_if_need(Need, Logger1).
 
--spec delete_headers([term()]) -> logger_instance().
+-spec delete_headers([term()]) -> [logger_instance()].
 delete_headers(Keys) -> delete_headers(Keys, []).
 
--spec delete_headers([term()], Options) -> logger_instance() when
+-spec delete_headers([term()], Options) -> [logger_instance()] when
       Options :: [Option],
       Option  :: {logger, logger()}.
 delete_headers(Keys, Options) ->
     _ = is_list(Options) orelse erlang:error(badarg, [Keys, Options]),
-    Logger = load_or_new(proplists:get_value(logger, Options, default_logger())),
-    save_if_need(Logger, logi_logger:delete_headers(Keys, Logger)).
+    {Need, Logger0} = load_if_need(proplists:get_value(logger, Options, default_logger())),
+    Logger1 = [logi_logger:delete_headers(Keys, Instance) || Instance <- Logger0],
+    save_if_need(Need, Logger1).
 
--spec delete_metadata([term()]) -> logger_instance().
+-spec delete_metadata([term()]) -> [logger_instance()].
 delete_metadata(Keys) -> delete_metadata(Keys, []).
 
--spec delete_metadata([term()], Options) -> logger_instance() when
+-spec delete_metadata([term()], Options) -> [logger_instance()] when
       Options :: [Option],
       Option  :: {logger, logger()}.
 delete_metadata(Keys, Options) ->
     _ = is_list(Options) orelse erlang:error(badarg, [Keys, Options]),
-    Logger = load_or_new(proplists:get_value(logger, Options, default_logger())),
-    save_if_need(Logger, logi_logger:delete_metadata(Keys, Logger)).
+    {Need, Logger0} = load_if_need(proplists:get_value(logger, Options, default_logger())),
+    Logger1 = [logi_logger:delete_metadata(Keys, Instance) || Instance <- Logger0],
+    save_if_need(Need, Logger1).
 
 %%----------------------------------------------------------
 %% Logging
@@ -248,110 +243,113 @@ delete_metadata(Keys, Options) ->
 %% @deprecated TODO
 %%
 %% TODO: private(?)
--spec log(severity(), io:format(), [term()], log_options()) -> logger_instance().
+-spec log(severity(), io:format(), [term()], log_options()) -> [logger_instance()].
 log(Severity, Format, FormatArgs, Options) ->
     _ = is_list(Options) orelse erlang:error(badarg, [Severity, Format, FormatArgs, Options]),
     DefaultLocation =
         case lists:keyfind(location, 1, Options) of
-            false         -> todo;
+            false         -> logi_location:guess();
             {_, Location} -> Location
         end,
-    case logi_logger:ready(Severity, DefaultLocation, Options) of
-        {Sinks, Context, Logger} ->
-            MaybeLoggerId = proplists:get_value(logger, Options, default_logger()),
-            ok = logi_logger:write(Sinks, Context, Format, FormatArgs),
-            save_if_need(MaybeLoggerId, Logger);
-        Logger ->
-            Logger
-    end.
+    {Need, Logger0} = load_if_need(proplists:get_value(logger, Options, default_logger())),
+    Logger1 =
+        [case logi_logger:ready(Instance0, Severity, DefaultLocation, Options) of
+             {Sinks, Context, Instance1} ->
+                 ok = logi_logger:write(Sinks, Context, Format, FormatArgs),
+                 Instance1;
+             Instance1 ->
+                 Instance1
+         end || Instance0 <- Logger0],
+    save_if_need(Need, Logger1).
 
--spec debug(io:format()) -> logger_instance().
+-spec debug(io:format()) -> [logger_instance()].
 debug(Format) -> debug(Format, []).
 
--spec debug(io:format(), [term()]) -> logger_instance().
+-spec debug(io:format(), [term()]) -> [logger_instance()].
 debug(Format, Args) -> debug(Format, Args, []).
 
--spec debug(io:format(), [term()], log_options()) -> logger_instance().
+-spec debug(io:format(), [term()], log_options()) -> [logger_instance()].
 debug(Format, Args, Options) -> log(debug, Format, Args, Options).
 
--spec verbose(io:format()) -> logger_instance().
+-spec verbose(io:format()) -> [logger_instance()].
 verbose(Format) -> verbose(Format, []).
 
--spec verbose(io:format(), [term()]) -> logger_instance().
+-spec verbose(io:format(), [term()]) -> [logger_instance()].
 verbose(Format, Args) -> verbose(Format, Args, []).
 
--spec verbose(io:format(), [term()], log_options()) -> logger_instance().
+-spec verbose(io:format(), [term()], log_options()) -> [logger_instance()].
 verbose(Format, Args, Options) -> log(verbose, Format, Args, Options).
 
--spec info(io:format()) -> logger_instance().
+-spec info(io:format()) -> [logger_instance()].
 info(Format) -> info(Format, []).
 
--spec info(io:format(), [term()]) -> logger_instance().
+-spec info(io:format(), [term()]) -> [logger_instance()].
 info(Format, Args) -> info(Format, Args, []).
 
--spec info(io:format(), [term()], log_options()) -> logger_instance().
+-spec info(io:format(), [term()], log_options()) -> [logger_instance()].
 info(Format, Args, Options) -> log(info, Format, Args, Options).
 
--spec notice(io:format()) -> logger_instance().
+-spec notice(io:format()) -> [logger_instance()].
 notice(Format) -> notice(Format, []).
 
--spec notice(io:format(), [term()]) -> logger_instance().
+-spec notice(io:format(), [term()]) -> [logger_instance()].
 notice(Format, Args) -> notice(Format, Args, []).
 
--spec notice(io:format(), [term()], log_options()) -> logger_instance().
+-spec notice(io:format(), [term()], log_options()) -> [logger_instance()].
 notice(Format, Args, Options) -> log(notice, Format, Args, Options).
 
--spec warning(io:format()) -> logger_instance().
+-spec warning(io:format()) -> [logger_instance()].
 warning(Format) -> warning(Format, []).
 
--spec warning(io:format(), [term()]) -> logger_instance().
+-spec warning(io:format(), [term()]) -> [logger_instance()].
 warning(Format, Args) -> warning(Format, Args, []).
 
--spec warning(io:format(), [term()], log_options()) -> logger_instance().
+-spec warning(io:format(), [term()], log_options()) -> [logger_instance()].
 warning(Format, Args, Options) -> log(warning, Format, Args, Options).
 
--spec error(io:format()) -> logger_instance().
+-spec error(io:format()) -> [logger_instance()].
 error(Format) -> error(Format, []).
 
--spec error(io:format(), [term()]) -> logger_instance().
+-spec error(io:format(), [term()]) -> [logger_instance()].
 error(Format, Args) -> error(Format, Args, []).
 
--spec error(io:format(), [term()], log_options()) -> logger_instance().
+-spec error(io:format(), [term()], log_options()) -> [logger_instance()].
 error(Format, Args, Options) -> log(error, Format, Args, Options).
 
--spec critical(io:format()) -> logger_instance().
+-spec critical(io:format()) -> [logger_instance()].
 critical(Format) -> critical(Format, []).
 
--spec critical(io:format(), [term()]) -> logger_instance().
+-spec critical(io:format(), [term()]) -> [logger_instance()].
 critical(Format, Args) -> critical(Format, Args, []).
 
--spec critical(io:format(), [term()], log_options()) -> logger_instance().
+-spec critical(io:format(), [term()], log_options()) -> [logger_instance()].
 critical(Format, Args, Options) -> log(critical, Format, Args, Options).
 
--spec alert(io:format()) -> logger_instance().
+-spec alert(io:format()) -> [logger_instance()].
 alert(Format) -> alert(Format, []).
 
--spec alert(io:format(), [term()]) -> logger_instance().
+-spec alert(io:format(), [term()]) -> [logger_instance()].
 alert(Format, Args) -> alert(Format, Args, []).
 
--spec alert(io:format(), [term()], log_options()) -> logger_instance().
+-spec alert(io:format(), [term()], log_options()) -> [logger_instance()].
 alert(Format, Args, Options) -> log(alert, Format, Args, Options).
 
--spec emergency(io:format()) -> logger_instance().
+-spec emergency(io:format()) -> [logger_instance()].
 emergency(Format) -> emergency(Format, []).
 
--spec emergency(io:format(), [term()]) -> logger_instance().
+-spec emergency(io:format(), [term()]) -> [logger_instance()].
 emergency(Format, Args) -> emergency(Format, Args, []).
 
--spec emergency(io:format(), [term()], log_options()) -> logger_instance().
+-spec emergency(io:format(), [term()], log_options()) -> [logger_instance()].
 emergency(Format, Args, Options) -> log(emergency, Format, Args, Options).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
 %%----------------------------------------------------------------------------------------------------------------------
--spec save_if_need(logger(), logger_instance()) -> logger_instance().
-save_if_need(LoggerId, Logger) when is_atom(LoggerId) ->
-    _ = save(LoggerId, Logger),
-    Logger;
-save_if_need(_, Logger) ->
-    Logger.
+-spec save_if_need({ok, logger_id()} | error, [logger_instance()]) -> [logger_instance()].
+save_if_need(error,    Logger) -> Logger;
+save_if_need({ok, Id}, Logger) -> _ = save(Id, Logger), Logger.
+
+-spec load_if_need(logger()) -> {{ok, logger_id()} | error, [logger_instance()]}.
+load_if_need(Logger) when is_atom(Logger) -> {{ok, Logger}, load_or_new(Logger)};
+load_if_need(Logger)                      -> {error, Logger}.
