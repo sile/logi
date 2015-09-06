@@ -35,16 +35,15 @@
 %% Logging
 %%----------------------------------------------------------
 -export([log/4]).
-
-%% -export([debug/1, debug/2, debug/3]).
-%% -export([verbose/1, verbose/2, verbose/3]).
-%% -export([info/1, info/2, info/3]).
-%% -export([notice/1, notice/2, notice/3]).
-%% -export([warning/1, warning/2, warning/3]).
-%% -export([error/1, error/2, error/3]).
-%% -export([critical/1, critical/2, critical/3]).
-%% -export([alert/1, alert/2, alert/3]).
-%% -export([emergency/1, emergency/2, emergency/3]).
+-export([debug/1, debug/2, debug/3]).
+-export([verbose/1, verbose/2, verbose/3]).
+-export([info/1, info/2, info/3]).
+-export([notice/1, notice/2, notice/3]).
+-export([warning/1, warning/2, warning/3]).
+-export([error/1, error/2, error/3]).
+-export([critical/1, critical/2, critical/3]).
+-export([alert/1, alert/2, alert/3]).
+-export([emergency/1, emergency/2, emergency/3]).
 
 %%----------------------------------------------------------
 %% Types
@@ -266,54 +265,86 @@ log(Severity, Format, FormatArgs, Options) ->
             Logger
     end.
 
-%% -spec notice(io:format(), [term()], log_options()) -> context_ref().
-%% notice(Format, Args, Options) -> log(notice, Format, Args, Options).
+-spec debug(io:format()) -> logger_instance().
+debug(Format) -> debug(Format, []).
 
-%% -spec warning(io:format()) -> context_ref().
-%% warning(Format) -> warning(Format, []).
+-spec debug(io:format(), [term()]) -> logger_instance().
+debug(Format, Args) -> debug(Format, Args, []).
 
-%% -spec warning(io:format(), [term()]) -> context_ref().
-%% warning(Format, Args) -> warning(Format, Args, #{}).
+-spec debug(io:format(), [term()], log_options()) -> logger_instance().
+debug(Format, Args, Options) -> log(debug, Format, Args, Options).
 
-%% -spec warning(io:format(), [term()], log_options()) -> context_ref().
-%% warning(Format, Args, Options) -> log(warning, Format, Args, Options).
+-spec verbose(io:format()) -> logger_instance().
+verbose(Format) -> verbose(Format, []).
 
-%% -spec error(io:format()) -> context_ref().
-%% error(Format) -> error(Format, []).
+-spec verbose(io:format(), [term()]) -> logger_instance().
+verbose(Format, Args) -> verbose(Format, Args, []).
 
-%% -spec error(io:format(), [term()]) -> context_ref().
-%% error(Format, Args) -> error(Format, Args, #{}).
+-spec verbose(io:format(), [term()], log_options()) -> logger_instance().
+verbose(Format, Args, Options) -> log(verbose, Format, Args, Options).
 
-%% -spec error(io:format(), [term()], log_options()) -> context_ref().
-%% error(Format, Args, Options) -> log(error, Format, Args, Options).
+-spec info(io:format()) -> logger_instance().
+info(Format) -> info(Format, []).
 
-%% -spec critical(io:format()) -> context_ref().
-%% critical(Format) -> critical(Format, []).
+-spec info(io:format(), [term()]) -> logger_instance().
+info(Format, Args) -> info(Format, Args, []).
 
-%% -spec critical(io:format(), [term()]) -> context_ref().
-%% critical(Format, Args) -> critical(Format, Args, #{}).
+-spec info(io:format(), [term()], log_options()) -> logger_instance().
+info(Format, Args, Options) -> log(info, Format, Args, Options).
 
-%% -spec critical(io:format(), [term()], log_options()) -> context_ref().
-%% critical(Format, Args, Options) -> log(critical, Format, Args, Options).
+-spec notice(io:format()) -> logger_instance().
+notice(Format) -> notice(Format, []).
 
-%% -spec alert(io:format()) -> context_ref().
-%% alert(Format) -> alert(Format, []).
+-spec notice(io:format(), [term()]) -> logger_instance().
+notice(Format, Args) -> notice(Format, Args, []).
 
-%% -spec alert(io:format(), [term()]) -> context_ref().
-%% alert(Format, Args) -> alert(Format, Args, #{}).
+-spec notice(io:format(), [term()], log_options()) -> logger_instance().
+notice(Format, Args, Options) -> log(notice, Format, Args, Options).
 
-%% -spec alert(io:format(), [term()], log_options()) -> context_ref().
-%% alert(Format, Args, Options) -> log(alert, Format, Args, Options).
+-spec warning(io:format()) -> logger_instance().
+warning(Format) -> warning(Format, []).
 
-%% %% TODO: obsolute annotation (?)
-%% -spec emergency(io:format()) -> context_ref().
-%% emergency(Format) -> emergency(Format, []).
+-spec warning(io:format(), [term()]) -> logger_instance().
+warning(Format, Args) -> warning(Format, Args, []).
 
-%% -spec emergency(io:format(), [term()]) -> context_ref().
-%% emergency(Format, Args) -> emergency(Format, Args, #{}).
+-spec warning(io:format(), [term()], log_options()) -> logger_instance().
+warning(Format, Args, Options) -> log(warning, Format, Args, Options).
 
-%% -spec emergency(io:format(), [term()], log_options()) -> context_ref(). % TODO: -> client() (?)
-%% emergency(Format, Args, Options) -> log(emergency, Format, Args, Options).
+-spec error(io:format()) -> logger_instance().
+error(Format) -> error(Format, []).
+
+-spec error(io:format(), [term()]) -> logger_instance().
+error(Format, Args) -> error(Format, Args, []).
+
+-spec error(io:format(), [term()], log_options()) -> logger_instance().
+error(Format, Args, Options) -> log(error, Format, Args, Options).
+
+-spec critical(io:format()) -> logger_instance().
+critical(Format) -> critical(Format, []).
+
+-spec critical(io:format(), [term()]) -> logger_instance().
+critical(Format, Args) -> critical(Format, Args, []).
+
+-spec critical(io:format(), [term()], log_options()) -> logger_instance().
+critical(Format, Args, Options) -> log(critical, Format, Args, Options).
+
+-spec alert(io:format()) -> logger_instance().
+alert(Format) -> alert(Format, []).
+
+-spec alert(io:format(), [term()]) -> logger_instance().
+alert(Format, Args) -> alert(Format, Args, []).
+
+-spec alert(io:format(), [term()], log_options()) -> logger_instance().
+alert(Format, Args, Options) -> log(alert, Format, Args, Options).
+
+-spec emergency(io:format()) -> logger_instance().
+emergency(Format) -> emergency(Format, []).
+
+-spec emergency(io:format(), [term()]) -> logger_instance().
+emergency(Format, Args) -> emergency(Format, Args, []).
+
+-spec emergency(io:format(), [term()], log_options()) -> logger_instance().
+emergency(Format, Args, Options) -> log(emergency, Format, Args, Options).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions

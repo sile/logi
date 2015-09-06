@@ -137,12 +137,93 @@ severity() = <a href="#type-log_level">log_level()</a>
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#default_logger-0">default_logger/0</a></td><td>Returns the default logger.</td></tr><tr><td valign="top"><a href="#delete_headers-1">delete_headers/1</a></td><td></td></tr><tr><td valign="top"><a href="#delete_headers-2">delete_headers/2</a></td><td></td></tr><tr><td valign="top"><a href="#delete_metadata-1">delete_metadata/1</a></td><td></td></tr><tr><td valign="top"><a href="#delete_metadata-2">delete_metadata/2</a></td><td></td></tr><tr><td valign="top"><a href="#erase-1">erase/1</a></td><td></td></tr><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td></td></tr><tr><td valign="top"><a href="#is_logger-1">is_logger/1</a></td><td></td></tr><tr><td valign="top"><a href="#load-1">load/1</a></td><td></td></tr><tr><td valign="top"><a href="#load_or_new-1">load_or_new/1</a></td><td></td></tr><tr><td valign="top"><a href="#load_or_new-2">load_or_new/2</a></td><td></td></tr><tr><td valign="top"><a href="#load_or_new-3">load_or_new/3</a></td><td></td></tr><tr><td valign="top"><a href="#log-4">log/4</a></td><td>(<em>Deprecated</em>.) </td></tr><tr><td valign="top"><a href="#log_levels-0">log_levels/0</a></td><td>Returns the available log level list.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td></td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td></td></tr><tr><td valign="top"><a href="#save-2">save/2</a></td><td></td></tr><tr><td valign="top"><a href="#save_as_default-1">save_as_default/1</a></td><td></td></tr><tr><td valign="top"><a href="#set_headers-1">set_headers/1</a></td><td></td></tr><tr><td valign="top"><a href="#set_headers-2">set_headers/2</a></td><td></td></tr><tr><td valign="top"><a href="#set_metadata-1">set_metadata/1</a></td><td></td></tr><tr><td valign="top"><a href="#set_metadata-2">set_metadata/2</a></td><td></td></tr><tr><td valign="top"><a href="#to_map-1">to_map/1</a></td><td></td></tr><tr><td valign="top"><a href="#which_loggers-0">which_loggers/0</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#alert-1">alert/1</a></td><td></td></tr><tr><td valign="top"><a href="#alert-2">alert/2</a></td><td></td></tr><tr><td valign="top"><a href="#alert-3">alert/3</a></td><td></td></tr><tr><td valign="top"><a href="#critical-1">critical/1</a></td><td></td></tr><tr><td valign="top"><a href="#critical-2">critical/2</a></td><td></td></tr><tr><td valign="top"><a href="#critical-3">critical/3</a></td><td></td></tr><tr><td valign="top"><a href="#debug-1">debug/1</a></td><td></td></tr><tr><td valign="top"><a href="#debug-2">debug/2</a></td><td></td></tr><tr><td valign="top"><a href="#debug-3">debug/3</a></td><td></td></tr><tr><td valign="top"><a href="#default_logger-0">default_logger/0</a></td><td>Returns the default logger.</td></tr><tr><td valign="top"><a href="#delete_headers-1">delete_headers/1</a></td><td></td></tr><tr><td valign="top"><a href="#delete_headers-2">delete_headers/2</a></td><td></td></tr><tr><td valign="top"><a href="#delete_metadata-1">delete_metadata/1</a></td><td></td></tr><tr><td valign="top"><a href="#delete_metadata-2">delete_metadata/2</a></td><td></td></tr><tr><td valign="top"><a href="#emergency-1">emergency/1</a></td><td></td></tr><tr><td valign="top"><a href="#emergency-2">emergency/2</a></td><td></td></tr><tr><td valign="top"><a href="#emergency-3">emergency/3</a></td><td></td></tr><tr><td valign="top"><a href="#erase-1">erase/1</a></td><td></td></tr><tr><td valign="top"><a href="#error-1">error/1</a></td><td></td></tr><tr><td valign="top"><a href="#error-2">error/2</a></td><td></td></tr><tr><td valign="top"><a href="#error-3">error/3</a></td><td></td></tr><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td></td></tr><tr><td valign="top"><a href="#info-1">info/1</a></td><td></td></tr><tr><td valign="top"><a href="#info-2">info/2</a></td><td></td></tr><tr><td valign="top"><a href="#info-3">info/3</a></td><td></td></tr><tr><td valign="top"><a href="#is_logger-1">is_logger/1</a></td><td></td></tr><tr><td valign="top"><a href="#load-1">load/1</a></td><td></td></tr><tr><td valign="top"><a href="#load_or_new-1">load_or_new/1</a></td><td></td></tr><tr><td valign="top"><a href="#load_or_new-2">load_or_new/2</a></td><td></td></tr><tr><td valign="top"><a href="#load_or_new-3">load_or_new/3</a></td><td></td></tr><tr><td valign="top"><a href="#log-4">log/4</a></td><td>(<em>Deprecated</em>.) </td></tr><tr><td valign="top"><a href="#log_levels-0">log_levels/0</a></td><td>Returns the available log level list.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td></td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td></td></tr><tr><td valign="top"><a href="#notice-1">notice/1</a></td><td></td></tr><tr><td valign="top"><a href="#notice-2">notice/2</a></td><td></td></tr><tr><td valign="top"><a href="#notice-3">notice/3</a></td><td></td></tr><tr><td valign="top"><a href="#save-2">save/2</a></td><td></td></tr><tr><td valign="top"><a href="#save_as_default-1">save_as_default/1</a></td><td></td></tr><tr><td valign="top"><a href="#set_headers-1">set_headers/1</a></td><td></td></tr><tr><td valign="top"><a href="#set_headers-2">set_headers/2</a></td><td></td></tr><tr><td valign="top"><a href="#set_metadata-1">set_metadata/1</a></td><td></td></tr><tr><td valign="top"><a href="#set_metadata-2">set_metadata/2</a></td><td></td></tr><tr><td valign="top"><a href="#to_map-1">to_map/1</a></td><td></td></tr><tr><td valign="top"><a href="#verbose-1">verbose/1</a></td><td></td></tr><tr><td valign="top"><a href="#verbose-2">verbose/2</a></td><td></td></tr><tr><td valign="top"><a href="#verbose-3">verbose/3</a></td><td></td></tr><tr><td valign="top"><a href="#warning-1">warning/1</a></td><td></td></tr><tr><td valign="top"><a href="#warning-2">warning/2</a></td><td></td></tr><tr><td valign="top"><a href="#warning-3">warning/3</a></td><td></td></tr><tr><td valign="top"><a href="#which_loggers-0">which_loggers/0</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
+
+<a name="alert-1"></a>
+
+### alert/1 ###
+
+<pre><code>
+alert(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
+<a name="alert-2"></a>
+
+### alert/2 ###
+
+<pre><code>
+alert(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
+<a name="alert-3"></a>
+
+### alert/3 ###
+
+<pre><code>
+alert(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
+<a name="critical-1"></a>
+
+### critical/1 ###
+
+<pre><code>
+critical(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
+<a name="critical-2"></a>
+
+### critical/2 ###
+
+<pre><code>
+critical(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
+<a name="critical-3"></a>
+
+### critical/3 ###
+
+<pre><code>
+critical(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
+<a name="debug-1"></a>
+
+### debug/1 ###
+
+<pre><code>
+debug(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
+<a name="debug-2"></a>
+
+### debug/2 ###
+
+<pre><code>
+debug(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
+<a name="debug-3"></a>
+
+### debug/3 ###
+
+<pre><code>
+debug(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
 
 <a name="default_logger-0"></a>
 
@@ -195,6 +276,33 @@ delete_metadata(Keys::[term()], Options) -&gt; <a href="#type-logger_instance">l
 
 <ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {logger, <a href="#type-logger">logger()</a>}</code></li></ul>
 
+<a name="emergency-1"></a>
+
+### emergency/1 ###
+
+<pre><code>
+emergency(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
+<a name="emergency-2"></a>
+
+### emergency/2 ###
+
+<pre><code>
+emergency(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
+<a name="emergency-3"></a>
+
+### emergency/3 ###
+
+<pre><code>
+emergency(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
 <a name="erase-1"></a>
 
 ### erase/1 ###
@@ -204,12 +312,66 @@ erase(LoggerId::<a href="#type-logger_id">logger_id()</a>) -&gt; undefined | <a 
 </code></pre>
 <br />
 
+<a name="error-1"></a>
+
+### error/1 ###
+
+<pre><code>
+error(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
+<a name="error-2"></a>
+
+### error/2 ###
+
+<pre><code>
+error(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
+<a name="error-3"></a>
+
+### error/3 ###
+
+<pre><code>
+error(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
 <a name="from_map-1"></a>
 
 ### from_map/1 ###
 
 <pre><code>
 from_map(Map::<a href="#type-logger_map">logger_map()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
+<a name="info-1"></a>
+
+### info/1 ###
+
+<pre><code>
+info(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
+<a name="info-2"></a>
+
+### info/2 ###
+
+<pre><code>
+info(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
+<a name="info-3"></a>
+
+### info/3 ###
+
+<pre><code>
+info(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
 </code></pre>
 <br />
 
@@ -300,6 +462,33 @@ new(ChannelId::<a href="logi_channel.md#type-id">logi_channel:id()</a>, Options:
 </code></pre>
 <br />
 
+<a name="notice-1"></a>
+
+### notice/1 ###
+
+<pre><code>
+notice(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
+<a name="notice-2"></a>
+
+### notice/2 ###
+
+<pre><code>
+notice(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
+<a name="notice-3"></a>
+
+### notice/3 ###
+
+<pre><code>
+notice(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
 <a name="save-2"></a>
 
 ### save/2 ###
@@ -362,6 +551,60 @@ set_metadata(Metadata::<a href="#type-metadata">metadata()</a>, Options) -&gt; <
 
 <pre><code>
 to_map(Logger::<a href="#type-logger">logger()</a>) -&gt; <a href="#type-logger_map">logger_map()</a>
+</code></pre>
+<br />
+
+<a name="verbose-1"></a>
+
+### verbose/1 ###
+
+<pre><code>
+verbose(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
+<a name="verbose-2"></a>
+
+### verbose/2 ###
+
+<pre><code>
+verbose(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
+<a name="verbose-3"></a>
+
+### verbose/3 ###
+
+<pre><code>
+verbose(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
+<a name="warning-1"></a>
+
+### warning/1 ###
+
+<pre><code>
+warning(Format::<a href="io.md#type-format">io:format()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
+<a name="warning-2"></a>
+
+### warning/2 ###
+
+<pre><code>
+warning(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()]) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
+<a name="warning-3"></a>
+
+### warning/3 ###
+
+<pre><code>
+warning(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Options::<a href="#type-log_options">log_options()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
 </code></pre>
 <br />
 
