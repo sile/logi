@@ -6,7 +6,7 @@
 * [Function Index](#index)
 * [Function Details](#functions)
 
-A built-in log message output rate control filter.
+A built-in filter which controls output rate of log messages.
 
 Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 

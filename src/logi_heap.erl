@@ -1,9 +1,6 @@
 %% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc Pairing heaps
-%%
-%% TODO: optimize for logi
-%%
 %% @private
 -module(logi_heap).
 
@@ -12,25 +9,23 @@
 %%----------------------------------------------------------------------------------------------------------------------
 -export([new/0, is_empty/1, in/2, out/1, peek/1, merge/2]).
 
--export_type([heap/0, heap/1, item/0]).
+-export_type([heap/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
--opaque heap(Item) :: empty | {Item, [heap(Item)]}.
--type heap() :: heap(item()).
--type item() :: term().
+-opaque heap(Item) :: empty | {Item::tuple(), [heap(Item)]}.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
 
 %% @doc Returns an empty heap
--spec new() -> heap().
+-spec new() -> heap(_Item).
 new() -> empty.
 
 %% @doc Tests if `Heap' is empty and returns `true' if so and `false' otherwise
--spec is_empty(Heap :: heap()) -> boolean().
+-spec is_empty(Heap :: heap(_Item)) -> boolean().
 is_empty(empty) -> true;
 is_empty(_)     -> false.
 
@@ -42,18 +37,16 @@ in(Item, Heap) -> merge({Item, []}, Heap).
 
 %% @doc Removes the smallest item from the heap `Heap'
 %%
-%% Returns the tuple `{Item, Heap2}', where `Item' is the item removed and `Heap2' is the resulting heap.
-%% If `Heap' is empty, the tuple `empty' is returned.
--spec out(Heap :: heap(Item)) -> {Item, Heap2 :: heap(Item)} | empty.
-out(empty)        -> empty;
-out({Item, Heap}) -> {Item, merge_pairs(Heap)}.
+%% Returns the `Heap2', where `Heap2' is the resulting heap.
+%% If `Heap' is empty, the `empty' is returned.
+-spec out(Heap :: heap(Item)) -> (Heap2 :: heap(Item)) | empty.
+out(empty)     -> empty;
+out({_, Heap}) -> merge_pairs(Heap).
 
-%% @doc Returns the tuple `{Item, Heap2}' where `Item' is the front item of `Heap', or `empty' if `Heap' is empty
-%%
-%% `Heap2' is always equivalent to `Heap'
--spec peek(Heap :: heap(Item)) -> {Item, Heap2 :: heap(Item)} | empty.
-peek(empty)            -> empty;
-peek({Item, _} = Heap) -> {Item, Heap}.
+%% @doc Returns the tuple `Item' where `Item' is the front item of `Heap', or `empty' if `Heap' is empty
+-spec peek(Heap :: heap(Item)) -> Item | empty.
+peek(empty)     -> empty;
+peek({Item, _}) -> Item.
 
 %% @doc Returns the merged heap of `Heap1' and `Heap2'
 -spec merge(Heap1 :: heap(Item1), Heap2 :: heap(Item2)) -> heap(Item1|Item2).

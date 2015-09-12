@@ -1,6 +1,6 @@
 %% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc A built-in log message output rate control filter
+%% @doc A built-in filter which controls output rate of log messages
 -module(logi_builtin_filter_rate_control).
 
 -behaviour(logi_filter).
@@ -147,11 +147,11 @@ flush_expired_entries(Timestamp, State) ->
       Expires :: logi_heap:heap(expire_entry()).
 flush_expired_entries(Now, IdToStatus0, Expires0) ->
     case logi_heap:peek(Expires0) of
-        empty                                      -> {IdToStatus0, Expires0};
-        {{ExpiryTime, _}, _} when ExpiryTime > Now -> {IdToStatus0, Expires0};
-        {{_, LocationId}, _}                       ->
+        empty                                 -> {IdToStatus0, Expires0};
+        {ExpiryTime, _} when ExpiryTime > Now -> {IdToStatus0, Expires0};
+        {_, LocationId}                       ->
             Status0 = maps:get(LocationId, IdToStatus0),
-            {_, Expires1} = logi_heap:out(Expires0),
+            Expires1 = logi_heap:out(Expires0),
             IdToStatus1 =
                 case Status0 of
                     #normal{write_count = 0}   -> maps:remove(LocationId, IdToStatus0);
