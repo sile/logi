@@ -15,6 +15,11 @@
 -export([log_levels/0]).
 -export([default_logger/0]).
 
+%% TODO: refactoring
+-export([severities/0]).
+-export([severity_level/1]).
+-export([is_severity/1]).
+
 %%----------------------------------------------------------
 %% Logger
 %%---------------------------------------------------------
@@ -57,6 +62,7 @@
 
 -export_type([headers/0, metadata/0]).
 -export_type([log_option/0, log_options/0]).
+-export_type([application/0, format_args/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
@@ -93,6 +99,9 @@
                     | {metadata, metadata()}
                     | logi_filter:option().
 
+-type application() :: atom().
+-type format_args() :: [term()].
+
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros
 %%----------------------------------------------------------------------------------------------------------------------
@@ -115,6 +124,26 @@ default_logger() -> logi_default_log.
 %% The log levels are ordered by the severity (The lowest severity level will appear first).
 -spec log_levels() -> [log_level()].
 log_levels() -> [debug, verbose, info, notice, warning, error, critical, alert, emergency].
+
+%% TODO: refactoring
+-spec severities() -> [severity()].
+severities() -> [emergency, alert, critical, error, warning, notice, info, verbose, debug].
+
+-spec severity_level(severity()) -> 1..9. %%severity_level().
+severity_level(emergency) -> 1;
+severity_level(alert)     -> 2;
+severity_level(critical)  -> 3;
+severity_level(error)     -> 4;
+severity_level(warning)   -> 5;
+severity_level(notice)    -> 6;
+severity_level(info)      -> 7;
+severity_level(verbose)   -> 8;
+severity_level(debug)     -> 9;
+severity_level(Severity)  -> error(badarg, [Severity]).
+
+%% @doc Returns `true' if `X' is a severity, otherwise `false'
+-spec is_severity(X :: (severity() | term())) -> boolean().
+is_severity(X) -> lists:member(X, severities()).
 
 %%----------------------------------------------------------
 %% Logger

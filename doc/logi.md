@@ -17,6 +17,26 @@ Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
 
 
+### <a name="type-application">application()</a> ###
+
+
+<pre><code>
+application() = atom()
+</code></pre>
+
+
+
+
+### <a name="type-format_args">format_args()</a> ###
+
+
+<pre><code>
+format_args() = [term()]
+</code></pre>
+
+
+
+
 ### <a name="type-headers">headers()</a> ###
 
 
@@ -137,7 +157,7 @@ severity() = <a href="#type-log_level">log_level()</a>
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#alert-1">alert/1</a></td><td></td></tr><tr><td valign="top"><a href="#alert-2">alert/2</a></td><td></td></tr><tr><td valign="top"><a href="#alert-3">alert/3</a></td><td></td></tr><tr><td valign="top"><a href="#critical-1">critical/1</a></td><td></td></tr><tr><td valign="top"><a href="#critical-2">critical/2</a></td><td></td></tr><tr><td valign="top"><a href="#critical-3">critical/3</a></td><td></td></tr><tr><td valign="top"><a href="#debug-1">debug/1</a></td><td></td></tr><tr><td valign="top"><a href="#debug-2">debug/2</a></td><td></td></tr><tr><td valign="top"><a href="#debug-3">debug/3</a></td><td></td></tr><tr><td valign="top"><a href="#default_logger-0">default_logger/0</a></td><td>Returns the default logger.</td></tr><tr><td valign="top"><a href="#delete_headers-1">delete_headers/1</a></td><td></td></tr><tr><td valign="top"><a href="#delete_headers-2">delete_headers/2</a></td><td></td></tr><tr><td valign="top"><a href="#delete_metadata-1">delete_metadata/1</a></td><td></td></tr><tr><td valign="top"><a href="#delete_metadata-2">delete_metadata/2</a></td><td></td></tr><tr><td valign="top"><a href="#emergency-1">emergency/1</a></td><td></td></tr><tr><td valign="top"><a href="#emergency-2">emergency/2</a></td><td></td></tr><tr><td valign="top"><a href="#emergency-3">emergency/3</a></td><td></td></tr><tr><td valign="top"><a href="#erase-1">erase/1</a></td><td></td></tr><tr><td valign="top"><a href="#error-1">error/1</a></td><td></td></tr><tr><td valign="top"><a href="#error-2">error/2</a></td><td></td></tr><tr><td valign="top"><a href="#error-3">error/3</a></td><td></td></tr><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td></td></tr><tr><td valign="top"><a href="#info-1">info/1</a></td><td></td></tr><tr><td valign="top"><a href="#info-2">info/2</a></td><td></td></tr><tr><td valign="top"><a href="#info-3">info/3</a></td><td></td></tr><tr><td valign="top"><a href="#is_logger-1">is_logger/1</a></td><td></td></tr><tr><td valign="top"><a href="#load-1">load/1</a></td><td></td></tr><tr><td valign="top"><a href="#load_or_new-1">load_or_new/1</a></td><td></td></tr><tr><td valign="top"><a href="#load_or_new-2">load_or_new/2</a></td><td></td></tr><tr><td valign="top"><a href="#load_or_new-3">load_or_new/3</a></td><td></td></tr><tr><td valign="top"><a href="#log-4">log/4</a></td><td>(<em>Deprecated</em>.) </td></tr><tr><td valign="top"><a href="#log_levels-0">log_levels/0</a></td><td>Returns the available log level list.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td></td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td></td></tr><tr><td valign="top"><a href="#notice-1">notice/1</a></td><td></td></tr><tr><td valign="top"><a href="#notice-2">notice/2</a></td><td></td></tr><tr><td valign="top"><a href="#notice-3">notice/3</a></td><td></td></tr><tr><td valign="top"><a href="#save-2">save/2</a></td><td></td></tr><tr><td valign="top"><a href="#save_as_default-1">save_as_default/1</a></td><td></td></tr><tr><td valign="top"><a href="#set_headers-1">set_headers/1</a></td><td></td></tr><tr><td valign="top"><a href="#set_headers-2">set_headers/2</a></td><td></td></tr><tr><td valign="top"><a href="#set_metadata-1">set_metadata/1</a></td><td></td></tr><tr><td valign="top"><a href="#set_metadata-2">set_metadata/2</a></td><td></td></tr><tr><td valign="top"><a href="#to_map-1">to_map/1</a></td><td></td></tr><tr><td valign="top"><a href="#verbose-1">verbose/1</a></td><td></td></tr><tr><td valign="top"><a href="#verbose-2">verbose/2</a></td><td></td></tr><tr><td valign="top"><a href="#verbose-3">verbose/3</a></td><td></td></tr><tr><td valign="top"><a href="#warning-1">warning/1</a></td><td></td></tr><tr><td valign="top"><a href="#warning-2">warning/2</a></td><td></td></tr><tr><td valign="top"><a href="#warning-3">warning/3</a></td><td></td></tr><tr><td valign="top"><a href="#which_loggers-0">which_loggers/0</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#alert-1">alert/1</a></td><td></td></tr><tr><td valign="top"><a href="#alert-2">alert/2</a></td><td></td></tr><tr><td valign="top"><a href="#alert-3">alert/3</a></td><td></td></tr><tr><td valign="top"><a href="#critical-1">critical/1</a></td><td></td></tr><tr><td valign="top"><a href="#critical-2">critical/2</a></td><td></td></tr><tr><td valign="top"><a href="#critical-3">critical/3</a></td><td></td></tr><tr><td valign="top"><a href="#debug-1">debug/1</a></td><td></td></tr><tr><td valign="top"><a href="#debug-2">debug/2</a></td><td></td></tr><tr><td valign="top"><a href="#debug-3">debug/3</a></td><td></td></tr><tr><td valign="top"><a href="#default_logger-0">default_logger/0</a></td><td>Returns the default logger.</td></tr><tr><td valign="top"><a href="#delete_headers-1">delete_headers/1</a></td><td></td></tr><tr><td valign="top"><a href="#delete_headers-2">delete_headers/2</a></td><td></td></tr><tr><td valign="top"><a href="#delete_metadata-1">delete_metadata/1</a></td><td></td></tr><tr><td valign="top"><a href="#delete_metadata-2">delete_metadata/2</a></td><td></td></tr><tr><td valign="top"><a href="#emergency-1">emergency/1</a></td><td></td></tr><tr><td valign="top"><a href="#emergency-2">emergency/2</a></td><td></td></tr><tr><td valign="top"><a href="#emergency-3">emergency/3</a></td><td></td></tr><tr><td valign="top"><a href="#erase-1">erase/1</a></td><td></td></tr><tr><td valign="top"><a href="#error-1">error/1</a></td><td></td></tr><tr><td valign="top"><a href="#error-2">error/2</a></td><td></td></tr><tr><td valign="top"><a href="#error-3">error/3</a></td><td></td></tr><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td></td></tr><tr><td valign="top"><a href="#info-1">info/1</a></td><td></td></tr><tr><td valign="top"><a href="#info-2">info/2</a></td><td></td></tr><tr><td valign="top"><a href="#info-3">info/3</a></td><td></td></tr><tr><td valign="top"><a href="#is_logger-1">is_logger/1</a></td><td></td></tr><tr><td valign="top"><a href="#is_severity-1">is_severity/1</a></td><td>Returns <code>true</code> if <code>X</code> is a severity, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#load-1">load/1</a></td><td></td></tr><tr><td valign="top"><a href="#load_or_new-1">load_or_new/1</a></td><td></td></tr><tr><td valign="top"><a href="#load_or_new-2">load_or_new/2</a></td><td></td></tr><tr><td valign="top"><a href="#load_or_new-3">load_or_new/3</a></td><td></td></tr><tr><td valign="top"><a href="#log-4">log/4</a></td><td>(<em>Deprecated</em>.) </td></tr><tr><td valign="top"><a href="#log_levels-0">log_levels/0</a></td><td>Returns the available log level list.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td></td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td></td></tr><tr><td valign="top"><a href="#notice-1">notice/1</a></td><td></td></tr><tr><td valign="top"><a href="#notice-2">notice/2</a></td><td></td></tr><tr><td valign="top"><a href="#notice-3">notice/3</a></td><td></td></tr><tr><td valign="top"><a href="#save-2">save/2</a></td><td></td></tr><tr><td valign="top"><a href="#save_as_default-1">save_as_default/1</a></td><td></td></tr><tr><td valign="top"><a href="#set_headers-1">set_headers/1</a></td><td></td></tr><tr><td valign="top"><a href="#set_headers-2">set_headers/2</a></td><td></td></tr><tr><td valign="top"><a href="#set_metadata-1">set_metadata/1</a></td><td></td></tr><tr><td valign="top"><a href="#set_metadata-2">set_metadata/2</a></td><td></td></tr><tr><td valign="top"><a href="#severities-0">severities/0</a></td><td></td></tr><tr><td valign="top"><a href="#severity_level-1">severity_level/1</a></td><td></td></tr><tr><td valign="top"><a href="#to_map-1">to_map/1</a></td><td></td></tr><tr><td valign="top"><a href="#verbose-1">verbose/1</a></td><td></td></tr><tr><td valign="top"><a href="#verbose-2">verbose/2</a></td><td></td></tr><tr><td valign="top"><a href="#verbose-3">verbose/3</a></td><td></td></tr><tr><td valign="top"><a href="#warning-1">warning/1</a></td><td></td></tr><tr><td valign="top"><a href="#warning-2">warning/2</a></td><td></td></tr><tr><td valign="top"><a href="#warning-3">warning/3</a></td><td></td></tr><tr><td valign="top"><a href="#which_loggers-0">which_loggers/0</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -384,6 +404,17 @@ is_logger(X::<a href="#type-logger">logger()</a> | term()) -&gt; boolean()
 </code></pre>
 <br />
 
+<a name="is_severity-1"></a>
+
+### is_severity/1 ###
+
+<pre><code>
+is_severity(X::<a href="#type-severity">severity()</a> | term()) -&gt; boolean()
+</code></pre>
+<br />
+
+Returns `true` if `X` is a severity, otherwise `false`
+
 <a name="load-1"></a>
 
 ### load/1 ###
@@ -544,6 +575,24 @@ set_metadata(Metadata::<a href="#type-metadata">metadata()</a>, Options) -&gt; [
 </code></pre>
 
 <ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {logger, <a href="#type-logger">logger()</a>} | {if_exists, ignore | overwrite | supersede}</code></li></ul>
+
+<a name="severities-0"></a>
+
+### severities/0 ###
+
+<pre><code>
+severities() -&gt; [<a href="#type-severity">severity()</a>]
+</code></pre>
+<br />
+
+<a name="severity_level-1"></a>
+
+### severity_level/1 ###
+
+<pre><code>
+severity_level(Severity::<a href="#type-severity">severity()</a>) -&gt; 1..9
+</code></pre>
+<br />
 
 <a name="to_map-1"></a>
 

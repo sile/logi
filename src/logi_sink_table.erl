@@ -31,9 +31,9 @@ new(LoggerId) ->
 %% @doc Registers an sink
 -spec register(table(), logi_sink:sink(), logi_sink:sink() | undefined) -> ok.
 register(Table, New, undefined) ->
-    register(Table, New, logi_sink:new(dummy, dummy, []));
+    register(Table, New, logi_sink:new(dummy, logi_builtin_sink_null, []));
 register(Table, New, Old) ->
-    {Added, _, Deleted} = diff(logi_sink:get_expanded_condition(New), logi_sink:get_expanded_condition(Old)),
+    {Added, _, Deleted} = diff(logi_sink:get_normalized_condition(New), logi_sink:get_normalized_condition(Old)),
     ok = insert_sink(Table, New),
     ok = index_condition(Table, logi_sink:get_id(New), Added),
     ok = deindex_condition(Table, logi_sink:get_id(New), Deleted),
@@ -42,7 +42,7 @@ register(Table, New, Old) ->
 %% @doc Deregisters an sink
 -spec deregister(table(), logi_sink:sink()) -> ok.
 deregister(Table, Sink) ->
-    ok = deindex_condition(Table, logi_sink:get_id(Sink), logi_sink:get_expanded_condition(Sink)),
+    ok = deindex_condition(Table, logi_sink:get_id(Sink), logi_sink:get_normalized_condition(Sink)),
     ok = delete_sink(Table, Sink),
     ok.
 
@@ -92,7 +92,7 @@ delete_sink(Table, Sink) ->
     _ = ets:delete(Table, logi_sink:get_id(Sink)),
     ok.
 
--spec index_condition(table(), logi_sink:id(), logi_sink:expanded_condition()) -> ok.
+-spec index_condition(table(), logi_sink:id(), logi_sink:normalized_condition()) -> ok.
 index_condition(_Table, _SinkId, []) ->
     ok;
 index_condition(Table, SinkId, [S | Condition]) when is_atom(S) ->
@@ -108,7 +108,7 @@ index_condition(Table, SinkId, [{S, A, M} | Condition]) ->
     ok = push_sink_id(Table, {S, A, M}, SinkId),
     index_condition(Table, SinkId, Condition).
 
--spec deindex_condition(table(), logi_sink:id(), logi_sink:expanded_condition()) -> ok.
+-spec deindex_condition(table(), logi_sink:id(), logi_sink:normalized_condition()) -> ok.
 deindex_condition(_Table, _SinkId, []) ->
     ok;
 deindex_condition(Table, SinkId, [S | Condition]) when is_atom(S) ->

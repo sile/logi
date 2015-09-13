@@ -154,7 +154,7 @@ which_sinks(ChannelId) ->
 -spec set_condition(id(), logi_sink:id(), logi_sink:condition()) -> {ok, logi_sink:condition()} | error.
 set_condition(ChannelId, SinkId, Condition) ->
     _ = is_atom(SinkId) orelse error(badarg, [ChannelId, SinkId, Condition]),
-    _ = logi_sink:is_valid_condition(Condition) orelse error(badarg, [ChannelId, SinkId, Condition]),
+    _ = logi_sink:is_condition(Condition) orelse error(badarg, [ChannelId, SinkId, Condition]),
     Pid = ?VALIDATE_AND_GET_CHANNEL_PID(ChannelId, [ChannelId, SinkId, Condition]),
     gen_server:call(Pid, {set_condition, {SinkId, Condition}}).
 
