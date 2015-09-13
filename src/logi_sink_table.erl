@@ -8,6 +8,7 @@
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([new/1]).
+-export([delete/1]).
 -export([register/3]).
 -export([deregister/2]).
 -export([which_sinks/1]).
@@ -23,10 +24,16 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @doc Creates a new table for the logger `LoggerId'
--spec new(logi:logger_id()) -> table().
-new(LoggerId) ->
-    ets:new(LoggerId, [set, protected, {read_concurrency, true}, named_table]).
+%% @doc Creates a new table for `Channel'
+-spec new(logi_channel:id()) -> table().
+new(Channel) ->
+    ets:new(Channel, [set, protected, {read_concurrency, true}, named_table]).
+
+%% @doc Deletes the table `Table'
+-spec delete(table()) -> ok.
+delete(Table) ->
+    _ = ets:delete(Table),
+    ok.
 
 %% @doc Registers an sink
 -spec register(table(), logi_sink:sink(), logi_sink:sink() | undefined) -> ok.
@@ -51,7 +58,7 @@ deregister(Table, Sink) ->
 which_sinks(Table) ->
     [Id || {Id, _} <- ets:tab2list(Table), is_atom(Id)].
 
-%% @doc TODO
+%% @doc Selects sinks that meet the condition
 -spec select(table(), logi:severity(), atom(), module()) -> [{logi_sink:callback_module(), logi_sink:extra_data()}].
 select(Table, Severity, Application, Module) ->
     try

@@ -91,7 +91,7 @@ The sinks installed in the same channel must have different identifiers.
 location_condition() = #{severity =&gt; <a href="#type-severity_condition">severity_condition()</a>, application =&gt; <a href="logi.md#type-application">logi:application()</a> | [<a href="logi.md#type-application">logi:application()</a>], module =&gt; module() | [module()]}
 </code></pre>
 
- The messages which satisfy `severity` and are sent from the specified location will be consumed.
+ The messages which satisfy `severity` (default is `debug`) and are sent from the specified location will be consumed.
 
 The location is specified by `application` and `module` (OR condition).
 
