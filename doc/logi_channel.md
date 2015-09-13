@@ -18,7 +18,8 @@ __Behaviours:__ [`gen_server`](gen_server.md).
 
 A channel manages conditional sinks
 
-```
+```erlang
+
   %%%
   %%% Example
   %%%
@@ -27,7 +28,7 @@ A channel manages conditional sinks
   %%
   > ok = logi_channel:create(sample_log).
   > logi_channel:which_channels().
-  [sample_log,logi_default_log]  % `logi_default_log' is created automatically when `logi' application was started
+  [sample_log,logi_default_log]  % 'logi_default_log' is created automatically when 'logi' application was started
   %%
   %% INSTALL SINK
   %%

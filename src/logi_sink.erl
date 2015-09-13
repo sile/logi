@@ -4,15 +4,15 @@
 %%
 %% A sink will consume the log messages sent to the channel which the sink have been installed.
 %%
-%% ```
+%% <pre lang="erlang">
 %% %%%
 %% %%% Example
 %% %%%
 %% > ok = logi_channel:create(sample_log).
 %% > Sink = logi_sink:new(logi_builtin_sink_null).
 %% > {ok, _} = logi_channel:install_sink(sample_log, Sink).
-%% > logi:info("Hello World", [], [{logger, sample_log}]). % `logi_builtin_sink_null:write/4' will be invoked
-%% '''
+%% > logi:info("Hello World", [], [{logger, sample_log}]). % 'logi_builtin_sink_null:write/4' will be invoked
+%% </pre>
 -module(logi_sink).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -64,7 +64,7 @@
 -type extra_data() :: term().
 %% The value of the fourth arguemnt of the `write/4' callback function.
 %%
-%% NOTE: <br />
+%% NOTE:
 %% This value will be loaded from ETS every time the `write/4' is called.
 %% Therefore, very huge data can cause a performance issue.
 
@@ -74,14 +74,14 @@
 -type severity_condition() :: (Min :: logi:severity())
                             | {Min :: logi:severity(), Max :: logi:severity()}
                             | (Severities :: [logi:severity()]).
-%% `Min': <br />
-%% - The messages with `Min' or higher severity will be consumed. <br />
+%% `Min':
+%% - The messages with `Min' or higher severity will be consumed.
 %%
-%% `{Min, Max}': <br />
-%% - The messages with severity between `Min' and `Max' will be consumed. <br />
+%% `{Min, Max}':
+%% - The messages with severity between `Min' and `Max' will be consumed.
 %%
-%% `Severities': <br />
-%% - The messages with severity included in `Severities' will be consumed. <br />
+%% `Severities':
+%% - The messages with severity included in `Severities' will be consumed.
 
 -type location_condition() ::
         #{
@@ -100,7 +100,7 @@
                                  {logi:severity(), logi:application(), module()}].
 %% The normalized form of a `condition/0'.
 %%
-%% ```
+%% <pre lang="erlang">
 %% > Normalize = fun (C) -> lists:sort(logi_sink:get_normalized_condition(logi_sink:new(null, logi_builtin_sink_null, C))) end.
 %%
 %% > Normalize(info).
@@ -117,7 +117,7 @@
 %%
 %% > Normalize(#{severity => [info], application => kernel, module => [lists, logi]}).
 %% [{info,kernel},{info,logi,logi},{info,stdlib,lists}]
-%% '''
+%% </pre>
 
 -type map_form() ::
         #{
@@ -157,19 +157,19 @@ is_sink(X) -> is_record(X, ?SINK).
 
 %% @doc Creates a new sink from `Map'
 %%
-%% Default Value: <br />
-%% - id: the value of `module' <br />
-%% - module: none (mandatory) <br />
-%% - condition: `debug' <br />
-%% - extra_data: `undefined' <br />
+%% Default Value:
+%% - id: the value of `module'
+%% - module: none (mandatory)
+%% - condition: `debug'
+%% - extra_data: `undefined'
 %%
-%% ```
+%% <pre lang="erlang">
 %% > logi_sink:to_map(logi_sink:from_map(#{module => logi_builtin_sink_null})).
 %% #{condition => debug,
 %%   extra_data => undefined,
 %%   id => logi_builtin_sink_null,
 %%   module => logi_builtin_sink_null}
-%% '''
+%% </pre>
 -spec from_map(Map :: map_form()) -> sink().
 from_map(Map = #{module := Module}) ->
     new(maps:get(id, Map, Module), Module, maps:get(condition, Map, debug), maps:get(extra_data, Map, undefined));

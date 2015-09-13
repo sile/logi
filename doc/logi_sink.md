@@ -18,14 +18,15 @@ __This module defines the `logi_sink` behaviour.__<br /> Required callback funct
 
 A sink will consume the log messages sent to the channel which the sink have been installed.
 
-```
+```erlang
+
   %%%
   %%% Example
   %%%
   > ok = logi_channel:create(sample_log).
   > Sink = logi_sink:new(logi_builtin_sink_null).
   > {ok, _} = logi_channel:install_sink(sample_log, Sink).
-  > logi:info("Hello World", [], [{logger, sample_log}]). % `logi_builtin_sink_null:write/4' will be invoked
+  > logi:info("Hello World", [], [{logger, sample_log}]). % 'logi_builtin_sink_null:write/4' will be invoked
 ```
 
 <a name="types"></a>
@@ -66,7 +67,7 @@ extra_data() = term()
 
  The value of the fourth arguemnt of the `write/4` callback function.
 
-NOTE: <br />
+NOTE:
 This value will be loaded from ETS every time the `write/4` is called.
 Therefore, very huge data can cause a performance issue.
 
@@ -119,7 +120,8 @@ normalized_condition() = [<a href="logi.md#type-severity">logi:severity()</a> | 
 
  The normalized form of a `condition/0`.
 
-```
+```erlang
+
   > Normalize = fun (C) -> lists:sort(logi_sink:get_normalized_condition(logi_sink:new(null, logi_builtin_sink_null, C))) end.
   > Normalize(info).
   [alert,critical,emergency,error,info,notice,warning]
@@ -142,14 +144,14 @@ normalized_condition() = [<a href="logi.md#type-severity">logi:severity()</a> | 
 severity_condition() = (Min::<a href="logi.md#type-severity">logi:severity()</a>) | {Min::<a href="logi.md#type-severity">logi:severity()</a>, Max::<a href="logi.md#type-severity">logi:severity()</a>} | (Severities::[<a href="logi.md#type-severity">logi:severity()</a>])
 </code></pre>
 
-`Min`: <br />
-- The messages with `Min` or higher severity will be consumed. <br />
+`Min`:
+- The messages with `Min` or higher severity will be consumed.
 
-`{Min, Max}`: <br />
-- The messages with severity between `Min` and `Max` will be consumed. <br />
+`{Min, Max}`:
+- The messages with severity between `Min` and `Max` will be consumed.
 
-`Severities`: <br />
-- The messages with severity included in `Severities` will be consumed. <br />
+`Severities`:
+- The messages with severity included in `Severities` will be consumed.
 
 
 
@@ -183,13 +185,14 @@ from_map(Map::<a href="#type-map_form">map_form()</a>) -&gt; <a href="#type-sink
 
 Creates a new sink from `Map`
 
-Default Value: <br />
-- id: the value of `module` <br />
-- module: none (mandatory) <br />
-- condition: `debug` <br />
-- extra_data: `undefined` <br />
+Default Value:
+- id: the value of `module`
+- module: none (mandatory)
+- condition: `debug`
+- extra_data: `undefined`
 
-```
+```erlang
+
   > logi_sink:to_map(logi_sink:from_map(#{module => logi_builtin_sink_null})).
   #{condition => debug,
     extra_data => undefined,

@@ -4,7 +4,7 @@
 %%
 %% A channel manages conditional sinks
 %%
-%% ```
+%% <pre lang="erlang">
 %% %%%
 %% %%% Example
 %% %%%
@@ -14,7 +14,7 @@
 %% %%
 %% > ok = logi_channel:create(sample_log).
 %% > logi_channel:which_channels().
-%% [sample_log,logi_default_log]  % `logi_default_log' is created automatically when `logi' application was started
+%% [sample_log,logi_default_log]  % 'logi_default_log' is created automatically when 'logi' application was started
 %%
 %% %%
 %% %% INSTALL SINK
@@ -23,7 +23,7 @@
 %% > {ok, _} = logi_channel:install_sink(sample_log, Sink).
 %% > logi_channel:which_sinks(sample_log).
 %% [logi_builtin_sink_null]
-%% '''
+%% </pre>
 -module(logi_channel).
 
 -behaviour(gen_server).
