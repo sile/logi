@@ -71,9 +71,9 @@ install_sink_option() = {lifetime, timeout() | pid()} | {if_exists, error | igno
 `if_exists`:
 - The confliction handling policy.
 - If a sink with the same identifier already exists,
-  - `error`: the function will return an error `{error, {already_installed, ExistingSink}}`.
-  - `ignore`: the new sink will be ignored. Then the function will return `{ok, ExistingSink}`.
-  - `supersede`: the new sink will supersede it. Then the function will return `{ok, OldSink}`.
+  - `error`: the function returns an error `{error, {already_installed, ExistingSink}}`.
+  - `ignore`: the new sink is ignored. Then the function returns `{ok, ExistingSink}`.
+  - `supersede`: the new sink supersedes it. Then the function returns `{ok, OldSink}`.
 - default: `error`
 
 
@@ -98,7 +98,7 @@ install_sink_result() = {ok, OldSink::undefined | <a href="logi_sink.md#type-sin
  The result of [`install_sink/2`](#install_sink-2).
 
 If there does not exist a sink which has the same identifier with a new one,
-the function will return `{ok, undefined}`.
+the function returns `{ok, undefined}`.
 
 Otherwise the result value depends on the value of the `if_exists` option
 (see the description of `install_sink_option/0` for details).
@@ -114,7 +114,7 @@ uninstall_sink_result() = {ok, <a href="logi_sink.md#type-sink">logi_sink:sink()
 
  The result of [`uninstall_sink/2`](#uninstall_sink-2).
 
-The function will return `{ok, Sink}` if the specified sink exists in the channel, `error` otherwise.
+The function returns `{ok, Sink}` if the specified sink exists in the channel, `error` otherwise.
 
 <a name="index"></a>
 
@@ -141,7 +141,7 @@ Creates a new channel
 
 If the channel already exists, nothing happens.
 
-If there exists a process or a ETS table with the same name as `Channel`, the function will crash.
+If there exists a process or a ETS table with the same name as `Channel`, the function crashes.
 
 <a name="default_channel-0"></a>
 
@@ -167,7 +167,7 @@ delete(Channel::<a href="#type-id">id()</a>) -&gt; ok
 
 Deletes a channel
 
-If the channel does not exists, it will be silently ignored.
+If the channel does not exists, it is silently ignored.
 
 <a name="find_sink-2"></a>
 
@@ -213,7 +213,7 @@ set_condition(Channel::<a href="#type-id">id()</a>, SinkId::<a href="logi_sink.m
 
 Sets the condition of the sink which has the identifier `SinkId` to `Condition`
 
-This function will returns `{ok, OldCondition}` if specified sink exists, `error` otherwise.
+This function returns `{ok, OldCondition}` if specified sink exists, `error` otherwise.
 `OldCondition` is the old condition of the sink.
 
 <a name="uninstall_sink-2"></a>
