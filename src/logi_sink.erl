@@ -1,6 +1,6 @@
 %% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc Sink object
+%% @doc Sinks
 %%
 %% A sink will consume the log messages sent to the channel which the sink have been installed.
 %%

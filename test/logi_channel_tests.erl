@@ -108,7 +108,10 @@ sink_test_() ->
                  ?assertEqual({ok, NullSink},
                               logi_channel:install_sink(Channel, AnotherSink, [{if_exists, supersede}])),
                  ?assertNotEqual(NullSink, AnotherSink),
-                 ?assertEqual({ok, AnotherSink}, logi_channel:find_sink(Channel, null))
+                 ?assertEqual({ok, AnotherSink}, logi_channel:find_sink(Channel, null)),
+
+                 %% invalid value
+                 ?assertError(badarg, logi_channel:install_sink(Channel, NullSink, [{if_exists, undefined}]))
          end},
         {"INSTALL: `lifetime` option",
          fun () ->
@@ -124,7 +127,11 @@ sink_test_() ->
                  ?assertMatch({ok, _}, logi_channel:find_sink(Channel, null)),
                  exit(Pid, kill),
                  receive {'DOWN', Ref, _, _, _} -> ok end,
-                 ?assertEqual(error, logi_channel:find_sink(Channel, null))
+                 ?assertEqual(error, logi_channel:find_sink(Channel, null)),
+
+                 %% invalid value
+                 ?assertError(badarg, logi_channel:install_sink(Channel, NullSink, [{lifetime, -1}])),
+                 ?assertError(badarg, logi_channel:install_sink(Channel, NullSink, [{lifetime, undefined}]))
          end},
         {"set_condition/3",
          fun () ->
@@ -154,7 +161,7 @@ select_test_() ->
         end,
     Select =
         fun (Severity, Application, Module) ->
-                lists:sort(logi_channel:select_sink(Channel, Severity, Application, Module))
+                lists:sort([Id || {_, Id} <- logi_channel:select_sink(Channel, Severity, Application, Module)])
         end,
     {setup,
      fun () -> ok = application:start(logi) end,
@@ -164,26 +171,26 @@ select_test_() ->
        fun () -> ok = logi_channel:create(Channel) end,
        fun (_) -> ok = logi_channel:delete(Channel) end,
        [
-        {"simple",
+        {"simple (level)",
          fun () ->
                  ok = Install(aaa, info),
                  ok = Install(bbb, debug),
 
-                 ?assertEqual([{?NULL_SINK, bbb}],                    Select(debug,   stdlib, lists)),
-                 ?assertEqual([{?NULL_SINK, bbb}],                    Select(verbose, stdlib, lists)),
-                 ?assertEqual([{?NULL_SINK, aaa}, {?NULL_SINK, bbb}], Select(info,    stdlib, lists)),
-                 ?assertEqual([{?NULL_SINK, aaa}, {?NULL_SINK, bbb}], Select(alert,   stdlib, lists))
+                 ?assertEqual([bbb],      Select(debug,   stdlib, lists)),
+                 ?assertEqual([bbb],      Select(verbose, stdlib, lists)),
+                 ?assertEqual([aaa, bbb], Select(info,    stdlib, lists)),
+                 ?assertEqual([aaa, bbb], Select(alert,   stdlib, lists))
          end},
         {"range",
          fun () ->
                  ok = Install(aaa, {debug, info}),
                  ok = Install(bbb, {verbose, critical}),
 
-                 ?assertEqual([{?NULL_SINK, aaa}],                    Select(debug,   stdlib, lists)),
-                 ?assertEqual([{?NULL_SINK, aaa}, {?NULL_SINK, bbb}], Select(verbose, stdlib, lists)),
-                 ?assertEqual([{?NULL_SINK, aaa}, {?NULL_SINK, bbb}], Select(info,    stdlib, lists)),
-                 ?assertEqual([{?NULL_SINK, bbb}],                    Select(notice,  stdlib, lists)),
-                 ?assertEqual([],                                     Select(alert,   stdlib, lists))
+                 ?assertEqual([aaa],      Select(debug,   stdlib, lists)),
+                 ?assertEqual([aaa, bbb], Select(verbose, stdlib, lists)),
+                 ?assertEqual([aaa, bbb], Select(info,    stdlib, lists)),
+                 ?assertEqual([bbb],      Select(notice,  stdlib, lists)),
+                 ?assertEqual([],         Select(alert,   stdlib, lists))
          end},
         {"list",
          fun () ->
@@ -191,11 +198,11 @@ select_test_() ->
                  ok = Install(bbb, [verbose, notice, critical]),
                  ok = Install(ccc, [info]),
 
-                 ?assertEqual([{?NULL_SINK, aaa}],                    Select(debug,   stdlib, lists)),
-                 ?assertEqual([{?NULL_SINK, bbb}],                    Select(verbose, stdlib, lists)),
-                 ?assertEqual([{?NULL_SINK, aaa}, {?NULL_SINK, ccc}], Select(info,    stdlib, lists)),
-                 ?assertEqual([{?NULL_SINK, aaa}, {?NULL_SINK, bbb}], Select(notice,  stdlib, lists)),
-                 ?assertEqual([],                                     Select(alert,   stdlib, lists))
+                 ?assertEqual([aaa],      Select(debug,   stdlib, lists)),
+                 ?assertEqual([bbb],      Select(verbose, stdlib, lists)),
+                 ?assertEqual([aaa, ccc], Select(info,    stdlib, lists)),
+                 ?assertEqual([aaa, bbb], Select(notice,  stdlib, lists)),
+                 ?assertEqual([],         Select(alert,   stdlib, lists))
          end},
         {"severity + application",
          fun () ->
@@ -203,11 +210,11 @@ select_test_() ->
                  ok = Install(bbb, #{severity => [info, notice], application => [stdlib, kernel]}),
                  ok = Install(ccc, #{severity => verbose,        application => kernel}),
 
-                 ?assertEqual([{?NULL_SINK, aaa}],                    Select(debug,   stdlib, lists)),
-                 ?assertEqual([{?NULL_SINK, aaa}],                    Select(verbose, stdlib, lists)),
-                 ?assertEqual([{?NULL_SINK, aaa}, {?NULL_SINK, bbb}], Select(info,    stdlib, lists)),
-                 ?assertEqual([{?NULL_SINK, aaa}, {?NULL_SINK, bbb}], Select(notice,  stdlib, lists)),
-                 ?assertEqual([{?NULL_SINK, aaa}],                    Select(alert,   stdlib, lists))
+                 ?assertEqual([aaa],      Select(debug,   stdlib, lists)),
+                 ?assertEqual([aaa],      Select(verbose, stdlib, lists)),
+                 ?assertEqual([aaa, bbb], Select(info,    stdlib, lists)),
+                 ?assertEqual([aaa, bbb], Select(notice,  stdlib, lists)),
+                 ?assertEqual([aaa],      Select(alert,   stdlib, lists))
          end},
         {"severity + application + module",
          fun () ->
@@ -215,11 +222,11 @@ select_test_() ->
                  ok = Install(bbb, #{severity => [info, notice], application => stdlib, module => net_kernel}),
                  ok = Install(ccc, #{severity => verbose,        application => kernel, module => net_kernel}),
 
-                 ?assertEqual([{?NULL_SINK, aaa}],                    Select(debug,   stdlib, lists)),
-                 ?assertEqual([{?NULL_SINK, aaa}],                    Select(verbose, stdlib, lists)),
-                 ?assertEqual([{?NULL_SINK, aaa}, {?NULL_SINK, bbb}], Select(info,    stdlib, lists)),
-                 ?assertEqual([{?NULL_SINK, aaa}, {?NULL_SINK, bbb}], Select(notice,  stdlib, lists)),
-                 ?assertEqual([{?NULL_SINK, aaa}],                    Select(alert,   stdlib, lists))
+                 ?assertEqual([aaa],      Select(debug,   stdlib, lists)),
+                 ?assertEqual([aaa],      Select(verbose, stdlib, lists)),
+                 ?assertEqual([aaa, bbb], Select(info,    stdlib, lists)),
+                 ?assertEqual([aaa, bbb], Select(notice,  stdlib, lists)),
+                 ?assertEqual([aaa],      Select(alert,   stdlib, lists))
          end},
         {"change condition",
          fun () ->
@@ -245,11 +252,11 @@ select_test_() ->
                  ok = SetCond(ccc, #{severity => verbose,        application => kernel, module => net_kernel}),
                  ok = SetCond(ddd, emergency),
 
-                 ?assertEqual([{?NULL_SINK, aaa}],                    Select(debug,   stdlib, lists)),
-                 ?assertEqual([{?NULL_SINK, aaa}],                    Select(verbose, stdlib, lists)),
-                 ?assertEqual([{?NULL_SINK, aaa}, {?NULL_SINK, bbb}], Select(info,    stdlib, lists)),
-                 ?assertEqual([{?NULL_SINK, aaa}, {?NULL_SINK, bbb}], Select(notice,  stdlib, lists)),
-                 ?assertEqual([{?NULL_SINK, aaa}],                    Select(alert,   stdlib, lists))
+                 ?assertEqual([aaa],      Select(debug,   stdlib, lists)),
+                 ?assertEqual([aaa],      Select(verbose, stdlib, lists)),
+                 ?assertEqual([aaa, bbb], Select(info,    stdlib, lists)),
+                 ?assertEqual([aaa, bbb], Select(notice,  stdlib, lists)),
+                 ?assertEqual([aaa],      Select(alert,   stdlib, lists))
          end}
        ]}
      ]}.

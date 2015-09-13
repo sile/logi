@@ -6,7 +6,7 @@
 * [Function Index](#index)
 * [Function Details](#functions)
 
-Sink object.
+Sinks.
 
 Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 

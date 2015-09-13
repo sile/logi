@@ -1,6 +1,29 @@
 %% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc Channel management module
+%% @doc Log Message Channels
+%%
+%% A channel manages conditional sinks
+%%
+%% ```
+%% %%%
+%% %%% Example
+%% %%%
+%%
+%% %%
+%% %% CREATE
+%% %%
+%% > ok = logi_channel:create(sample_log).
+%% > logi_channel:which_channels().
+%% [sample_log,logi_default_log]  % `logi_default_log' is created automatically when `logi' application was started
+%%
+%% %%
+%% %% INSTALL SINK
+%% %%
+%% > Sink = logi_sink:new(logi_builtin_sink_null).
+%% > {ok, _} = logi_channel:install_sink(sample_log, Sink).
+%% > logi_channel:which_sinks(sample_log).
+%% [logi_builtin_sink_null]
+%% '''
 -module(logi_channel).
 
 -behaviour(gen_server).
@@ -9,6 +32,7 @@
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([default_channel/0]).
+
 -export([create/1]).
 -export([delete/1]).
 -export([which_channels/0]).
@@ -38,11 +62,11 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros & Records & Types
 %%----------------------------------------------------------------------------------------------------------------------
--define(VALIDATE_AND_GET_CHANNEL_PID(ChannelId, Args),
-        case is_atom(ChannelId) of
+-define(VALIDATE_AND_GET_CHANNEL_PID(Channel, Args),
+        case is_atom(Channel) of
             false -> error(badarg, Args);
-            true  -> case whereis(ChannelId) of
-                         undefined -> error({channel_is_not_running, ChannelId}, Args);
+            true  -> case whereis(Channel) of
+                         undefined -> error({channel_is_not_running, Channel}, Args);
                          ChannelPid -> ChannelPid
                      end
         end).
@@ -62,39 +86,63 @@
 -type cancel_lifetime_fun() :: fun (() -> any()).
 
 -type id() :: atom().
+%% The identifier of a channel
 
 -type install_sink_options() :: [install_sink_option()].
+
 -type install_sink_option() :: {lifetime, timeout() | pid()}
-                             | {if_exists, error | ignored | supersede}.
+                             | {if_exists, error | ignore | supersede}.
+%% `lifetime':
+%% - The lifetime of a sink.
+%% - When `timeout()' expires or `pid()' exits, the sink will be automatically uninstalled from the channel.
+%% - default: `infinity'
+%%
+%% `if_exists':
+%% - The confliction handling policy.
+%% - If a sink with the same identifier already exists,
+%% &#x20;&#x20;- `error': the function will return an error `{error, {already_installed, ExistingSink}}'.
+%% &#x20;&#x20;- `ignore': the new sink will be ignored. Then the function will return `{ok, ExistingSink}'.
+%% &#x20;&#x20;- `supersede': the new sink will supersede it. Then the function will return `{ok, OldSink}'.
+%% - default: `error'
 
 -type install_sink_result() :: {ok, OldSink :: undefined | logi_sink:sink()}
                              | {error, {already_installed, logi_sink:sink()}}.
+%% The result of {@link install_sink/2}.
+%%
+%% If there does not exist a sink which has the same identifier with a new one,
+%% the function will return `{ok, undefined}'.
+%%
+%% Otherwise the result value depends on the value of the `if_exists' option
+%% (see the description of `install_sink_option/0' for details).
 
 -type uninstall_sink_result() :: {ok, logi_sink:sink()} | error.
+%% The result of {@link uninstall_sink/2}.
+%%
+%% The function will return `{ok, Sink}' if the specified sink exists in the channel, `error' otherwise.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @doc The default channel
 %%
-%% The channel  is created automatically when `logi' application was started.
+%% This channel is created automatically when `logi' application was started.
 -spec default_channel() -> id().
 default_channel() -> logi:default_logger().
 
 %% @doc Creates a new channel
 %%
-%% If the channel exists, nothing happens.
+%% If the channel already exists, nothing happens.
 %%
-%% TODO: badarg (ets or process name conflict)
+%% If there exists a process or a ETS table with the same name as `Channel', the function will crash.
 -spec create(id()) -> ok.
-create(ChannelId) ->
-    case logi_channel_sup:start_child(ChannelId) of
+create(Channel) ->
+    case logi_channel_sup:start_child(Channel) of
         {ok, _} -> ok;
         _       ->
-            %% TODO: NOTE: timing related issue
-            case lists:member(ChannelId, which_channels()) of
+            %% FIXME: The judgement may be inaccurate
+            case lists:member(Channel, which_channels()) of
                 true  -> ok;
-                false -> error(badarg, [ChannelId])
+                false -> error(badarg, [Channel])
             end
     end.
 
@@ -102,23 +150,21 @@ create(ChannelId) ->
 %%
 %% If the channel does not exists, it will be silently ignored.
 -spec delete(id()) -> ok.
-delete(ChannelId) when is_atom(ChannelId) -> logi_channel_sup:stop_child(ChannelId);
-delete(ChannelId)                         -> error(badarg, [ChannelId]).
+delete(Channel) when is_atom(Channel) -> logi_channel_sup:stop_child(Channel);
+delete(Channel)                       -> error(badarg, [Channel]).
 
-%% @doc Returns a list of all running channels
+%% @doc Returns a list of all existing channels
 -spec which_channels() -> [id()].
 which_channels() -> logi_channel_sup:which_children().
 
-%% @equiv install_sink(ChannelId, Sink, [])
+%% @equiv install_sink(Channel, Sink, [])
 -spec install_sink(id(), logi_sink:sink()) -> install_sink_result().
-install_sink(ChannelId, Sink) -> install_sink(ChannelId, Sink, []).
+install_sink(Channel, Sink) -> install_sink(Channel, Sink, []).
 
-%% @doc Installs a sink
-%%
-%% TODO: more doc
+%% @doc Installs `Sink' into `Channel'
 -spec install_sink(id(), logi_sink:sink(), install_sink_options()) -> install_sink_result().
-install_sink(ChannelId, Sink, Options) ->
-    Args = [ChannelId, Sink, Options],
+install_sink(Channel, Sink, Options) ->
+    Args = [Channel, Sink, Options],
     _ = logi_sink:is_sink(Sink) orelse error(badarg, Args),
     _ = is_list(Options) orelse error(badarg, Args),
 
@@ -127,35 +173,38 @@ install_sink(ChannelId, Sink, Options) ->
     _ = lists:member(IfExists, [error, ignore, supersede]) orelse error(badarg, Args),
     _ = is_valid_lifetime(Lifetime) orelse error(badarg, Args),
 
-    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(ChannelId, Args),
+    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, Args),
     gen_server:call(Pid, {install_sink, {Sink, Lifetime, IfExists}}).
 
-%% @doc Uninstalls a sink
+%% @doc Uninstalls the sink which has the identifier `SinkId' from `Channel'
 -spec uninstall_sink(id(), logi_sink:id()) -> uninstall_sink_result().
-uninstall_sink(ChannelId, SinkId) ->
-    _ = is_atom(SinkId) orelse error(badarg, [ChannelId, SinkId]),
-    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(ChannelId, [ChannelId, SinkId]),
+uninstall_sink(Channel, SinkId) ->
+    _ = is_atom(SinkId) orelse error(badarg, [Channel, SinkId]),
+    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, [Channel, SinkId]),
     gen_server:call(Pid, {uninstall_sink, SinkId}).
 
-%% @doc TODO
--spec find_sink(id(), logi_sink:id()) -> uninstall_sink_result().
-find_sink(ChannelId, SinkId) ->
-    _ = is_atom(SinkId) orelse error(badarg, [ChannelId, SinkId]),
-    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(ChannelId, [ChannelId, SinkId]),
+%% @doc Searchs for `SinkId' in `Channel'; returns `{ok, Sink}', or `error' if `SinkId' is not present
+-spec find_sink(id(), logi_sink:id()) -> {ok, logi_sink:sink()} | error.
+find_sink(Channel, SinkId) ->
+    _ = is_atom(SinkId) orelse error(badarg, [Channel, SinkId]),
+    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, [Channel, SinkId]),
     gen_server:call(Pid, {find_sink, SinkId}).
 
 %% @doc Returns a list of installed sinks
 -spec which_sinks(id()) -> [logi_sink:id()].
-which_sinks(ChannelId) ->
-    _ = ?VALIDATE_AND_GET_CHANNEL_PID(ChannelId, [ChannelId]),
-    logi_sink_table:which_sinks(ChannelId).
+which_sinks(Channel) ->
+    _ = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, [Channel]),
+    logi_sink_table:which_sinks(Channel).
 
-%% @doc TODO
+%% @doc Sets the condition of the sink which has the identifier `SinkId' to `Condition'
+%%
+%% This function will returns `{ok, OldCondition}' if specified sink exists, `error' otherwise.
+%% `OldCondition' is the old condition of the sink.
 -spec set_condition(id(), logi_sink:id(), logi_sink:condition()) -> {ok, logi_sink:condition()} | error.
-set_condition(ChannelId, SinkId, Condition) ->
-    _ = is_atom(SinkId) orelse error(badarg, [ChannelId, SinkId, Condition]),
-    _ = logi_sink:is_condition(Condition) orelse error(badarg, [ChannelId, SinkId, Condition]),
-    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(ChannelId, [ChannelId, SinkId, Condition]),
+set_condition(Channel, SinkId, Condition) ->
+    _ = is_atom(SinkId) orelse error(badarg, [Channel, SinkId, Condition]),
+    _ = logi_sink:is_condition(Condition) orelse error(badarg, [Channel, SinkId, Condition]),
+    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, [Channel, SinkId, Condition]),
     gen_server:call(Pid, {set_condition, {SinkId, Condition}}).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -166,18 +215,18 @@ set_condition(ChannelId, SinkId, Condition) ->
 %% @private
 -spec start_link(id()) -> {ok, pid()} | {error, Reason} when
       Reason :: {already_started, pid()} | term().
-start_link(ChannelId) ->
-    gen_server:start_link({local, ChannelId}, ?MODULE, [ChannelId], []).
+start_link(Channel) ->
+    gen_server:start_link({local, Channel}, ?MODULE, [Channel], []).
 
-%% @doc TODO
+%% @doc Selects sinks that meet the condition
 %%
 %% If the channel does not exist, it will returns an empty list.
 %%
 %% @private
 -spec select_sink(id(), logi:severity(), atom(), module()) -> [Sink] when
       Sink :: {logi_sink:callback_module(), logi_sink:extra_data()}.
-select_sink(ChannelId, Severity, Application, Module) ->
-    logi_sink_table:select(ChannelId, Severity, Application, Module).
+select_sink(Channel, Severity, Application, Module) ->
+    logi_sink_table:select(Channel, Severity, Application, Module).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'gen_server' Callback Functions
@@ -197,16 +246,14 @@ handle_call({install_sink,   Arg}, _, State) -> handle_install_sink(Arg, State);
 handle_call({uninstall_sink, Arg}, _, State) -> handle_uninstall_sink(Arg, State);
 handle_call({find_sink,      Arg}, _, State) -> handle_find_sink(Arg, State);
 handle_call({set_condition,  Arg}, _, State) -> handle_set_condition(Arg, State);
-handle_call(_, _, State)                     -> {noreply, State}.
+handle_call(_,                     _, State) -> {noreply, State}.
 
 %% @private
 handle_cast(_, State) -> {noreply, State}.
 
 %% @private
 handle_info({'DOWN', Ref, _, _, _}, State) -> handle_down(Ref, State);
-handle_info(_, State) ->
-    %% TODO: logi:warning
-    {noreply, State}.
+handle_info(_,                      State) -> {noreply, State}.
 
 %% @private
 terminate(_Reason, _State) ->
