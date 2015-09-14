@@ -89,7 +89,7 @@ The sinks installed in the same channel must have different identifiers.
 
 
 <pre><code>
-location_condition() = #{severity =&gt; <a href="#type-severity_condition">severity_condition()</a>, application =&gt; <a href="logi.md#type-application">logi:application()</a> | [<a href="logi.md#type-application">logi:application()</a>], module =&gt; module() | [module()]}
+location_condition() = #{severity =&gt; <a href="#type-severity_condition">severity_condition()</a>, application =&gt; <a href="logi_location.md#type-application">logi_location:application()</a> | [<a href="logi_location.md#type-application">logi_location:application()</a>], module =&gt; module() | [module()]}
 </code></pre>
 
  The messages which satisfy `severity` (default is `debug`) and are sent from the specified location will be consumed.
@@ -107,7 +107,7 @@ NOTE: The modules which does not belong to any application are forbidden.
 map_form() = #{id =&gt; <a href="#type-id">id()</a>, module =&gt; <a href="#type-callback_module">callback_module()</a>, condition =&gt; <a href="#type-condition">condition()</a>, extra_data =&gt; <a href="#type-extra_data">extra_data()</a>}
 </code></pre>
 
- The map form of a sink
+ The map representation of a sink
 
 
 
@@ -115,7 +115,7 @@ map_form() = #{id =&gt; <a href="#type-id">id()</a>, module =&gt; <a href="#type
 
 
 <pre><code>
-normalized_condition() = [<a href="logi.md#type-severity">logi:severity()</a> | {<a href="logi.md#type-severity">logi:severity()</a>, <a href="logi.md#type-application">logi:application()</a>} | {<a href="logi.md#type-severity">logi:severity()</a>, <a href="logi.md#type-application">logi:application()</a>, module()}]
+normalized_condition() = [<a href="logi.md#type-severity">logi:severity()</a> | {<a href="logi.md#type-severity">logi:severity()</a>, <a href="logi_location.md#type-application">logi_location:application()</a>} | {<a href="logi.md#type-severity">logi:severity()</a>, <a href="logi_location.md#type-application">logi_location:application()</a>, module()}]
 </code></pre>
 
  The normalized form of a `condition/0`.

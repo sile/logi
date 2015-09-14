@@ -6,7 +6,7 @@
 * [Function Index](#index)
 * [Function Details](#functions)
 
-Message issued location.
+Log Message location.
 
 Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
@@ -17,6 +17,17 @@ Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
 
 
+### <a name="type-application">application()</a> ###
+
+
+<pre><code>
+application() = atom()
+</code></pre>
+
+ An application name
+
+
+
 ### <a name="type-line">line()</a> ###
 
 
@@ -24,7 +35,9 @@ Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 line() = pos_integer() | 0
 </code></pre>
 
-0 indicates 'Unknown Line'
+ A line number
+
+`0` indicates "Unknown Line"
 
 
 
@@ -33,18 +46,50 @@ line() = pos_integer() | 0
 
 __abstract datatype__: `location()`
 
+ A location
+
+
+
+### <a name="type-map_form">map_form()</a> ###
+
+
+<pre><code>
+map_form() = #{node =&gt; node(), process =&gt; pid(), application =&gt; <a href="#type-application">application()</a>, module =&gt; module(), function =&gt; atom(), line =&gt; <a href="#type-line">line()</a>}
+</code></pre>
+
+ The map representation of a location
+
 <a name="index"></a>
 
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_application-1">get_application/1</a></td><td>Gets the application of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_function-1">get_function/1</a></td><td>Gets the function of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_line-1">get_line/1</a></td><td>Gets the line of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_node-1">get_node/1</a></td><td>Gets the node name of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_process-1">get_process/1</a></td><td>Gets the PID of <code>Location</code></td></tr><tr><td valign="top"><a href="#guess-0">guess/0</a></td><td></td></tr><tr><td valign="top"><a href="#guess_application-1">guess_application/1</a></td><td>Guesses the application to which <code>Module</code> belongs.</td></tr><tr><td valign="top"><a href="#is_location-1">is_location/1</a></td><td>TODO.</td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td>Equivalent to <a href="#new-6"><tt>new(node(), self(), guess_application(Module), Module,
-Function, Line)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-6">new/6</a></td><td>Creates a new location object.</td></tr><tr><td valign="top"><a href="#to_map-1">to_map/1</a></td><td>Converts <code>Location</code> to a map.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td>Creates a new sink from <code>Map</code></td></tr><tr><td valign="top"><a href="#get_application-1">get_application/1</a></td><td>Gets the application of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_function-1">get_function/1</a></td><td>Gets the function of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_line-1">get_line/1</a></td><td>Gets the line of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_node-1">get_node/1</a></td><td>Gets the node name of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_process-1">get_process/1</a></td><td>Gets the PID of <code>Location</code></td></tr><tr><td valign="top"><a href="#guess_application-1">guess_application/1</a></td><td>Guesses the application to which <code>Module</code> belongs.</td></tr><tr><td valign="top"><a href="#guess_location-0">guess_location/0</a></td><td>(<em>Deprecated</em>.) Guesses the location where the function is called (parse transformation fallback).</td></tr><tr><td valign="top"><a href="#is_location-1">is_location/1</a></td><td>Returns <code>true</code> if X is a location object, <code>false</code> otherwise.</td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td>Equivalent to <a href="#new-6"><tt>new(node(), self(), guess_application(Module), Module,
+Function, Line)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-6">new/6</a></td><td>Creates a new location object.</td></tr><tr><td valign="top"><a href="#to_map-1">to_map/1</a></td><td>Converts <code>Location</code> into a map form.</td></tr><tr><td valign="top"><a href="#unsafe_new-6">unsafe_new/6</a></td><td>Equivalent to <a href="#new-6"><code>new/6</code></a> except omission of the arguments validation.</td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
+
+<a name="from_map-1"></a>
+
+### from_map/1 ###
+
+<pre><code>
+from_map(Map::<a href="#type-map_form">map_form()</a>) -&gt; <a href="#type-location">location()</a>
+</code></pre>
+<br />
+
+Creates a new sink from `Map`
+
+Default Value:
+- node: `node()`
+- process: `self()`
+- application: `guess_application(maps:get(module, Map))`
+- module: `undefined`
+- function: `undefined`
+- line: `0`
 
 <a name="get_application-1"></a>
 
@@ -112,15 +157,6 @@ get_process(Location::<a href="#type-location">location()</a>) -&gt; pid()
 
 Gets the PID of `Location`
 
-<a name="guess-0"></a>
-
-### guess/0 ###
-
-<pre><code>
-guess() -&gt; <a href="#type-location">location()</a>
-</code></pre>
-<br />
-
 <a name="guess_application-1"></a>
 
 ### guess_application/1 ###
@@ -132,6 +168,22 @@ guess_application(Module::module()) -&gt; atom() | undefined
 
 Guesses the application to which `Module` belongs
 
+<a name="guess_location-0"></a>
+
+### guess_location/0 ###
+
+<pre><code>
+guess_location() -&gt; <a href="#type-location">location()</a>
+</code></pre>
+<br />
+
+__This function is deprecated:__ Please use the `{parse_transform, logi_transform}` compiler option
+which replaces the function call to a more efficient code.
+
+Guesses the location where the function is called (parse transformation fallback)
+
+This function is too slow and provided for debugging/testing purposes only.
+
 <a name="is_location-1"></a>
 
 ### is_location/1 ###
@@ -141,7 +193,7 @@ is_location(X::<a href="#type-location">location()</a> | term()) -&gt; boolean()
 </code></pre>
 <br />
 
-TODO
+Returns `true` if X is a location object, `false` otherwise.
 
 <a name="new-3"></a>
 
@@ -159,7 +211,7 @@ Equivalent to [`new(node(), self(), guess_application(Module), Module,Function, 
 ### new/6 ###
 
 <pre><code>
-new(Node::node(), Pid::pid(), Application::atom(), Module::module(), Function::atom(), Line::<a href="#type-line">line()</a>) -&gt; <a href="#type-location">location()</a>
+new(Node::node(), Pid::pid(), Application::<a href="#type-application">application()</a>, Module::module(), Function::atom(), Line::<a href="#type-line">line()</a>) -&gt; <a href="#type-location">location()</a>
 </code></pre>
 <br />
 
@@ -170,10 +222,20 @@ Creates a new location object
 ### to_map/1 ###
 
 <pre><code>
-to_map(Location::<a href="#type-location">location()</a>) -&gt; Map
+to_map(Location::<a href="#type-location">location()</a>) -&gt; <a href="#type-map_form">map_form()</a>
 </code></pre>
+<br />
 
-<ul class="definitions"><li><code>Map = #{node =&gt; node(), process =&gt; pid(), application =&gt; atom(), module =&gt; module(), function =&gt; atom(), line =&gt; <a href="#type-line">line()</a>}</code></li></ul>
+Converts `Location` into a map form
 
-Converts `Location` to a map
+<a name="unsafe_new-6"></a>
+
+### unsafe_new/6 ###
+
+<pre><code>
+unsafe_new(Node::node(), Pid::pid(), Application::<a href="#type-application">application()</a>, Module::module(), Function::atom(), Line::<a href="#type-line">line()</a>) -&gt; <a href="#type-location">location()</a>
+</code></pre>
+<br />
+
+Equivalent to [`new/6`](#new-6) except omission of the arguments validation
 

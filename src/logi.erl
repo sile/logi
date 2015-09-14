@@ -62,7 +62,7 @@
 
 -export_type([headers/0, metadata/0]).
 -export_type([log_option/0, log_options/0]).
--export_type([application/0, format_args/0]).
+-export_type([format_args/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
@@ -99,8 +99,7 @@
                     | {metadata, metadata()}
                     | logi_filter:option().
 
--type application() :: atom().
--type format_args() :: [term()].
+-type format_args() :: [term()]. % TODO: move to logi_layout
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros
@@ -277,7 +276,7 @@ log(Severity, Format, FormatArgs, Options) ->
     _ = is_list(Options) orelse erlang:error(badarg, [Severity, Format, FormatArgs, Options]),
     DefaultLocation =
         case lists:keyfind(location, 1, Options) of
-            false         -> logi_location:guess();
+            false         -> logi_location:guess_location();
             {_, Location} -> Location
         end,
     {Need, Logger0} = load_if_need(proplists:get_value(logger, Options, default_logger())),

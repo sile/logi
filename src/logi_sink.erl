@@ -86,7 +86,7 @@
 -type location_condition() ::
         #{
            severity    => severity_condition(),
-           application => logi:application() | [logi:application()],
+           application => logi_location:application() | [logi_location:application()],
            module      => module() | [module()]
          }.
 %% The messages which satisfy `severity' (default is `debug') and are sent from the specified location will be consumed.
@@ -96,8 +96,8 @@
 %% NOTE: The modules which does not belong to any application are forbidden.
 
 -type normalized_condition() :: [logi:severity() |
-                                 {logi:severity(), logi:application()} |
-                                 {logi:severity(), logi:application(), module()}].
+                                 {logi:severity(), logi_location:application()} |
+                                 {logi:severity(), logi_location:application(), module()}].
 %% The normalized form of a `condition/0'.
 %%
 %% <pre lang="erlang">
@@ -126,7 +126,7 @@
            condition  => condition(),
            extra_data => extra_data()
          }.
-%% The map form of a sink
+%% The map representation of a sink
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
@@ -242,15 +242,8 @@ is_location_condition(_) ->
     true.
 
 -spec is_module(module() | term()) -> boolean().
-is_module(Module) when is_atom(Module) -> guess_application(Module) =/= undefined;
+is_module(Module) when is_atom(Module) -> logi_location:guess_application(Module) =/= undefined;
 is_module(_)                           -> false.
-
--spec guess_application(module()) -> atom() | undefined.
-guess_application(Module) ->
-    case application:get_application(Module) of
-        {ok, Application} -> Application;
-        undefined         -> undefined
-    end.
 
 -spec normalize_condition(condition()) -> normalized_condition().
 normalize_condition(C) when is_map(C) -> normalize_location_condition(C);
@@ -266,7 +259,7 @@ normalize_location_condition(C) ->
       lists:append(
         [begin
              [{S, A} || A <- Applications] ++
-             [{S, guess_application(M), M} || M <- Modules]
+             [{S, logi_location:guess_application(M), M} || M <- Modules]
          end || S <- normalize_severity_condition(Severity)])).
 
 -spec normalize_severity_condition(severity_condition()) -> normalized_condition().

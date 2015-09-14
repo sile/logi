@@ -17,16 +17,6 @@ Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
 
 
-### <a name="type-application">application()</a> ###
-
-
-<pre><code>
-application() = atom()
-</code></pre>
-
-
-
-
 ### <a name="type-format_args">format_args()</a> ###
 
 
