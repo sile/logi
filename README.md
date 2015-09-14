@@ -111,3 +111,7 @@ source -|- logger --- channel --- sink
                    |           |
 source --- logger --           -- sink
 ```
+
+### 推奨: xref.deprecated_function_calls
+
+`logi_transform` の設定ミスを防ぐため
