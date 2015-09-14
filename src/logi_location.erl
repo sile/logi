@@ -1,6 +1,20 @@
 %% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc Log Message location
+%%
+%% <pre lang="erlang">
+%% %%%
+%% %%% Example
+%% %%%
+%% > Location = logi_location:new(lists, filter, 10).
+%% > logi_location:to_map(Location).
+%% #{application => stdlib,
+%%   function => filter,
+%%   line => 10,
+%%   module => lists,
+%%   node => nonode@nohost,
+%%   process => &lt;0.91.0&gt;}
+%% </pre>
 -module(logi_location).
 
 -deprecated({guess_location, 0}).

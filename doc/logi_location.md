@@ -10,6 +10,25 @@ Log Message location.
 
 Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
+<a name="description"></a>
+
+## Description ##
+
+```erlang
+
+  %%%
+  %%% Example
+  %%%
+  > Location = logi_location:new(lists, filter, 10).
+  > logi_location:to_map(Location).
+  #{application => stdlib,
+    function => filter,
+    line => 10,
+    module => lists,
+    node => nonode@nohost,
+    process => <0.91.0>}
+```
+
 <a name="types"></a>
 
 ## Data Types ##
