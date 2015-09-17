@@ -102,11 +102,11 @@ unsafe_new(Node, Pid, Application, Module, Function, Line) ->
         line        = Line
        }.
 
-%% @doc Returns `true' if X is a location object, `false' otherwise.
+%% @doc Returns `true' if `X' is a location object, `false' otherwise.
 -spec is_location(X :: (location() | term())) -> boolean().
 is_location(X) -> is_record(X, ?LOCATION).
 
-%% @doc Creates a new sink from `Map'
+%% @doc Creates a new location from `Map'
 %%
 %% Default Value:
 %% - node: `node()'

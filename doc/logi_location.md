@@ -83,7 +83,7 @@ map_form() = #{node =&gt; node(), process =&gt; pid(), application =&gt; <a href
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td>Creates a new sink from <code>Map</code></td></tr><tr><td valign="top"><a href="#get_application-1">get_application/1</a></td><td>Gets the application of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_function-1">get_function/1</a></td><td>Gets the function of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_line-1">get_line/1</a></td><td>Gets the line of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_node-1">get_node/1</a></td><td>Gets the node name of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_process-1">get_process/1</a></td><td>Gets the PID of <code>Location</code></td></tr><tr><td valign="top"><a href="#guess_application-1">guess_application/1</a></td><td>Guesses the application to which <code>Module</code> belongs.</td></tr><tr><td valign="top"><a href="#guess_location-0">guess_location/0</a></td><td>(<em>Deprecated</em>.) Guesses the location where the function is called (parse transformation fallback).</td></tr><tr><td valign="top"><a href="#is_location-1">is_location/1</a></td><td>Returns <code>true</code> if X is a location object, <code>false</code> otherwise.</td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td>Equivalent to <a href="#new-6"><tt>new(node(), self(), guess_application(Module), Module,
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td>Creates a new location from <code>Map</code></td></tr><tr><td valign="top"><a href="#get_application-1">get_application/1</a></td><td>Gets the application of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_function-1">get_function/1</a></td><td>Gets the function of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_line-1">get_line/1</a></td><td>Gets the line of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_node-1">get_node/1</a></td><td>Gets the node name of <code>Location</code></td></tr><tr><td valign="top"><a href="#get_process-1">get_process/1</a></td><td>Gets the PID of <code>Location</code></td></tr><tr><td valign="top"><a href="#guess_application-1">guess_application/1</a></td><td>Guesses the application to which <code>Module</code> belongs.</td></tr><tr><td valign="top"><a href="#guess_location-0">guess_location/0</a></td><td>(<em>Deprecated</em>.) Guesses the location where the function is called (parse transformation fallback).</td></tr><tr><td valign="top"><a href="#is_location-1">is_location/1</a></td><td>Returns <code>true</code> if <code>X</code> is a location object, <code>false</code> otherwise.</td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td>Equivalent to <a href="#new-6"><tt>new(node(), self(), guess_application(Module), Module,
 Function, Line)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-6">new/6</a></td><td>Creates a new location object.</td></tr><tr><td valign="top"><a href="#to_map-1">to_map/1</a></td><td>Converts <code>Location</code> into a map form.</td></tr><tr><td valign="top"><a href="#unsafe_new-6">unsafe_new/6</a></td><td>Equivalent to <a href="#new-6"><code>new/6</code></a> except omission of the arguments validation.</td></tr></table>
 
 
@@ -100,7 +100,7 @@ from_map(Map::<a href="#type-map_form">map_form()</a>) -&gt; <a href="#type-loca
 </code></pre>
 <br />
 
-Creates a new sink from `Map`
+Creates a new location from `Map`
 
 Default Value:
 - node: `node()`
@@ -212,7 +212,7 @@ is_location(X::<a href="#type-location">location()</a> | term()) -&gt; boolean()
 </code></pre>
 <br />
 
-Returns `true` if X is a location object, `false` otherwise.
+Returns `true` if `X` is a location object, `false` otherwise.
 
 <a name="new-3"></a>
 

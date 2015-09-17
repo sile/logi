@@ -1,26 +1,22 @@
 %% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc TODO
+%% @doc Log Message Context
 -module(logi_context).
 
-%%------------------------------------------------------------------------------------------------------------------------
+%%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
-%%------------------------------------------------------------------------------------------------------------------------
--export([new/6]).
+%%----------------------------------------------------------------------------------------------------------------------
+-export([new/6, unsafe_new/6]).
 -export([is_context/1]).
--export([to_map/1]).
--export([get_channel/1]).
--export([get_timestamp/1]).
--export([get_severity/1]).
--export([get_location/1]).
--export([get_headers/1]).
--export([get_metadata/1]).
+-export([to_map/1, from_map/1]).
+-export([get_channel/1, get_timestamp/1, get_severity/1, get_location/1, get_headers/1, get_metadata/1]).
 
--export_type([context/0, context_map/0]).
+-export_type([context/0]).
+-export_type([map_form/0]).
 
-%%------------------------------------------------------------------------------------------------------------------------
+%%----------------------------------------------------------------------------------------------------------------------
 %% Macros & Records & Types
-%%------------------------------------------------------------------------------------------------------------------------
+%%----------------------------------------------------------------------------------------------------------------------
 -define(CONTEXT, ?MODULE).
 
 -record(?CONTEXT,
@@ -34,8 +30,9 @@
         }).
 
 -opaque context() :: #?CONTEXT{}.
+%% A context
 
--type context_map() ::
+-type map_form() ::
         #{
            channel   => logi_channel:id(),
            timestamp => erlang:timestamp(),
@@ -44,14 +41,28 @@
            headers   => logi:headers(),
            metadata  => logi:metadata()
          }.
+%% The map representation of a context
 
-%%------------------------------------------------------------------------------------------------------------------------
+%%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
-%%------------------------------------------------------------------------------------------------------------------------
-%% @private
--spec new(logi_channel:id(), erlang:timestamp(), logi:severity(), logi_location:location(), logi:headers(), logi:metadata()) ->
-                 context().
+%%----------------------------------------------------------------------------------------------------------------------
+%% @doc Creates a new context object
+-spec new(logi_channel:id(), erlang:timestamp(), logi:severity(), logi_location:location(), logi:headers(),
+          logi:metadata()) -> context().
 new(Channel, Timestamp, Severity, Location, Headers, Metadata) ->
+    Args = [Channel, Timestamp, Severity, Location, Headers, Metadata],
+    _ = is_atom(Channel) orelse error(badarg, Args),
+    _ = is_timestamp(Timestamp) orelse error(badarg, Args),
+    _ = logi:is_severity(Severity) orelse error(badarg, Args),
+    _ = logi_location:is_location(Location) orelse error(badarg, Args),
+    _ = is_map(Headers) orelse error(badarg, Args),
+    _ = is_map(Metadata) orelse error(badarg, Args),
+    unsafe_new(Channel, Timestamp, Severity, Location, Headers, Metadata).
+
+%% @doc Equivalent to {@link new/6} except omission of the arguments validation
+-spec unsafe_new(logi_channel:id(), erlang:timestamp(), logi:severity(), logi_location:location(), logi:headers(),
+                 logi:metadata()) -> context().
+unsafe_new(Channel, Timestamp, Severity, Location, Headers, Metadata) ->
     #?CONTEXT{
         channel = Channel,
         timestamp = Timestamp,
@@ -61,10 +72,23 @@ new(Channel, Timestamp, Severity, Location, Headers, Metadata) ->
         metadata = Metadata
        }.
 
--spec is_context(context() | term()) -> boolean().
+%% @doc Returns `true' if `X' is a context object, `false' otherwise.
+-spec is_context(X :: (context() | term())) -> boolean().
 is_context(X) -> is_record(X, ?CONTEXT).
 
--spec to_map(context()) -> context_map().
+%% @doc Creates a new context object from `Map'
+-spec from_map(map_form()) -> context().
+from_map(Map) ->
+    _ = is_map(Map) orelse error(badarg, [Map]),
+    new(maps:get(channel, Map),
+        maps:get(timestamp, Map),
+        maps:get(severity, Map),
+        maps:get(location, Map),
+        maps:get(headers, Map),
+        maps:get(metadata, Map)).
+
+%% @doc Converts `Context' into a map form
+-spec to_map(context()) -> map_form().
 to_map(C) ->
     #{
        channel   => C#?CONTEXT.channel,
@@ -75,20 +99,37 @@ to_map(C) ->
        metadata  => C#?CONTEXT.metadata
      }.
 
--spec get_channel(context()) -> logi_channel:id().
+%% @doc Gets the channel of `Context'
+-spec get_channel(Context :: context()) -> logi_channel:id().
 get_channel(#?CONTEXT{channel = Channel}) -> Channel.
 
--spec get_timestamp(context()) -> erlang:timestamp().
+%% @doc Gets the timestamp of `Context'
+-spec get_timestamp(Context :: context()) -> erlang:timestamp().
 get_timestamp(#?CONTEXT{timestamp = Timestamp}) -> Timestamp.
 
--spec get_severity(context()) -> logi:severity().
+%% @doc Gets the severity of `Context'
+-spec get_severity(Context :: context()) -> logi:severity().
 get_severity(#?CONTEXT{severity = Severity}) -> Severity.
 
--spec get_location(context()) -> logi_location:location().
+%% @doc Gets the location of `Context'
+-spec get_location(Context :: context()) -> logi_location:location().
 get_location(#?CONTEXT{location = Location}) -> Location.
 
--spec get_headers(context()) -> logi:headers().
+%% @doc Gets the headers of `Context'
+-spec get_headers(Context :: context()) -> logi:headers().
 get_headers(#?CONTEXT{headers = Headers}) -> Headers.
 
--spec get_metadata(context()) -> logi:metadata().
+%% @doc Gets the metadata of `Context'
+-spec get_metadata(Context :: context()) -> logi:metadata().
 get_metadata(#?CONTEXT{metadata = Metadata}) -> Metadata.
+
+%%----------------------------------------------------------------------------------------------------------------------
+%% Internal Functions
+%%----------------------------------------------------------------------------------------------------------------------
+-spec is_timestamp(erlang:timestamp() | term()) -> boolean().
+is_timestamp({A, B, C}) when is_integer(A), A >= 0,
+                             is_integer(B), B >= 0,
+                             is_integer(C), C >= 0 ->
+    true;
+is_timestamp(_) ->
+    false.
