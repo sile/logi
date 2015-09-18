@@ -85,5 +85,5 @@ uninstall(Options) ->
 %% 'logi_sink' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-write(_Context, _Format, _FormatArgs, _Extra) ->
+write(_Context, _Format, _Data, _Extra) ->
     ok.

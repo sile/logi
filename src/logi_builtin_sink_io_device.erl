@@ -99,7 +99,7 @@ uninstall(Options) ->
 %% 'logi_sink' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
--spec write(logi_context:context(), io:format(), [term()], extra_data()) -> any().
-write(Context, Format, FormatArgs, {IoDevice, Layout}) ->
-    IoData = logi_layout:format(Context, Format, FormatArgs, Layout),
+-spec write(logi_context:context(), io:format(), logi_layout:data(), extra_data()) -> any().
+write(Context, Format, Data, {IoDevice, Layout}) ->
+    IoData = logi_layout:format(Context, Format, Data, Layout),
     io:fwrite(IoDevice, IoData).

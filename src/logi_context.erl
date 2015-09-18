@@ -52,7 +52,7 @@
 new(Channel, Timestamp, Severity, Location, Headers, Metadata) ->
     Args = [Channel, Timestamp, Severity, Location, Headers, Metadata],
     _ = is_atom(Channel) orelse error(badarg, Args),
-    _ = is_timestamp(Timestamp) orelse error(badarg, Args),
+    _ = logi_utils:is_timestamp(Timestamp) orelse error(badarg, Args),
     _ = logi:is_severity(Severity) orelse error(badarg, Args),
     _ = logi_location:is_location(Location) orelse error(badarg, Args),
     _ = is_map(Headers) orelse error(badarg, Args),
@@ -122,14 +122,3 @@ get_headers(#?CONTEXT{headers = Headers}) -> Headers.
 %% @doc Gets the metadata of `Context'
 -spec get_metadata(Context :: context()) -> logi:metadata().
 get_metadata(#?CONTEXT{metadata = Metadata}) -> Metadata.
-
-%%----------------------------------------------------------------------------------------------------------------------
-%% Internal Functions
-%%----------------------------------------------------------------------------------------------------------------------
--spec is_timestamp(erlang:timestamp() | term()) -> boolean().
-is_timestamp({A, B, C}) when is_integer(A), A >= 0,
-                             is_integer(B), B >= 0,
-                             is_integer(C), C >= 0 ->
-    true;
-is_timestamp(_) ->
-    false.

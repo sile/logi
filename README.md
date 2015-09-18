@@ -115,3 +115,8 @@ source --- logger --           -- sink
 ### 推奨: xref.deprecated_function_calls
 
 `logi_transform` の設定ミスを防ぐため
+
+### layout周りの性能ヒント
+
+`{Module, Options}`としてオプション群を渡すよりも、
+`format(...) -> Module:format(..., Options).`となるような独自レイアウトを定義した方が性能的には有利。

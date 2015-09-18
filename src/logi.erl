@@ -62,7 +62,6 @@
 
 -export_type([headers/0, metadata/0]).
 -export_type([log_option/0, log_options/0]).
--export_type([format_args/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
@@ -98,8 +97,6 @@
                     | {headers, headers()}
                     | {metadata, metadata()}
                     | logi_filter:option().
-
--type format_args() :: [term()]. % TODO: move to logi_layout
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros

@@ -36,7 +36,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Behaviour Callbacks
 %%----------------------------------------------------------------------------------------------------------------------
--callback write(logi_context:context(), io:format(), logi:format_args(), extra_data()) -> any().
+-callback write(logi_context:context(), io:format(), logi_layout:data(), extra_data()) -> any().
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros & Records & Types
@@ -209,9 +209,7 @@ is_condition(X)                -> is_severity_condition(X).
 %% @doc Returns `true' if `X' is a module which implements the `sink' behaviour, otherwise `false'
 -spec is_callback_module(X :: (callback_module() | term())) -> boolean().
 is_callback_module(X) ->
-    _ = is_atom(X) orelse error(badarg, [X]),
-    _ = code:is_loaded(X) =/= false orelse code:load_file(X),
-    erlang:function_exported(X, write, 4).
+    logi_utils:function_exported(X, write, 4).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions

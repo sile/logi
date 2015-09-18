@@ -1,6 +1,19 @@
 %% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc TODO
+%% @doc Log Message Layout Behaviour
+%%
+%% This module defines the standard interface to format log messages issued by `logi' functions
+%% (e.g. {@link logi:info/3}, {@link logi:warning/3}, etc).
+%%
+%% <pre lang="erlang">
+%% %%%
+%% %%% Example
+%% %%%
+%% > Context = logi_context:new(sample_log, os:timestamp(), info, logi_location:guess_location(), #{}, #{}).
+%% > Layout = logi_builtin_layout_fun:new(fun (_, Format, Data, _) -> io_lib:format(Format, Data) end).
+%% > lists:flatten(logi_layout:format(Context, "Hello ~s", ["World"], Layout)).
+%% "Hello World"
+%% </pre>
 -module(logi_layout).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -10,31 +23,41 @@
 -export([is_layout/1]).
 
 -export_type([layout/0]).
--export_type([extra_arg/0]).
+-export_type([data/0]).
+-export_type([callback_module/0]).
+-export_type([extra_data/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Behaviour Callbacks
 %%----------------------------------------------------------------------------------------------------------------------
--callback format(logi_context:context(), io:format(), [term()], extra_arg()) -> iodata().
+-callback format(logi_context:context(), io:format(), data(), extra_data()) -> iodata().
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
--type layout() :: module() | {module(), extra_arg()}.
--type extra_arg() :: term().
+-type layout() :: callback_module() | {callback_module(), extra_data()}.
+%% An instance of `layout' behaviour implementation module.
+
+-type callback_module() :: module().
+%% A module that implements the `sink' behaviour.
+
+-type extra_data() :: term().
+%% The value of the fourth arguemnt of the `format/4' callback function.
+%%
+%% If the `layout()' does not have a explicit `extra_data()', `undefined' will be passed instead.
+
+-type data() :: [term()].
+%% A data which is subject to format
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
--spec format(logi_context:context(), io:format(), [term()], layout()) -> iodata().
-format(Context, Format, FormatArgs, {Module, Extra}) -> Module:format(Context, Format, FormatArgs, Extra);
-format(Context, Format, FormatArgs, Module)          -> Module:format(Context, Format, FormatArgs, undefined).
+%% @doc Returns an `iodata()' which represents `Data' formatted by `Layout' in accordance with `Format' and `Context'
+-spec format(logi_context:context(), io:format(), data(), Layout :: layout()) -> iodata().
+format(Context, Format, Data, {Module, Extra}) -> Module:format(Context, Format, Data, Extra);
+format(Context, Format, Data, Module)          -> Module:format(Context, Format, Data, undefined).
 
--spec is_layout(layout() | term()) -> boolean().
-is_layout({Module, _}) ->
-    is_layout(Module);
-is_layout(Module) when is_atom(Module) ->
-    _ = code:load_file(Module),
-    erlang:function_exported(Module, format, 4);
-is_layout(_) ->
-    false.
+%% @doc Returns `true' if `X' is a layout, `false' otherwise
+-spec is_layout(X :: (layout() | term())) -> boolean().
+is_layout({Module, _}) -> is_layout(Module);
+is_layout(Module)      -> is_atom(Module) andalso logi_utils:function_exported(Module, format, 4).

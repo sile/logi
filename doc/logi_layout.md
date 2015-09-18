@@ -6,11 +6,29 @@
 * [Function Index](#index)
 * [Function Details](#functions)
 
-TODO.
+Log Message Layout Behaviour.
 
 Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
 __This module defines the `logi_layout` behaviour.__<br /> Required callback functions: `format/4`.
+
+<a name="description"></a>
+
+## Description ##
+
+This module defines the standard interface to format log messages issued by `logi` functions
+(e.g. [`logi:info/3`](logi.md#info-3), [`logi:warning/3`](logi.md#warning-3), etc).
+
+```erlang
+
+  %%%
+  %%% Example
+  %%%
+  > Context = logi_context:new(sample_log, os:timestamp(), info, logi_location:guess_location(), #{}, #{}).
+  > Layout = logi_builtin_layout_fun:new(fun (_, Format, Data, _) -> io_lib:format(Format, Data) end).
+  > lists:flatten(logi_layout:format(Context, "Hello ~s", ["World"], Layout)).
+  "Hello World"
+```
 
 <a name="types"></a>
 
@@ -19,13 +37,38 @@ __This module defines the `logi_layout` behaviour.__<br /> Required callback fun
 
 
 
-### <a name="type-extra_arg">extra_arg()</a> ###
+### <a name="type-callback_module">callback_module()</a> ###
 
 
 <pre><code>
-extra_arg() = term()
+callback_module() = module()
 </code></pre>
 
+ A module that implements the `sink` behaviour.
+
+
+
+### <a name="type-data">data()</a> ###
+
+
+<pre><code>
+data() = [term()]
+</code></pre>
+
+ A data which is subject to format
+
+
+
+### <a name="type-extra_data">extra_data()</a> ###
+
+
+<pre><code>
+extra_data() = term()
+</code></pre>
+
+ The value of the fourth arguemnt of the `format/4` callback function.
+
+If the `layout()` does not have a explicit `extra_data()`, `undefined` will be passed instead.
 
 
 
@@ -33,15 +76,17 @@ extra_arg() = term()
 
 
 <pre><code>
-layout() = module() | {module(), <a href="#type-extra_arg">extra_arg()</a>}
+layout() = <a href="#type-callback_module">callback_module()</a> | {<a href="#type-callback_module">callback_module()</a>, <a href="#type-extra_data">extra_data()</a>}
 </code></pre>
+
+ An instance of `layout` behaviour implementation module.
 
 <a name="index"></a>
 
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#format-4">format/4</a></td><td></td></tr><tr><td valign="top"><a href="#is_layout-1">is_layout/1</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#format-4">format/4</a></td><td>Returns an <code>iodata()</code> which represents <code>Data</code> formatted by <code>Layout</code> in accordance with <code>Format</code> and <code>Context</code></td></tr><tr><td valign="top"><a href="#is_layout-1">is_layout/1</a></td><td>Returns <code>true</code> if <code>X</code> is a layout, <code>false</code> otherwise.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -53,16 +98,20 @@ layout() = module() | {module(), <a href="#type-extra_arg">extra_arg()</a>}
 ### format/4 ###
 
 <pre><code>
-format(Context::<a href="logi_context.md#type-context">logi_context:context()</a>, Format::<a href="io.md#type-format">io:format()</a>, FormatArgs::[term()], Module::<a href="#type-layout">layout()</a>) -&gt; iodata()
+format(Context::<a href="logi_context.md#type-context">logi_context:context()</a>, Format::<a href="io.md#type-format">io:format()</a>, Data::<a href="#type-data">data()</a>, Layout::<a href="#type-layout">layout()</a>) -&gt; iodata()
 </code></pre>
 <br />
+
+Returns an `iodata()` which represents `Data` formatted by `Layout` in accordance with `Format` and `Context`
 
 <a name="is_layout-1"></a>
 
 ### is_layout/1 ###
 
 <pre><code>
-is_layout(Module::<a href="#type-layout">layout()</a> | term()) -&gt; boolean()
+is_layout(X::<a href="#type-layout">layout()</a> | term()) -&gt; boolean()
 </code></pre>
 <br />
+
+Returns `true` if `X` is a layout, `false` otherwise
 

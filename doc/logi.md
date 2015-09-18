@@ -17,16 +17,6 @@ Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
 
 
-### <a name="type-format_args">format_args()</a> ###
-
-
-<pre><code>
-format_args() = [term()]
-</code></pre>
-
-
-
-
 ### <a name="type-headers">headers()</a> ###
 
 

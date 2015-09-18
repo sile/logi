@@ -15,6 +15,8 @@
 %% # TODO: show output
 %% > logi_builtin_sink_process:uninstall().
 %% '''
+%%
+%% TODO: change to logi_builtin_sink_fun
 -module(logi_builtin_sink_process).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -91,9 +93,9 @@ uninstall(Options) ->
 %% 'logi_sink' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
--spec write(logi_context:context(), io:format(), [term()], extra_data()) -> any().
-write(Context, Format, FormatArgs, {Dst, Extra}) ->
-    Dst ! {'LOGI_MSG', self(), Context, Format, FormatArgs, Extra}.
+-spec write(logi_context:context(), io:format(), logi_layout:data(), extra_data()) -> any().
+write(Context, Format, Data, {Dst, Extra}) ->
+    Dst ! {'LOGI_MSG', self(), Context, Format, Data, Extra}.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
