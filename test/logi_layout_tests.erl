@@ -36,16 +36,16 @@ create_test_() ->
     ].
 
 format_test_() ->
-    DummyContext = dummy,
+    Context = logi_context:new(test_log, os:timestamp(), info, logi_location:guess_location(), #{}, #{}),
     [
      {"Formats data",
       fun () ->
               Layout = {?MODULE, "extra"},
-              ?assertEqual("hello world: extra", logi_layout:format(DummyContext, "hello ~s", [world], Layout))
+              ?assertEqual("hello world: extra", logi_layout:format(Context, "hello ~s", [world], Layout))
       end},
      {"The default value of `extra_data()' is `undefined'",
       fun () ->
               Layout = ?MODULE,
-              ?assertEqual("hello world: undefined", logi_layout:format(DummyContext, "hello ~s", [world], Layout))
+              ?assertEqual("hello world: undefined", logi_layout:format(Context, "hello ~s", [world], Layout))
       end}
     ].

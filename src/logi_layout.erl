@@ -10,9 +10,10 @@
 %% %%% Example
 %% %%%
 %% > Context = logi_context:new(sample_log, os:timestamp(), info, logi_location:guess_location(), #{}, #{}).
-%% > Layout = logi_builtin_layout_fun:new(fun (_, Format, Data, _) -> io_lib:format(Format, Data) end).
+%% > FormatFun = fun (_, Format, Data) -> io_lib:format("EXAMPLE: " ++ Format, Data) end.
+%% > Layout = logi_builtin_layout_fun:new(FormatFun).
 %% > lists:flatten(logi_layout:format(Context, "Hello ~s", ["World"], Layout)).
-%% "Hello World"
+%% "EXAMPLE: Hello World"
 %% </pre>
 -module(logi_layout).
 
@@ -22,7 +23,7 @@
 -export([format/4]).
 -export([is_layout/1]).
 
--export_type([layout/0]).
+-export_type([layout/0, layout/1]).
 -export_type([data/0]).
 -export_type([callback_module/0]).
 -export_type([extra_data/0]).
@@ -38,8 +39,12 @@
 -type layout() :: callback_module() | {callback_module(), extra_data()}.
 %% An instance of `layout' behaviour implementation module.
 
+-type layout(ExtraData) :: {callback_module(), ExtraData}.
+%% A specialized type of `layout/0'.
+%% This may be useful for modules which want to annotate their own `ExtraData' type.
+
 -type callback_module() :: module().
-%% A module that implements the `sink' behaviour.
+%% A module that implements the `logi_layout' behaviour.
 
 -type extra_data() :: term().
 %% The value of the fourth arguemnt of the `format/4' callback function.

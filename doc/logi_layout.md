@@ -25,9 +25,10 @@ This module defines the standard interface to format log messages issued by `log
   %%% Example
   %%%
   > Context = logi_context:new(sample_log, os:timestamp(), info, logi_location:guess_location(), #{}, #{}).
-  > Layout = logi_builtin_layout_fun:new(fun (_, Format, Data, _) -> io_lib:format(Format, Data) end).
+  > FormatFun = fun (_, Format, Data) -> io_lib:format("EXAMPLE: " ++ Format, Data) end.
+  > Layout = logi_builtin_layout_fun:new(FormatFun).
   > lists:flatten(logi_layout:format(Context, "Hello ~s", ["World"], Layout)).
-  "Hello World"
+  "EXAMPLE: Hello World"
 ```
 
 <a name="types"></a>
@@ -44,7 +45,7 @@ This module defines the standard interface to format log messages issued by `log
 callback_module() = module()
 </code></pre>
 
- A module that implements the `sink` behaviour.
+ A module that implements the `logi_layout` behaviour.
 
 
 
@@ -69,6 +70,18 @@ extra_data() = term()
  The value of the fourth arguemnt of the `format/4` callback function.
 
 If the `layout()` does not have a explicit `extra_data()`, `undefined` will be passed instead.
+
+
+
+### <a name="type-layout">layout()</a> ###
+
+
+<pre><code>
+layout(ExtraData) = {<a href="#type-callback_module">callback_module()</a>, ExtraData}
+</code></pre>
+
+ A specialized type of `layout/0`.
+This may be useful for modules which want to annotate their own `ExtraData` type.
 
 
 

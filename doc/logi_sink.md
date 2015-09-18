@@ -43,7 +43,7 @@ A sink will consume the log messages sent to the channel which the sink have bee
 callback_module() = module()
 </code></pre>
 
- A module that implements the `sink` behaviour.
+ A module that implements the `logi_sink` behaviour.
 
 
 

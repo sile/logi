@@ -59,7 +59,7 @@
 %% The sinks installed in the same channel must have different identifiers.
 
 -type callback_module() :: module().
-%% A module that implements the `sink' behaviour.
+%% A module that implements the `logi_sink' behaviour.
 
 -type extra_data() :: term().
 %% The value of the fourth arguemnt of the `write/4' callback function.
