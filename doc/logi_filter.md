@@ -26,14 +26,28 @@ __This module defines the `logi_filter` behaviour.__<br /> Required callback fun
 callback_module() = module()
 </code></pre>
 
+ A module that implements the `logi_filter` behaviour.
 
 
 
 ### <a name="type-filter">filter()</a> ###
 
 
-__abstract datatype__: `filter()`
+__abstract datatype__: `filter(State)`
 
+ A specialized type of `filter/0`.
+This may be useful for modules which want to annotate their own `State` type.
+
+
+
+### <a name="type-filter">filter()</a> ###
+
+
+<pre><code>
+filter() = <a href="#type-filter">filter</a>(<a href="#type-state">state()</a>)
+</code></pre>
+
+ An instance of `logi_filter` behaviour implementation module.
 
 
 
@@ -54,6 +68,7 @@ option() = {Key::term(), Value::term()}
 options() = [<a href="#type-option">option()</a>]
 </code></pre>
 
+ Filter implementation module defined options
 
 
 
@@ -64,12 +79,16 @@ options() = [<a href="#type-option">option()</a>]
 state() = term()
 </code></pre>
 
+ The value of the third arguemnt of the `filter/3` callback function.
+
+If the `filter()` does not have an explicit `state()`, `undefined` will be passed instead.
+
 <a name="index"></a>
 
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#apply-3">apply/3</a></td><td></td></tr><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td></td></tr><tr><td valign="top"><a href="#is_filter-1">is_filter/1</a></td><td></td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td></td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td></td></tr><tr><td valign="top"><a href="#to_map-1">to_map/1</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#apply-3">apply/3</a></td><td>Applies <code>Filter</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Filter</code></td></tr><tr><td valign="top"><a href="#get_state-1">get_state/1</a></td><td>Gets the state of <code>Filter</code></td></tr><tr><td valign="top"><a href="#is_filter-1">is_filter/1</a></td><td>Returns <code>true</code> if <code>X</code> is a filter, <code>false</code> otherwise.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Equivalent to <a href="#new-2"><tt>new(Module, undefined)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new filter instance.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -81,28 +100,44 @@ state() = term()
 ### apply/3 ###
 
 <pre><code>
-apply(Context::<a href="logi_context.md#type-context">logi_context:context()</a>, Options::<a href="#type-options">options()</a>, X3::<a href="#type-filter">filter()</a>) -&gt; {boolean(), <a href="#type-filter">filter()</a>}
+apply(Context::<a href="logi_context.md#type-context">logi_context:context()</a>, Options::<a href="#type-options">options()</a>, Filter::<a href="#type-filter">filter()</a>) -&gt; boolean() | {boolean(), <a href="#type-filter">filter()</a>}
 </code></pre>
 <br />
 
-<a name="from_map-1"></a>
+Applies `Filter`
 
-### from_map/1 ###
+<a name="get_module-1"></a>
+
+### get_module/1 ###
 
 <pre><code>
-from_map(Map) -&gt; <a href="#type-filter">filter()</a>
+get_module(Filter::<a href="#type-filter">filter()</a>) -&gt; <a href="#type-callback_module">callback_module()</a>
 </code></pre>
+<br />
 
-<ul class="definitions"><li><code>Map = #{module =&gt; <a href="#type-callback_module">callback_module()</a>, state =&gt; <a href="#type-state">state()</a>}</code></li></ul>
+Gets the module of `Filter`
+
+<a name="get_state-1"></a>
+
+### get_state/1 ###
+
+<pre><code>
+get_state(Filter::<a href="#type-filter">filter()</a>) -&gt; <a href="#type-state">state()</a>
+</code></pre>
+<br />
+
+Gets the state of `Filter`
 
 <a name="is_filter-1"></a>
 
 ### is_filter/1 ###
 
 <pre><code>
-is_filter(X1::term()) -&gt; boolean()
+is_filter(X::<a href="#type-filter">filter()</a> | term()) -&gt; boolean()
 </code></pre>
 <br />
+
+Returns `true` if `X` is a filter, `false` otherwise
 
 <a name="new-1"></a>
 
@@ -113,21 +148,17 @@ new(Module::<a href="#type-callback_module">callback_module()</a>) -&gt; <a href
 </code></pre>
 <br />
 
+Equivalent to [`new(Module, undefined)`](#new-2).
+
 <a name="new-2"></a>
 
 ### new/2 ###
 
 <pre><code>
-new(Module::<a href="#type-callback_module">callback_module()</a>, State::<a href="#type-state">state()</a>) -&gt; <a href="#type-filter">filter()</a>
+new(Module::<a href="#type-callback_module">callback_module()</a>, State) -&gt; <a href="#type-filter">filter</a>(State)
 </code></pre>
-<br />
 
-<a name="to_map-1"></a>
+<ul class="definitions"><li><code>State = <a href="#type-state">state()</a></code></li></ul>
 
-### to_map/1 ###
-
-<pre><code>
-to_map(X::<a href="#type-filter">filter()</a>) -&gt; #{module =&gt; <a href="#type-callback_module">callback_module()</a>, state =&gt; <a href="#type-state">state()</a>}
-</code></pre>
-<br />
+Creates a new filter instance
 

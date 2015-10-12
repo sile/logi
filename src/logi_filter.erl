@@ -2,7 +2,23 @@
 %%
 %% @doc Log Message Filter Behaviour
 %%
+%% A filter decides whether to allow or deny a message which send to the target channel.
 %% TODO: doc
+%%
+%% TODO: filter shuold not raise exceptions
+%%
+%% TODO: more realistic example (logi:add_filter => logi:info)
+%%
+%% <pre lang="erlang">
+%% %%%
+%% %%% Example
+%% %%%
+%% > Context = logi_context:new(sample_log, os:timestamp(), info, logi_location:guess_location(), #{}, #{}).
+%% > FilterFun = fun (_, _, _) -> true end,
+%% > Filter = logi_builtin_filter_fun:new(FilterFun),
+%% > logi_filter:apply(Context, [], Filter).
+%% true
+%% </pre>
 -module(logi_filter).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -28,28 +44,65 @@
 -type filter() :: filter(state()).
 %% An instance of `logi_filter' behaviour implementation module.
 
--opaque filter() :: {callback_module(), state()}.
+-opaque filter(State) :: {callback_module(), State}
+                       | callback_module().
+%% A specialized type of `filter/0'.
+%% This may be useful for modules which want to annotate their own `State' type.
+
 -type callback_module() :: module().
+%% A module that implements the `logi_filter' behaviour.
+
 -type state() :: term().
+%% The value of the third arguemnt of the `filter/3' callback function.
+%%
+%% If the `filter()' does not have an explicit `state()', `undefined' will be passed instead.
+
 -type options() :: [option()].
+%% Filter implementation module defined options
+
 -type option() :: {Key::term(), Value::term()}.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
+%% @equiv new(Module, undefined)
 -spec new(callback_module()) -> filter().
 new(Module) -> new(Module, undefined).
 
--spec new(callback_module(), state()) -> filter().
+%% @doc Creates a new filter instance
+-spec new(callback_module(), State) -> filter(State) when State :: state().
 new(Module, State) ->
-    _ = is_atom(Module) orelse error(badarg, [Module, State]),
-    {Module, State}.
+    _ = is_filter(Module) orelse error(badarg, [Module, State]),
+    unsafe_new(Module, State).
 
--spec is_filter(term()) -> boolean().
-is_filter({Module, _}) -> is_atom(Module);
-is_filter(_)           -> false.
+%% @doc Returns `true' if `X' is a filter, `false' otherwise
+-spec is_filter(X :: (filter() | term())) -> boolean().
+is_filter({Module, _}) -> is_filter(Module);
+is_filter(Module)      -> is_atom(Module) andalso logi_utils:function_exported(Module, filter, 3).
 
--spec apply(logi_context:context(), options(), filter()) -> {boolean(), filter()}.
-apply(Context, Options, {M, S0}) ->
-    {Bool, S1} = M:filter(Context, Options, S0),
-    {Bool, {M, S1}}.
+%% @doc Gets the module of `Filter'
+-spec get_module(Filter :: filter()) -> callback_module().
+get_module(Module) when is_atom(Module) -> Module;
+get_module({Module, _})                 -> Module.
+
+%% @doc Gets the state of `Filter'
+-spec get_state(Filter :: filter()) -> state().
+get_state(Module) when is_atom(Module) -> undefined;
+get_state({_, State})                  -> State.
+
+%% @doc Applies `Filter'
+-spec apply(logi_context:context(), options(), Filter :: filter()) -> boolean() | {boolean(), filter()}.
+apply(Context, Options, Filter) ->
+    Module = get_module(Filter),
+    State0 = get_state(Filter),
+    case Module:filter(Context, Options, State0) of
+        {Bool, State1} -> {Bool, unsafe_new(Module, State1)};
+        Bool           -> Bool
+    end.
+
+%%----------------------------------------------------------------------------------------------------------------------
+%% Internal Functions
+%%----------------------------------------------------------------------------------------------------------------------
+-spec unsafe_new(callback_module(), state()) -> filter().
+unsafe_new(Module, undefined) -> Module;
+unsafe_new(Module, State)     -> {Module, State}.

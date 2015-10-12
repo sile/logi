@@ -69,7 +69,7 @@ extra_data() = term()
 
  The value of the fourth arguemnt of the `format/4` callback function.
 
-If the `layout()` does not have a explicit `extra_data()`, `undefined` will be passed instead.
+If the `layout()` does not have an explicit `extra_data()`, `undefined` will be passed instead.
 
 
 
@@ -90,14 +90,14 @@ This may be useful for modules which want to annotate their own `ExtraData` type
 layout() = <a href="#type-layout">layout</a>(<a href="#type-extra_data">extra_data()</a>)
 </code></pre>
 
- An instance of `layout` behaviour implementation module.
+ An instance of `logi_layout` behaviour implementation module.
 
 <a name="index"></a>
 
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#format-4">format/4</a></td><td>Returns an <code>iodata()</code> which represents <code>Data</code> formatted by <code>Layout</code> in accordance with <code>Format</code> and <code>Context</code></td></tr><tr><td valign="top"><a href="#is_layout-1">is_layout/1</a></td><td>Returns <code>true</code> if <code>X</code> is a layout, <code>false</code> otherwise.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Equivalent to <a href="#new-2"><tt>new(Module, undefined)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new layout instance.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#format-4">format/4</a></td><td>Returns an <code>iodata()</code> which represents <code>Data</code> formatted by <code>Layout</code> in accordance with <code>Format</code> and <code>Context</code></td></tr><tr><td valign="top"><a href="#get_extra_data-1">get_extra_data/1</a></td><td>Gets the extra data of <code>Layout</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Layout</code></td></tr><tr><td valign="top"><a href="#is_layout-1">is_layout/1</a></td><td>Returns <code>true</code> if <code>X</code> is a layout, <code>false</code> otherwise.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Equivalent to <a href="#new-2"><tt>new(Module, undefined)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new layout instance.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -114,6 +114,28 @@ format(Context::<a href="logi_context.md#type-context">logi_context:context()</a
 <br />
 
 Returns an `iodata()` which represents `Data` formatted by `Layout` in accordance with `Format` and `Context`
+
+<a name="get_extra_data-1"></a>
+
+### get_extra_data/1 ###
+
+<pre><code>
+get_extra_data(Layout::<a href="#type-layout">layout()</a>) -&gt; <a href="#type-extra_data">extra_data()</a>
+</code></pre>
+<br />
+
+Gets the extra data of `Layout`
+
+<a name="get_module-1"></a>
+
+### get_module/1 ###
+
+<pre><code>
+get_module(Layout::<a href="#type-layout">layout()</a>) -&gt; <a href="#type-callback_module">callback_module()</a>
+</code></pre>
+<br />
+
+Gets the module of `Layout`
 
 <a name="is_layout-1"></a>
 

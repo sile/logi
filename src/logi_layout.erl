@@ -52,7 +52,7 @@
 -type extra_data() :: term().
 %% The value of the fourth arguemnt of the `format/4' callback function.
 %%
-%% If the `layout()' does not have a explicit `extra_data()', `undefined' will be passed instead.
+%% If the `layout()' does not have an explicit `extra_data()', `undefined' will be passed instead.
 
 -type data() :: [term()].
 %% A data which is subject to format
