@@ -20,8 +20,10 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([format/4]).
+-export([new/1, new/2]).
 -export([is_layout/1]).
+-export([get_module/1, get_extra_data/1]).
+-export([format/4]).
 
 -export_type([layout/0, layout/1]).
 -export_type([data/0]).
@@ -36,10 +38,11 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
--type layout() :: callback_module() | {callback_module(), extra_data()}.
-%% An instance of `layout' behaviour implementation module.
+-type layout() :: layout(extra_data()).
+%% An instance of `logi_layout' behaviour implementation module.
 
--type layout(ExtraData) :: {callback_module(), ExtraData}.
+-opaque layout(ExtraData) :: {callback_module(), ExtraData}
+                           | callback_module().
 %% A specialized type of `layout/0'.
 %% This may be useful for modules which want to annotate their own `ExtraData' type.
 
@@ -57,12 +60,35 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @doc Returns an `iodata()' which represents `Data' formatted by `Layout' in accordance with `Format' and `Context'
--spec format(logi_context:context(), io:format(), data(), Layout :: layout()) -> iodata().
-format(Context, Format, Data, {Module, Extra}) -> Module:format(Context, Format, Data, Extra);
-format(Context, Format, Data, Module)          -> Module:format(Context, Format, Data, undefined).
+%% @equiv new(Module, undefined)
+-spec new(callback_module()) -> layout().
+new(Module) -> new(Module, undefined).
+
+%% @doc Creates a new layout instance
+-spec new(callback_module(), ExtraData) -> layout(ExtraData) when ExtraData :: extra_data().
+new(Module, ExtraData) ->
+    _ = is_layout(Module) orelse error(badarg, [Module, ExtraData]),
+    case ExtraData of
+        undefined -> Module;
+        _         -> {Module, ExtraData}
+    end.
 
 %% @doc Returns `true' if `X' is a layout, `false' otherwise
 -spec is_layout(X :: (layout() | term())) -> boolean().
 is_layout({Module, _}) -> is_layout(Module);
 is_layout(Module)      -> is_atom(Module) andalso logi_utils:function_exported(Module, format, 4).
+
+%% @doc Gets the module of `Layout'
+-spec get_module(Layout :: layout()) -> callback_module().
+get_module(Module) when is_atom(Module) -> Module;
+get_module({Module, _})                 -> Module.
+
+%% @doc Gets the extra data of `Layout'
+-spec get_extra_data(Layout :: layout()) -> extra_data().
+get_extra_data(Module) when is_atom(Module) -> undefined;
+get_extra_data({_, ExtraData})              -> ExtraData.
+
+%% @doc Returns an `iodata()' which represents `Data' formatted by `Layout' in accordance with `Format' and `Context'
+-spec format(logi_context:context(), io:format(), data(), Layout :: layout()) -> iodata().
+format(Context, Format, Data, {Module, Extra}) -> Module:format(Context, Format, Data, Extra);
+format(Context, Format, Data, Module)          -> Module:format(Context, Format, Data, undefined).

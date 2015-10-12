@@ -6,7 +6,7 @@
 * [Function Index](#index)
 * [Function Details](#functions)
 
-TODO.
+Log Message Filter Behaviour.
 
 Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 

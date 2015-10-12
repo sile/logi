@@ -1,6 +1,8 @@
 %% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc TODO
+%% @doc Log Message Filter Behaviour
+%%
+%% TODO: doc
 -module(logi_filter).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -8,21 +10,24 @@
 %%----------------------------------------------------------------------------------------------------------------------
 -export([new/1, new/2]).
 -export([is_filter/1]).
--export([to_map/1, from_map/1]).
+-export([get_module/1, get_state/1]).
 -export([apply/3]).
 
--export_type([filter/0]).
+-export_type([filter/0, filter/1]).
 -export_type([callback_module/0, state/0]).
 -export_type([option/0, options/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Behaviour Callbacks
 %%----------------------------------------------------------------------------------------------------------------------
--callback filter(logi_context:context(), options(), state()) -> {boolean(), state()}.
+-callback filter(logi_context:context(), options(), state()) -> boolean() | {boolean(), state()}.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
+-type filter() :: filter(state()).
+%% An instance of `logi_filter' behaviour implementation module.
+
 -opaque filter() :: {callback_module(), state()}.
 -type callback_module() :: module().
 -type state() :: term().
@@ -43,16 +48,6 @@ new(Module, State) ->
 -spec is_filter(term()) -> boolean().
 is_filter({Module, _}) -> is_atom(Module);
 is_filter(_)           -> false.
-
--spec to_map(filter()) -> #{module => callback_module(), state => state()}.
-to_map({Module, State}) when is_atom(Module) -> #{module => Module, state => State};
-to_map(X)                                    -> error(badarg, [X]).
-
--spec from_map(Map) -> filter() when
-      Map :: #{module => callback_module(), state => state()}.
-from_map(#{module := Module, state := State}) when is_atom(Module) -> new(Module, State);
-from_map(#{module := Module})                 when is_atom(Module) -> new(Module);
-from_map(X)                                                        -> error(badarg, [X]).
 
 -spec apply(logi_context:context(), options(), filter()) -> {boolean(), filter()}.
 apply(Context, Options, {M, S0}) ->

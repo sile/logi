@@ -76,9 +76,7 @@ If the `layout()` does not have a explicit `extra_data()`, `undefined` will be p
 ### <a name="type-layout">layout()</a> ###
 
 
-<pre><code>
-layout(ExtraData) = {<a href="#type-callback_module">callback_module()</a>, ExtraData}
-</code></pre>
+__abstract datatype__: `layout(ExtraData)`
 
  A specialized type of `layout/0`.
 This may be useful for modules which want to annotate their own `ExtraData` type.
@@ -89,7 +87,7 @@ This may be useful for modules which want to annotate their own `ExtraData` type
 
 
 <pre><code>
-layout() = <a href="#type-callback_module">callback_module()</a> | {<a href="#type-callback_module">callback_module()</a>, <a href="#type-extra_data">extra_data()</a>}
+layout() = <a href="#type-layout">layout</a>(<a href="#type-extra_data">extra_data()</a>)
 </code></pre>
 
  An instance of `layout` behaviour implementation module.
@@ -99,7 +97,7 @@ layout() = <a href="#type-callback_module">callback_module()</a> | {<a href="#ty
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#format-4">format/4</a></td><td>Returns an <code>iodata()</code> which represents <code>Data</code> formatted by <code>Layout</code> in accordance with <code>Format</code> and <code>Context</code></td></tr><tr><td valign="top"><a href="#is_layout-1">is_layout/1</a></td><td>Returns <code>true</code> if <code>X</code> is a layout, <code>false</code> otherwise.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#format-4">format/4</a></td><td>Returns an <code>iodata()</code> which represents <code>Data</code> formatted by <code>Layout</code> in accordance with <code>Format</code> and <code>Context</code></td></tr><tr><td valign="top"><a href="#is_layout-1">is_layout/1</a></td><td>Returns <code>true</code> if <code>X</code> is a layout, <code>false</code> otherwise.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Equivalent to <a href="#new-2"><tt>new(Module, undefined)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new layout instance.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -127,4 +125,27 @@ is_layout(X::<a href="#type-layout">layout()</a> | term()) -&gt; boolean()
 <br />
 
 Returns `true` if `X` is a layout, `false` otherwise
+
+<a name="new-1"></a>
+
+### new/1 ###
+
+<pre><code>
+new(Module::<a href="#type-callback_module">callback_module()</a>) -&gt; <a href="#type-layout">layout()</a>
+</code></pre>
+<br />
+
+Equivalent to [`new(Module, undefined)`](#new-2).
+
+<a name="new-2"></a>
+
+### new/2 ###
+
+<pre><code>
+new(Module::<a href="#type-callback_module">callback_module()</a>, ExtraData) -&gt; <a href="#type-layout">layout</a>(ExtraData)
+</code></pre>
+
+<ul class="definitions"><li><code>ExtraData = <a href="#type-extra_data">extra_data()</a></code></li></ul>
+
+Creates a new layout instance
 

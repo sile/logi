@@ -49,7 +49,7 @@
 -spec new(format_fun()) -> logi_layout:layout(format_fun()).
 new(Fun) ->
     _ = erlang:is_function(Fun, 3) orelse error(badarg, [Fun]),
-    {?MODULE, Fun}.
+    logi_layout:new(?MODULE, Fun).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_layout' Callback Functions
