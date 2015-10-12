@@ -9,6 +9,8 @@
 %%
 %% TODO: more realistic example (logi:add_filter => logi:info)
 %%
+%% TODO: logi_builtin_filter_or, logi_builtin_filter_and, logi_builtin_filter_true, logi_builtin_filter_false
+%%
 %% <pre lang="erlang">
 %% %%%
 %% %%% Example
@@ -27,17 +29,15 @@
 -export([new/1, new/2]).
 -export([is_filter/1]).
 -export([get_module/1, get_state/1]).
--export([apply/3]).
+-export([apply/2]).
 
 -export_type([filter/0, filter/1]).
 -export_type([callback_module/0, state/0]).
--export_type([id/0]).
--export_type([options/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Behaviour Callbacks
 %%----------------------------------------------------------------------------------------------------------------------
--callback filter(logi_context:context(), options(), state()) -> boolean() | {boolean(), state()}.
+-callback filter(logi_context:context(), state()) -> boolean() | {boolean(), state()}.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
@@ -57,12 +57,6 @@
 %% The value of the third arguemnt of the `filter/3' callback function.
 %%
 %% If the `filter()' does not have an explicit `state()', `undefined' will be passed instead.
-
--type id() :: term().
-%% The identifier of a filter instance.
-
--type options() :: [{Key::term(), Value::term()}].
-%% Filter implementation module defined options
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
@@ -93,11 +87,11 @@ get_state(Module) when is_atom(Module) -> undefined;
 get_state({_, State})                  -> State.
 
 %% @doc Applies `Filter'
--spec apply(logi_context:context(), options(), Filter :: filter()) -> boolean() | {boolean(), filter()}.
-apply(Context, Options, Filter) ->
+-spec apply(logi_context:context(), Filter :: filter()) -> boolean() | {boolean(), filter()}.
+apply(Context, Filter) ->
     Module = get_module(Filter),
     State0 = get_state(Filter),
-    case Module:filter(Context, Options, State0) of
+    case Module:filter(Context, State0) of
         {Bool, State1} -> {Bool, unsafe_new(Module, State1)};
         Bool           -> Bool
     end.

@@ -85,7 +85,8 @@
 -type new_options() :: [new_option()].
 -type new_option() :: {headers, headers()}
                     | {metadata, metadata()}
-                    | {filters, [logi_filter:filter()]}.
+                    | {filter, logi_filter:filter()}
+                    | {next, logger_instance()}.
 
 -type headers() :: #{}.
 -type metadata() :: #{}.
@@ -94,8 +95,7 @@
 -type log_option() :: {logger, logger()}
                     | {location, logi_location:location()}
                     | {headers, headers()}
-                    | {metadata, metadata()}
-                    | {logi_filter:id(), logi_filter:options()}.
+                    | {metadata, metadata()}.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros

@@ -11,10 +11,14 @@
 -export([to_map/1, from_map/1]).
 -export([is_logger/1]).
 
+%% -export([get_xxx]).
+
 -export([set_headers/3]).
 -export([delete_headers/2]).
 -export([set_metadata/3]).
 -export([delete_metadata/2]).
+%% -export([set_filter/3]).
+%% -export([delete_filter/1]).
 
 -export([ready/4]).
 -export([write/4]).
@@ -24,15 +28,27 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros & Records & Types
 %%----------------------------------------------------------------------------------------------------------------------
+-define(GET_AND_VALIDATE(Key, List, Default, ValidateFun, Args),
+        (fun () ->
+                 case proplists:get_value(Key, List, Default) of
+                     Default -> Default;
+                     Value   ->
+                         case ValidateFun(Value) of
+                             false -> error(badarg, Args);
+                             true  -> Value
+                         end
+                 end
+         end)()).
+
 -define(LOGGER, ?MODULE).
 
 -record(?LOGGER,
         {
-          channel_id      :: logi_channel:id(),
-          headers  = none :: none | logi:headers(), % TODO: noneにすることでサイズが節約できるかどうか
-          metadata = none :: none | logi:headers(),
-          filters  = []   :: [logi_filter:filter()],
-          next     = none :: none | logger()
+          channel_id     :: logi_channel:id(),
+          headers  = #{} :: logi:headers(),
+          metadata = #{} :: logi:metadata(),
+          filter         :: undefined | logi_filter:filter(),
+          next           :: undefined | logger()
         }).
 
 -opaque logger() :: #?LOGGER{}.
@@ -49,20 +65,19 @@ new(ChannelId, Options) ->
     Args = [ChannelId, Options],
     _ = is_atom(ChannelId) orelse error(badarg, Args),
     _ = is_list(Options) orelse error(badarg, Args),
-    Headers = get_and_validate(headers, Options, none, fun erlang:is_map/1),
-    Headers =:= false andalso error(badarg, Args),
-    Metadata = get_and_validate(metadata, Options, none, fun erlang:is_map/1),
-    Metadata =:= false andalso error(badarg, Args),
+    Headers  = ?GET_AND_VALIDATE(headers, Options, #{}, fun erlang:is_map/1, Args),
+    Metadata = ?GET_AND_VALIDATE(metadata, Options, #{}, fun erlang:is_map/1, Args),
+    Filter   = ?GET_AND_VALIDATE(filter, Options, undefined, fun logi_filter:is_filter/1, Args),
+    Next     = ?GET_AND_VALIDATE(next, Options, undefined, fun is_logger/1, Args),
+    #?LOGGER{
+        channel_id = ChannelId,
+        headers    = Headers,
+        metadata   = Metadata,
+        filter     = Filter,
+        next       = Next
+       }.
 
-    Logger =
-        #?LOGGER{
-            channel_id      = ChannelId,
-            headers         = Headers, % TODO: #{}ならnoneにする
-            metadata        = Metadata
-           },
-    Logger.
-
--spec is_logger(logger() | term()) -> boolean().
+-spec is_logger(X :: (logger() | term())) -> boolean().
 is_logger(X) -> is_record(X, ?LOGGER).
 
 -spec to_map(logger()) -> logi:logger_map().
@@ -113,8 +128,9 @@ delete_metadata(Keys, Logger) ->
 -spec ready(logger(), logi:severity(), logi_location:location(), logi:log_options()) -> Result when
       Result :: {[logi_sink:sink()], logi_context:context(), logger()} | logger().
 ready(Logger0, Severity, DefaultLocation, Options) ->
-    _ = is_list(Options) orelse error(badarg, [Severity, Options]),
-    Location = get_and_validate(location, Options, DefaultLocation, fun logi_location:is_location/1),
+    Args = [Logger0, Severity, DefaultLocation, Options],
+    _ = is_list(Options) orelse error(badarg, Args),
+    Location = ?GET_AND_VALIDATE(location, Options, DefaultLocation, fun logi_location:is_location/1, Args),
     Sinks = logi_channel:select_sink(Logger0#?LOGGER.channel_id, Severity,
                                      logi_location:get_application(Location), logi_location:get_module(Location)),
     case Sinks of
@@ -162,13 +178,6 @@ apply_filters([F0 | Filters], Context, Options, Logger, Acc) ->
     case logi_filter:apply(Context, Options, F0) of
         {true,  F1} -> apply_filters(Filters, Context, Options, Logger, [F1 | Acc]);
         {false, F1} -> {false, Logger#?LOGGER{filters = lists:reverse([F1 | Acc], Filters)}}
-    end.
-
--spec get_and_validate(atom(), list(), term(), fun ((term()) -> boolean())) -> term() | false.
-get_and_validate(Key, List, Default, Validate) ->
-    case proplists:get_value(Key, List, Default) of
-        Default -> Default;
-        Value   -> Validate(Value) andalso Value
     end.
 
 -spec merge(none | #{}, none | #{}) -> none | #{}.

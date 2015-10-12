@@ -5,13 +5,13 @@
 
 -behaviour(logi_filter).
 
--export([filter/3]).
+-export([filter/2]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% `logi_filter` Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
-filter(_Context, Options, _State) ->
-    proplists:get_value(filter, Options, true).
+filter(Context, _State) ->
+    maps:get(filter, logi_context:get_metadata(Context), true).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Unit Tests
@@ -46,12 +46,13 @@ get_test_() ->
     ].
 
 apply_test_() ->
-    Context = logi_context:new(test_log, os:timestamp(), info, logi_location:guess_location(), #{}, #{}),
+    Context0 = logi_context:new(test_log, os:timestamp(), info, logi_location:guess_location(), #{}, #{filter => true}),
+    Context1 = logi_context:new(test_log, os:timestamp(), info, logi_location:guess_location(), #{}, #{filter => false}),
     [
      {"Applies a filter",
       fun () ->
               Filter = logi_filter:new(?MODULE),
-              ?assertEqual(true,  logi_filter:apply(Context, [{filter, true}],  Filter)),
-              ?assertEqual(false, logi_filter:apply(Context, [{filter, false}], Filter))
+              ?assertEqual(true,  logi_filter:apply(Context0, Filter)),
+              ?assertEqual(false, logi_filter:apply(Context1, Filter))
       end}
     ].

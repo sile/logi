@@ -17,7 +17,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_filter' Callback API
 %%----------------------------------------------------------------------------------------------------------------------
--export([filter/3]).
+-export([filter/2]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros & Records & Types
@@ -28,6 +28,7 @@
         {
           id_to_status = #{}        :: #{location_id() => status()},
           expires = logi_heap:new() :: logi_heap:heap(expire_entry())
+          %% TODO: default rate_spec
         }).
 
 -record(normal,
@@ -77,8 +78,9 @@ new() -> logi_filter:new(?MODULE, #?STATE{}).
 %% 'logi_filter' Callback API
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
--spec filter(logi_context:context(), options(), state()) -> {boolean(), state()}.
-filter(Context, Options, State0) ->
+-spec filter(logi_context:context(), state()) -> {boolean(), state()}.
+filter(Context, State0) ->
+    Options = maps:get(options, logi_context:get_metadata(Context), []), % XXX:
     State1 = flush_expired_entries(logi_context:get_timestamp(Context), State0),
     case proplists:get_value(max_rate, Options) of
         undefined         -> {true, State1};
