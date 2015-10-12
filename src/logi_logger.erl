@@ -31,7 +31,8 @@
           channel_id      :: logi_channel:id(),
           headers  = none :: none | logi:headers(), % TODO: noneにすることでサイズが節約できるかどうか
           metadata = none :: none | logi:headers(),
-          filters  = []   :: [logi_filter:filter()]
+          filters  = []   :: [logi_filter:filter()],
+          next     = none :: none | logger()
         }).
 
 -opaque logger() :: #?LOGGER{}.

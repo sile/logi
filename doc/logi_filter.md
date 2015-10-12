@@ -12,6 +12,10 @@ Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
 __This module defines the `logi_filter` behaviour.__<br /> Required callback functions: `filter/3`.
 
+<a name="description"></a>
+
+## Description ##
+A filter decides whether to allow or deny a message which send to the target channel.
 <a name="types"></a>
 
 ## Data Types ##
@@ -51,13 +55,14 @@ filter() = <a href="#type-filter">filter</a>(<a href="#type-state">state()</a>)
 
 
 
-### <a name="type-option">option()</a> ###
+### <a name="type-id">id()</a> ###
 
 
 <pre><code>
-option() = {Key::term(), Value::term()}
+id() = term()
 </code></pre>
 
+ The identifier of a filter instance.
 
 
 
@@ -65,7 +70,7 @@ option() = {Key::term(), Value::term()}
 
 
 <pre><code>
-options() = [<a href="#type-option">option()</a>]
+options() = [{Key::term(), Value::term()}]
 </code></pre>
 
  Filter implementation module defined options

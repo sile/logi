@@ -31,7 +31,8 @@
 
 -export_type([filter/0, filter/1]).
 -export_type([callback_module/0, state/0]).
--export_type([option/0, options/0]).
+-export_type([id/0]).
+-export_type([options/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Behaviour Callbacks
@@ -57,10 +58,11 @@
 %%
 %% If the `filter()' does not have an explicit `state()', `undefined' will be passed instead.
 
--type options() :: [option()].
-%% Filter implementation module defined options
+-type id() :: term().
+%% The identifier of a filter instance.
 
--type option() :: {Key::term(), Value::term()}.
+-type options() :: [{Key::term(), Value::term()}].
+%% Filter implementation module defined options
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
