@@ -74,7 +74,7 @@ new(Module, State) ->
 %% @doc Returns `true' if `X' is a filter, `false' otherwise
 -spec is_filter(X :: (filter() | term())) -> boolean().
 is_filter({Module, _}) -> is_filter(Module);
-is_filter(Module)      -> is_atom(Module) andalso logi_utils:function_exported(Module, filter, 3).
+is_filter(Module)      -> is_atom(Module) andalso logi_utils:function_exported(Module, filter, 2).
 
 %% @doc Gets the module of `Filter'
 -spec get_module(Filter :: filter()) -> callback_module().

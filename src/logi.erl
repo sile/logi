@@ -94,8 +94,10 @@
 -type log_options() :: [log_option()].
 -type log_option() :: {logger, logger()}
                     | {location, logi_location:location()}
+                    | {subject, term()}
                     | {headers, headers()}
-                    | {metadata, metadata()}.
+                    | {metadata, metadata()}
+                    | {timestamp, erlang:timestamp()}.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros
@@ -220,6 +222,7 @@ set_metadata(Metadata) -> set_metadata(Metadata, []).
       Options :: [Option],
       Option  :: {logger, logger()}
                | {if_exists, ignore | overwrite | supersede}.
+%% TODO: {recursive, boolean()}
 set_metadata(Metadata, Options) ->
     _ = is_list(Options) orelse erlang:error(badarg, [Metadata, Options]), % TODO: redundant error handling
     IfExists = proplists:get_value(if_exists, Options, overwrite),
@@ -259,6 +262,7 @@ delete_metadata(Keys, Options) ->
 %% TODO: private(?)
 -spec log(severity(), io:format(), [term()], log_options()) -> logger_instance().
 log(Severity, Format, FormatArgs, Options) ->
+    %% TODO: application:get_env(warn_deprecated) orelse do_warn()
     _ = is_list(Options) orelse erlang:error(badarg, [Severity, Format, FormatArgs, Options]),
     DefaultLocation =
         case lists:keyfind(location, 1, Options) of
@@ -266,13 +270,8 @@ log(Severity, Format, FormatArgs, Options) ->
             {_, Location} -> Location
         end,
     {Need, Logger0} = load_if_need(proplists:get_value(logger, Options, default_logger())),
-    case logi_logger:ready(Logger0, Severity, DefaultLocation, Options) of
-        {Sinks, Context, Logger1} ->
-            ok = logi_logger:write(Sinks, Context, Format, FormatArgs),
-            Logger1;
-        Logger1 ->
-            Logger1
-    end,
+    {Results, Logger1} = logi_logger:ready(Logger0, Severity, DefaultLocation, Options),
+    ok = lists:foreach(fun ({Context, Sinks}) -> logi_logger:write(Sinks, Context, Format, FormatArgs) end, Results),
     save_if_need(Need, Logger1).
 
 -spec debug(io:format()) -> logger_instance().

@@ -30,8 +30,8 @@ create_test_() ->
       end},
      {"A module which does not implement `logi_filter' behaviour is not regarded as a filter",
       fun () ->
-              ?assertNot(logi_filter:is_filter(lists)),
-              ?assertError(badarg, logi_filter:new(lists))
+              ?assertNot(logi_filter:is_filter(gen_server)),
+              ?assertError(badarg, logi_filter:new(gen_server))
       end}
     ].
 
@@ -46,8 +46,8 @@ get_test_() ->
     ].
 
 apply_test_() ->
-    Context0 = logi_context:new(test_log, os:timestamp(), info, logi_location:guess_location(), #{}, #{filter => true}),
-    Context1 = logi_context:new(test_log, os:timestamp(), info, logi_location:guess_location(), #{}, #{filter => false}),
+    Context0 = logi_context:new(test_log, os:timestamp(), info, undefined, logi_location:guess_location(), #{}, #{filter => true}),
+    Context1 = logi_context:new(test_log, os:timestamp(), info, undefined, logi_location:guess_location(), #{}, #{filter => false}),
     [
      {"Applies a filter",
       fun () ->

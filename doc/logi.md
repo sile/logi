@@ -41,7 +41,7 @@ log_level() = debug | verbose | info | notice | warning | error | critical | ale
 
 
 <pre><code>
-log_option() = {logger, <a href="#type-logger">logger()</a>} | {location, <a href="logi_location.md#type-location">logi_location:location()</a>} | {headers, <a href="#type-headers">headers()</a>} | {metadata, <a href="#type-metadata">metadata()</a>} | {<a href="logi_filter.md#type-id">logi_filter:id()</a>, <a href="logi_filter.md#type-options">logi_filter:options()</a>}
+log_option() = {logger, <a href="#type-logger">logger()</a>} | {location, <a href="logi_location.md#type-location">logi_location:location()</a>} | {subject, term()} | {headers, <a href="#type-headers">headers()</a>} | {metadata, <a href="#type-metadata">metadata()</a>} | {timestamp, <a href="erlang.md#type-timestamp">erlang:timestamp()</a>}
 </code></pre>
 
 
@@ -109,7 +109,7 @@ metadata() = #{}
 
 
 <pre><code>
-new_option() = {headers, <a href="#type-headers">headers()</a>} | {metadata, <a href="#type-metadata">metadata()</a>} | {filters, [<a href="logi_filter.md#type-filter">logi_filter:filter()</a>]}
+new_option() = {headers, <a href="#type-headers">headers()</a>} | {metadata, <a href="#type-metadata">metadata()</a>} | {filter, <a href="logi_filter.md#type-filter">logi_filter:filter()</a>} | {next, <a href="#type-logger_instance">logger_instance()</a>}
 </code></pre>
 
 

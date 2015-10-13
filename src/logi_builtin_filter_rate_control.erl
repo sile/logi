@@ -50,7 +50,7 @@
 
 -type rate_spec() ::
         #{
-           id        => rate_spec_id(),
+           id        => rate_spec_id(), % TODO: replace to the result of logi_context:get_subject/1
            intensity => non_neg_integer(),
            period    => non_neg_seconds()
          }.

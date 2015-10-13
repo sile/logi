@@ -10,7 +10,7 @@ Log Message Filter Behaviour.
 
 Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
-__This module defines the `logi_filter` behaviour.__<br /> Required callback functions: `filter/3`.
+__This module defines the `logi_filter` behaviour.__<br /> Required callback functions: `filter/2`.
 
 <a name="description"></a>
 
@@ -55,28 +55,6 @@ filter() = <a href="#type-filter">filter</a>(<a href="#type-state">state()</a>)
 
 
 
-### <a name="type-id">id()</a> ###
-
-
-<pre><code>
-id() = term()
-</code></pre>
-
- The identifier of a filter instance.
-
-
-
-### <a name="type-options">options()</a> ###
-
-
-<pre><code>
-options() = [{Key::term(), Value::term()}]
-</code></pre>
-
- Filter implementation module defined options
-
-
-
 ### <a name="type-state">state()</a> ###
 
 
@@ -93,19 +71,19 @@ If the `filter()` does not have an explicit `state()`, `undefined` will be passe
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#apply-3">apply/3</a></td><td>Applies <code>Filter</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Filter</code></td></tr><tr><td valign="top"><a href="#get_state-1">get_state/1</a></td><td>Gets the state of <code>Filter</code></td></tr><tr><td valign="top"><a href="#is_filter-1">is_filter/1</a></td><td>Returns <code>true</code> if <code>X</code> is a filter, <code>false</code> otherwise.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Equivalent to <a href="#new-2"><tt>new(Module, undefined)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new filter instance.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#apply-2">apply/2</a></td><td>Applies <code>Filter</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Filter</code></td></tr><tr><td valign="top"><a href="#get_state-1">get_state/1</a></td><td>Gets the state of <code>Filter</code></td></tr><tr><td valign="top"><a href="#is_filter-1">is_filter/1</a></td><td>Returns <code>true</code> if <code>X</code> is a filter, <code>false</code> otherwise.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Equivalent to <a href="#new-2"><tt>new(Module, undefined)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new filter instance.</td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
 
-<a name="apply-3"></a>
+<a name="apply-2"></a>
 
-### apply/3 ###
+### apply/2 ###
 
 <pre><code>
-apply(Context::<a href="logi_context.md#type-context">logi_context:context()</a>, Options::<a href="#type-options">options()</a>, Filter::<a href="#type-filter">filter()</a>) -&gt; boolean() | {boolean(), <a href="#type-filter">filter()</a>}
+apply(Context::<a href="logi_context.md#type-context">logi_context:context()</a>, Filter::<a href="#type-filter">filter()</a>) -&gt; boolean() | {boolean(), <a href="#type-filter">filter()</a>}
 </code></pre>
 <br />
 

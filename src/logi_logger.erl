@@ -8,17 +8,13 @@
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([new/1, new/2]).
--export([to_map/1, from_map/1]).
 -export([is_logger/1]).
-
-%% -export([get_xxx]).
+-export([to_map/1, from_map/1]).
 
 -export([set_headers/3]).
 -export([delete_headers/2]).
 -export([set_metadata/3]).
 -export([delete_metadata/2]).
-%% -export([set_filter/3]).
-%% -export([delete_filter/1]).
 
 -export([ready/4]).
 -export([write/4]).
@@ -30,12 +26,13 @@
 %%----------------------------------------------------------------------------------------------------------------------
 -define(GET_AND_VALIDATE(Key, List, Default, ValidateFun, Args),
         (fun () ->
-                 case proplists:get_value(Key, List, Default) of
-                     Default -> Default;
-                     Value   ->
-                         case ValidateFun(Value) of
+                 __Value = proplists:get_value(Key, List, Default),
+                 case __Value =:= Default of
+                     true  -> Default;
+                     false ->
+                         case ValidateFun(__Value) of
                              false -> error(badarg, Args);
-                             true  -> Value
+                             true  -> __Value
                          end
                  end
          end)()).
@@ -77,72 +74,94 @@ new(ChannelId, Options) ->
         next       = Next
        }.
 
+%% @doc Returns `true' if `X' is a logger, `false' otherwise
 -spec is_logger(X :: (logger() | term())) -> boolean().
 is_logger(X) -> is_record(X, ?LOGGER).
 
 -spec to_map(logger()) -> logi:logger_map().
 to_map(L = #?LOGGER{}) ->
-    maps:put(
-      channel_id, L#?LOGGER.channel_id,
-      maps:filter(
-        fun (_, V) -> V =/= none end,
-        #{
-           headers              => L#?LOGGER.headers,
-           metadata             => L#?LOGGER.metadata,
-           filters              => L#?LOGGER.filters
-         })).
+    maps:filter(
+      fun is_not_default/2,
+      #{
+         channel_id => L#?LOGGER.channel_id,
+         headers    => L#?LOGGER.headers,
+         metadata   => L#?LOGGER.metadata,
+         filter     => L#?LOGGER.filter,
+         next       => L#?LOGGER.next
+       }).
 
 -spec from_map(logi:logger_map()) -> logger().
-from_map(#{channel_id := ChannelId} = Map) ->
-    new(ChannelId,
-        [
-         {headers, maps:get(headers, Map, none)},
-         {metadata, maps:get(metadata, Map, none)},
-         {filters, maps:get(filters, Map, [])}
-        ]);
-from_map(Map) ->
-    error(badarg, [Map]).
+from_map(Map = #{channel_id := ChannelId}) -> new(ChannelId, maps:to_list(Map));
+from_map(Map)                              -> error(badarg, [Map]).
 
 -spec set_headers(logi:headers(), ignore | overwrite | supersede, logger()) -> logger().
-set_headers(Headers, _, Logger = #?LOGGER{headers = none}) -> Logger#?LOGGER{headers = Headers};
 set_headers(Headers, ignore,    Logger) -> Logger#?LOGGER{headers = maps:merge(Headers, Logger#?LOGGER.headers)};
 set_headers(Headers, overwrite, Logger) -> Logger#?LOGGER{headers = maps:merge(Logger#?LOGGER.headers, Headers)};
 set_headers(Headers, supersede, Logger) -> Logger#?LOGGER{headers = Headers}.
 
 -spec delete_headers([term()], logger()) -> logger().
-delete_headers(_Keys, Logger = #?LOGGER{headers = none}) -> Logger;
-delete_headers(Keys, Logger) ->
-    Logger#?LOGGER{headers = maps:without(Keys, Logger#?LOGGER.headers)}.
+delete_headers(Keys, Logger) -> Logger#?LOGGER{headers = maps:without(Keys, Logger#?LOGGER.headers)}.
 
 -spec set_metadata(logi:metadata(), ignore | overwrite | supersede, logger()) -> logger().
-set_metadata(Metadata, _, Logger = #?LOGGER{metadata = none}) -> Logger#?LOGGER{metadata = Metadata};
 set_metadata(Metadata, ignore,    Logger) -> Logger#?LOGGER{metadata = maps:merge(Metadata, Logger#?LOGGER.metadata)};
 set_metadata(Metadata, overwrite, Logger) -> Logger#?LOGGER{metadata = maps:merge(Logger#?LOGGER.metadata, Metadata)};
 set_metadata(Metadata, supersede, Logger) -> Logger#?LOGGER{metadata = Metadata}.
 
 -spec delete_metadata([term()], logger()) -> logger().
-delete_metadata(_Keys, Logger = #?LOGGER{metadata = none}) -> Logger;
-delete_metadata(Keys, Logger) ->
-    Logger#?LOGGER{metadata = maps:without(Keys, Logger#?LOGGER.metadata)}.
+delete_metadata(Keys, Logger) -> Logger#?LOGGER{metadata = maps:without(Keys, Logger#?LOGGER.metadata)}.
 
--spec ready(logger(), logi:severity(), logi_location:location(), logi:log_options()) -> Result when
-      Result :: {[logi_sink:sink()], logi_context:context(), logger()} | logger().
+%% TODO: set_filter
+
+%% XXX: name: Result
+-spec ready(logger(), logi:severity(), logi_location:location(), logi:log_options()) -> {[Result], logger()} when
+      Result :: {logi_context:context(), [logi_sink:sink()]}.
 ready(Logger0, Severity, DefaultLocation, Options) ->
     Args = [Logger0, Severity, DefaultLocation, Options],
     _ = is_list(Options) orelse error(badarg, Args),
     Location = ?GET_AND_VALIDATE(location, Options, DefaultLocation, fun logi_location:is_location/1, Args),
+    Subject = proplists:get_value(subject, Options, undefined),
+    Timestamp = proplists:get_value(timestamp, Options, undefined),
+    ready(Logger0, Severity, Subject, Location, undefined, undefined, Timestamp, Options).
+
+%% TODO: spec
+%% TODO: refactoring
+ready(undefined, _, _, _, _, _, _, _) ->
+    {[], undefined};
+ready(Logger0, Severity, Subject, Location, Headers0, Metadata0, Timestamp0, Options) ->
     Sinks = logi_channel:select_sink(Logger0#?LOGGER.channel_id, Severity,
                                      logi_location:get_application(Location), logi_location:get_module(Location)),
     case Sinks of
-        [] -> Logger0;
+        [] ->
+            {Results, Next} = ready(Logger0#?LOGGER.next, Severity, Subject, Location, Headers0, Metadata0, Timestamp0, Options),
+            {Results, Logger0#?LOGGER{next = Next}};
         _  ->
-            Headers = merge(Logger0#?LOGGER.headers, proplists:get_value(headers, Options, none)),
-            Metadata = merge(Logger0#?LOGGER.metadata, proplists:get_value(metadata, Options, none)),
-            %% TODO: reuse the timestamp
-            Context = logi_context:unsafe_new(Logger0#?LOGGER.channel_id, os:timestamp(), Severity, Location, Headers, Metadata),
-            case apply_filters(Context, Options, Logger0) of
-                {false, Logger1} -> {[],    Context, Logger1};
-                {true,  Logger1} -> {Sinks, Context, Logger1}
+            Headers1 =
+                case Headers0 of
+                    undefined -> proplists:get_value(headers, Options, #{});
+                    _         -> Headers0
+                end,
+            FullHeaders = maps:merge(Logger0#?LOGGER.headers, Headers1),
+
+            Metadata1 =
+                case Metadata0 of
+                    undefined -> proplists:get_value(metadata, Options, #{});
+                    _         -> Metadata0
+                end,
+            FullMetadata = maps:merge(Logger0#?LOGGER.metadata, Metadata1),
+
+            Timestamp1 =
+                case Timestamp0 of
+                    undefined -> os:timestamp();
+                    _         -> Timestamp0
+                end,
+
+            Context =
+                logi_context:unsafe_new(
+                  Logger0#?LOGGER.channel_id, Timestamp1, Severity, Subject, Location, FullHeaders, FullMetadata),
+            {Results, Next} = ready(Logger0#?LOGGER.next, Severity, Subject, Location, Headers1, Metadata1, Timestamp1, Options),
+            case apply_filter(Context, Logger0#?LOGGER{next = Next}) of
+                {false, Logger1} -> {Results, Logger1};
+                {true,  Logger1} -> {[{Context, Sinks} | Results], Logger1}
             end
     end.
 
@@ -165,22 +184,18 @@ write(Sinks, Context, Format, FormatArgs) ->
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
 %%----------------------------------------------------------------------------------------------------------------------
--spec apply_filters(logi_context:context(), logi_filter:options(), logger()) -> {boolean(), logger()}.
-apply_filters(Context, Options, Logger) ->
-    apply_filters(Logger#?LOGGER.filters, Context, Options, Logger, []).
-
-%% TODO: 適用順序保証が必要かどうか
--spec apply_filters([logi_filter:filter()], logi_context:context(), logi_filter:options(), logger(), [logi_filter:filter()]) ->
-                           {boolean(), logger()}.
-apply_filters([], _Context, _Options, Logger, Acc) ->
-    {true, Logger#?LOGGER{filters = lists:reverse(Acc)}};
-apply_filters([F0 | Filters], Context, Options, Logger, Acc) ->
-    case logi_filter:apply(Context, Options, F0) of
-        {true,  F1} -> apply_filters(Filters, Context, Options, Logger, [F1 | Acc]);
-        {false, F1} -> {false, Logger#?LOGGER{filters = lists:reverse([F1 | Acc], Filters)}}
+-spec apply_filter(logi_context:context(), logger()) -> {boolean(), logger()}.
+apply_filter(_Context, Logger = #?LOGGER{filter = undefined}) ->
+    {true, Logger};
+apply_filter(Context, Logger = #?LOGGER{filter = Filter0}) ->
+    case logi_filter:apply(Context, Filter0) of
+        {Result, Filter1} -> {Result, Logger#?LOGGER{filter = Filter1}};
+        Result            -> {Result, Logger}
     end.
 
--spec merge(none | #{}, none | #{}) -> none | #{}.
-merge(none, Map)  -> Map;
-merge(Map, none)  -> Map;
-merge(Map0, Map1) -> maps:merge(Map0, Map1).
+-spec is_not_default(atom(), term()) -> boolean().
+is_not_default(headers, V)        -> V =/= #{};
+is_not_default(metadata, V)       -> V =/= #{};
+is_not_default(filter, undefined) -> false;
+is_not_default(next, undefined)   -> false;
+is_not_default(_, _)              -> true.

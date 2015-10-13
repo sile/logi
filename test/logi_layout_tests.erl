@@ -46,7 +46,7 @@ get_test_() ->
     ].
 
 format_test_() ->
-    Context = logi_context:new(test_log, os:timestamp(), info, logi_location:guess_location(), #{}, #{}),
+    Context = logi_context:new(test_log, os:timestamp(), info, undefined, logi_location:guess_location(), #{}, #{}),
     [
      {"Formats data",
       fun () ->
