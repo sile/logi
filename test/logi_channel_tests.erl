@@ -266,11 +266,11 @@ select_test_() ->
 %%----------------------------------------------------------------------------------------------------------------------
 -spec random_condition([atom()], [module()]) -> logi_sink:condition().
 random_condition(Applications, Modules) ->
-    Levels = logi:log_levels(),
+    Severities = logi:severities(),
     case random:uniform(3) of
-        1 -> subshuffle(Levels);
-        2 -> #{severity => subshuffle(Levels), application => subshuffle(Applications)};
-        3 -> #{severity => subshuffle(Levels), application => subshuffle(Applications), module => subshuffle(Modules)}
+        1 -> subshuffle(Severities);
+        2 -> #{severity => subshuffle(Severities), application => subshuffle(Applications)};
+        3 -> #{severity => subshuffle(Severities), application => subshuffle(Applications), module => subshuffle(Modules)}
     end.
 
 -spec subshuffle(list()) -> list().

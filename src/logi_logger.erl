@@ -41,7 +41,7 @@
 
 -record(?LOGGER,
         {
-          channel_id     :: logi_channel:id(),
+          channel_id     :: logi_channel:id(), % TOOD: => channel (?)
           headers  = #{} :: logi:headers(),
           metadata = #{} :: logi:metadata(),
           filter         :: undefined | logi_filter:filter(),

@@ -1,21 +1,20 @@
 %% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc Logger Interface
+%%
+%% TODO: doc
+%%
+%% TODO: examples
+%%
 -module(logi).
-
--compile({no_auto_import, [error/1, error/2]}).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
-
 %%----------------------------------------------------------
 %% Constants
 %%----------------------------------------------------------
--export([log_levels/0]).
 -export([default_logger/0]).
-
-%% TODO: refactoring
 -export([severities/0]).
 -export([severity_level/1]).
 -export([is_severity/1]).
@@ -23,12 +22,12 @@
 %%----------------------------------------------------------
 %% Logger
 %%---------------------------------------------------------
--export([new/1, new/2]).
+-export([new/0, new/1, new/2]).
 -export([is_logger/1]).
 -export([to_map/1, from_map/1]).
 -export([save/2, save_as_default/1]).
 -export([load/1, load_or_new/1, load_or_new/2, load_or_new/3]).
--export([erase/1]).
+-export([erase/0, erase/1]).
 -export([which_loggers/0]).
 
 -export([set_headers/1, set_headers/2]).
@@ -57,7 +56,7 @@
 %%----------------------------------------------------------
 -export_type([log_level/0, severity/0]).
 -export_type([logger/0, logger_id/0, logger_instance/0]).
--export_type([logger_map/0]).
+-export_type([logger_map_form/0]).
 -export_type([new_option/0, new_options/0]).
 
 -export_type([headers/0, metadata/0]).
@@ -74,7 +73,7 @@
 -type logger_id() :: atom().
 -opaque logger_instance() :: logi_logger:logger().
 
--type logger_map() ::
+-type logger_map_form() ::
         #{
            channel_id => logi_channel:id(), % mandatory
            headers    => headers(), % optional
@@ -116,17 +115,16 @@
 -spec default_logger() -> logger_id().
 default_logger() -> logi_default_log.
 
-%% @doc Returns the available log level list
+%% @doc Returns the available severity list
 %%
-%% The log levels are ordered by the severity (The lowest severity level will appear first).
--spec log_levels() -> [log_level()].
-log_levels() -> [debug, verbose, info, notice, warning, error, critical, alert, emergency].
-
-%% TODO: refactoring
+%% The list are ordered by the their severity level (see: {@link severity_level/1}).
 -spec severities() -> [severity()].
 severities() -> [emergency, alert, critical, error, warning, notice, info, verbose, debug].
 
--spec severity_level(severity()) -> 1..9. %%severity_level().
+%% @doc Returns the level of `Severity'
+%%
+%% The higher the severity is, the lower the level is.
+-spec severity_level(Severity :: severity()) -> 1..9.
 severity_level(emergency) -> 1;
 severity_level(alert)     -> 2;
 severity_level(critical)  -> 3;
@@ -136,7 +134,7 @@ severity_level(notice)    -> 6;
 severity_level(info)      -> 7;
 severity_level(verbose)   -> 8;
 severity_level(debug)     -> 9;
-severity_level(Severity)  -> error(badarg, [Severity]).
+severity_level(Severity)  -> erlang:error(badarg, [Severity]).
 
 %% @doc Returns `true' if `X' is a severity, otherwise `false'
 -spec is_severity(X :: (severity() | term())) -> boolean().
@@ -145,21 +143,42 @@ is_severity(X) -> lists:member(X, severities()).
 %%----------------------------------------------------------
 %% Logger
 %%----------------------------------------------------------
+%% @equiv new(default_logger())
+-spec new() -> logger_instance().
+new() -> new(default_logger()).
+
+%% @equiv new(ChannelId, [])
 -spec new(logi_channel:id()) -> logger_instance().
 new(ChannelId) -> new(ChannelId, []).
 
+%% @doc Creates a new logger instance
 -spec new(logi_channel:id(), new_options()) -> logger_instance().
 new(ChannelId, Options) -> logi_logger:new(ChannelId, Options).
 
--spec to_map(logger_instance()) -> logger_map().
-to_map(Logger) -> logi_logger:to_map(Logger).
-
--spec from_map(logger_map()) -> logger_instance().
-from_map(Map) -> logi_logger:from_map(Map).
-
+%% @doc Returns `true' if `X' is a logger, otherwise `false'
 -spec is_logger(X :: (logger() | term())) -> boolean().
 is_logger(X) -> is_atom(X) orelse logi_logger:is_logger(X).
 
+%% @doc Converts `Logger' into a map form
+-spec to_map(logger()) -> logger_map_form().
+to_map(Logger) -> logi_logger:to_map(element(2, load_if_need(Logger))).
+
+%% @doc Creates a new logger instance from `Map'
+%%
+%% Default Value:
+%% - channel_id: none (mandatory)
+%% - headers: `#{}'
+%% - metadata: `#{}'
+%% - filter: none (optional)
+%% - next: none (optional)
+%%
+%% <pre lang="erlang">
+%% TODO: example
+%% </pre>
+-spec from_map(logger_map_form()) -> logger_instance().
+from_map(Map) -> logi_logger:from_map(Map).
+
+%% @equiv save(default_logger(), Logger)
 -spec save_as_default(logger()) -> Old::(logger_instance() | undefined).
 save_as_default(Logger) -> save(default_logger(), Logger).
 
@@ -174,23 +193,32 @@ save(LoggerId, Logger0) ->
         end,
     put(?PD_LOGGER_KEY(LoggerId), Logger1).
 
--spec load(logger_id()) -> logger_instance() | undefined.
+-spec load(logger_id()) -> {ok, logger_instance()} | error.
 load(LoggerId) ->
     _ = is_atom(LoggerId) orelse erlang:error(badarg, [LoggerId]),
-    get(?PD_LOGGER_KEY(LoggerId)).
+    case get(?PD_LOGGER_KEY(LoggerId)) of
+        undefined -> error;
+        Logger    -> {ok, Logger}
+    end.
 
+%% @equiv load_or_new(LoggerId, LoggerId)
 -spec load_or_new(logger_id()) -> logger_instance().
 load_or_new(LoggerId) -> load_or_new(LoggerId, LoggerId).
 
+%% @equiv load_or_new(LoggerId, ChannelId, [])
 -spec load_or_new(logger_id(), logi_channel:id()) -> logger_instance().
 load_or_new(LoggerId, ChannelId) -> load_or_new(LoggerId, ChannelId, []).
 
 -spec load_or_new(logger_id(), logi_channel:id(), new_options()) -> logger_instance().
 load_or_new(LoggerId, ChannelId, Options) ->
     case load(LoggerId) of
-        undefined -> new(ChannelId, Options);
-        Logger    -> Logger
+        error        -> new(ChannelId, Options);
+        {ok, Logger} -> Logger
     end.
+
+-spec erase() -> [{logger_id(), logger_instance()}].
+erase() ->
+    [{Id, logi:erase(Id)} || Id <- which_loggers()].
 
 -spec erase(logger_id()) -> Old :: (logger_instance() | undefined).
 erase(LoggerId) ->
@@ -201,13 +229,14 @@ erase(LoggerId) ->
 which_loggers() ->
     [LoggerId || {?PD_LOGGER_KEY(LoggerId), _} <- get()].
 
--spec set_headers(headers()) -> logger_instance().
-set_headers(Headers) -> set_headers(Headers, []).
+-spec set_headers(headers()) -> logger_instance().s
+et_headers(Headers) -> set_headers(Headers, []).
 
 -spec set_headers(headers(), Options) -> logger_instance() when
       Options :: [Option],
       Option  :: {logger, logger()}
-               | {if_exists, ignore | overwrite | supersede}.
+               | {if_exists, ignore | overwrite | supersede}
+               | {recursive, boolean()}.
 set_headers(Headers, Options) ->
     _ = is_list(Options) orelse erlang:error(badarg, [Headers, Options]), % TODO: redundant error handling
     IfExists = proplists:get_value(if_exists, Options, overwrite),
@@ -221,8 +250,8 @@ set_metadata(Metadata) -> set_metadata(Metadata, []).
 -spec set_metadata(metadata(), Options) -> logger_instance() when
       Options :: [Option],
       Option  :: {logger, logger()}
-               | {if_exists, ignore | overwrite | supersede}.
-%% TODO: {recursive, boolean()}
+               | {if_exists, ignore | overwrite | supersede}
+               | {recursive, boolean()}.
 set_metadata(Metadata, Options) ->
     _ = is_list(Options) orelse erlang:error(badarg, [Metadata, Options]), % TODO: redundant error handling
     IfExists = proplists:get_value(if_exists, Options, overwrite),
@@ -320,10 +349,10 @@ warning(Format, Args) -> warning(Format, Args, []).
 warning(Format, Args, Options) -> log(warning, Format, Args, Options).
 
 -spec error(io:format()) -> logger_instance().
-error(Format) -> error(Format, []).
+error(Format) -> logi:error(Format, []).
 
 -spec error(io:format(), [term()]) -> logger_instance().
-error(Format, Args) -> error(Format, Args, []).
+error(Format, Args) -> logi:error(Format, Args, []).
 
 -spec error(io:format(), [term()], log_options()) -> logger_instance().
 error(Format, Args, Options) -> log(error, Format, Args, Options).

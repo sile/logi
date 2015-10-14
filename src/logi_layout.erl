@@ -75,7 +75,7 @@ new(Module, ExtraData) ->
 
 %% @doc Returns `true' if `X' is a layout, `false' otherwise
 -spec is_layout(X :: (layout() | term())) -> boolean().
-is_layout({Module, _}) -> is_layout(Module);
+is_layout({Module, _}) -> is_atom(Module) andalso is_layout(Module);
 is_layout(Module)      -> is_atom(Module) andalso logi_utils:function_exported(Module, format, 4).
 
 %% @doc Gets the module of `Layout'
