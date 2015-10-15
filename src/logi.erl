@@ -25,6 +25,7 @@
 -export([new/0, new/1, new/2]).
 -export([is_logger/1]).
 -export([to_map/1, from_map/1]).
+-export([to_list/1, from_list/1]).
 -export([save/2, save_as_default/1]).
 -export([load/1, load_or_new/1, load_or_new/2, load_or_new/3]).
 -export([erase/0, erase/1]).
@@ -34,8 +35,6 @@
 -export([set_metadata/1, set_metadata/2]).
 -export([delete_headers/1, delete_headers/2]).
 -export([delete_metadata/1, delete_metadata/2]).
-%% TODO: reset
-%% TODO: set_filter
 
 %%----------------------------------------------------------
 %% Logging
@@ -171,12 +170,26 @@ to_map(Logger) -> logi_logger:to_map(element(2, load_if_need(Logger))).
 %% - metadata: `#{}'
 %% - filter: none (optional)
 %% - next: none (optional)
-%%
-%% <pre lang="erlang">
-%% TODO: example
-%% </pre>
 -spec from_map(logger_map_form()) -> logger_instance().
 from_map(Map) -> logi_logger:from_map(Map).
+
+-spec to_list(logger()) -> [logger_instance()].
+to_list(Logger) ->
+    Map = to_map(Logger),
+    case Map of
+        #{next := Next} -> [from_map(maps:remove(next, Map)) | to_list(Next)];
+        _               -> [Logger]
+    end.
+
+-spec from_list([logger()]) -> logger_instance().
+from_list([])      -> erlang:error(badarg, [[]]);
+from_list(Loggers) ->
+    lists:foldr(
+      fun (Parent, undefined) -> Parent;
+          (Parent, Child)     -> from_map(maps:put(next, Child, to_map(Parent)))
+      end,
+      undefined,
+      Loggers).
 
 %% @equiv save(default_logger(), Logger)
 -spec save_as_default(logger()) -> Old::(logger_instance() | undefined).
@@ -229,8 +242,9 @@ erase(LoggerId) ->
 which_loggers() ->
     [LoggerId || {?PD_LOGGER_KEY(LoggerId), _} <- get()].
 
--spec set_headers(headers()) -> logger_instance().s
-et_headers(Headers) -> set_headers(Headers, []).
+%% @equiv set_headers(Headers, [])
+-spec set_headers(headers()) -> logger_instance().
+set_headers(Headers) -> set_headers(Headers, []).
 
 -spec set_headers(headers(), Options) -> logger_instance() when
       Options :: [Option],
@@ -238,11 +252,22 @@ et_headers(Headers) -> set_headers(Headers, []).
                | {if_exists, ignore | overwrite | supersede}
                | {recursive, boolean()}.
 set_headers(Headers, Options) ->
-    _ = is_list(Options) orelse erlang:error(badarg, [Headers, Options]), % TODO: redundant error handling
+    _ = is_list(Options) orelse erlang:error(badarg, [Headers, Options]),
     IfExists = proplists:get_value(if_exists, Options, overwrite),
+    Recursive = proplists:get_value(recursive, Options, true),
+
     {Need, Logger0} = load_if_need(proplists:get_value(logger, Options, default_logger())),
     Logger1 = logi_logger:set_headers(Headers, IfExists, Logger0),
-    save_if_need(Need, Logger1).
+
+    Logger2 =
+        case {Recursive, logi_logger:to_map(Logger1)} of
+            {true, Map = #{next := Next0}} ->
+                Next1 = set_headers(Headers, [{logger, Next0} | Options]),
+                from_map(maps:put(next, Next1, Map));
+            _ ->
+                Logger1
+        end,
+    save_if_need(Need, Logger2).
 
 -spec set_metadata(metadata()) -> logger_instance().
 set_metadata(Metadata) -> set_metadata(Metadata, []).
@@ -253,23 +278,45 @@ set_metadata(Metadata) -> set_metadata(Metadata, []).
                | {if_exists, ignore | overwrite | supersede}
                | {recursive, boolean()}.
 set_metadata(Metadata, Options) ->
-    _ = is_list(Options) orelse erlang:error(badarg, [Metadata, Options]), % TODO: redundant error handling
+    %% XXX: headersとコード重複
+    _ = is_list(Options) orelse erlang:error(badarg, [Metadata, Options]),
     IfExists = proplists:get_value(if_exists, Options, overwrite),
+    Recursive = proplists:get_value(recursive, Options, true),
+
     {Need, Logger0} = load_if_need(proplists:get_value(logger, Options, default_logger())),
     Logger1 = logi_logger:set_metadata(Metadata, IfExists, Logger0),
-    save_if_need(Need, Logger1).
+
+    Logger2 =
+        case {Recursive, logi_logger:to_map(Logger1)} of
+            {true, Map = #{next := Next0}} ->
+                Next1 = set_metadata(Metadata, [{logger, Next0} | Options]),
+                from_map(maps:put(next, Next1, Map));
+            _ ->
+                Logger1
+        end,
+    save_if_need(Need, Logger2).
 
 -spec delete_headers([term()]) -> logger_instance().
 delete_headers(Keys) -> delete_headers(Keys, []).
 
 -spec delete_headers([term()], Options) -> logger_instance() when
       Options :: [Option],
-      Option  :: {logger, logger()}.
+      Option  :: {logger, logger()}
+               | {recursive, boolean()}.
 delete_headers(Keys, Options) ->
     _ = is_list(Options) orelse erlang:error(badarg, [Keys, Options]),
+    Recursive = proplists:get_value(recursive, Options, true),
     {Need, Logger0} = load_if_need(proplists:get_value(logger, Options, default_logger())),
     Logger1 = logi_logger:delete_headers(Keys, Logger0),
-    save_if_need(Need, Logger1).
+    Logger2 =
+        case {Recursive, to_map(Logger1)} of
+            {true, Map = #{next := Next0}} ->
+                Next1 = delete_headers(Keys, [{logger, Next0} | Options]),
+                from_map(maps:put(next, Next1, Map));
+            _ ->
+                Logger1
+        end,
+    save_if_need(Need, Logger2).
 
 -spec delete_metadata([term()]) -> logger_instance().
 delete_metadata(Keys) -> delete_metadata(Keys, []).
@@ -278,10 +325,20 @@ delete_metadata(Keys) -> delete_metadata(Keys, []).
       Options :: [Option],
       Option  :: {logger, logger()}.
 delete_metadata(Keys, Options) ->
+    %% XXX: headersとコード重複
     _ = is_list(Options) orelse erlang:error(badarg, [Keys, Options]),
+    Recursive = proplists:get_value(recursive, Options, true),
     {Need, Logger0} = load_if_need(proplists:get_value(logger, Options, default_logger())),
     Logger1 = logi_logger:delete_metadata(Keys, Logger0),
-    save_if_need(Need, Logger1).
+    Logger2 =
+        case {Recursive, to_map(Logger1)} of
+            {true, Map = #{next := Next0}} ->
+                Next1 = delete_metadata(Keys, [{logger, Next0} | Options]),
+                from_map(maps:put(next, Next1, Map));
+            _ ->
+                Logger1
+        end,
+    save_if_need(Need, Logger2).
 
 %%----------------------------------------------------------
 %% Logging

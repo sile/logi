@@ -85,11 +85,11 @@ __abstract datatype__: `logger_instance()`
 
 
 
-### <a name="type-logger_map">logger_map()</a> ###
+### <a name="type-logger_map_form">logger_map_form()</a> ###
 
 
 <pre><code>
-logger_map() = #{channel_id =&gt; <a href="logi_channel.md#type-id">logi_channel:id()</a>, headers =&gt; <a href="#type-headers">headers()</a>, metadata =&gt; <a href="#type-metadata">metadata()</a>, filters =&gt; [<a href="logi_filter.md#type-filter">logi_filter:filter()</a>]}
+logger_map_form() = #{channel_id =&gt; <a href="logi_channel.md#type-id">logi_channel:id()</a>, headers =&gt; <a href="#type-headers">headers()</a>, metadata =&gt; <a href="#type-metadata">metadata()</a>, filters =&gt; [<a href="logi_filter.md#type-filter">logi_filter:filter()</a>]}
 </code></pre>
 
 
@@ -137,7 +137,7 @@ severity() = <a href="#type-log_level">log_level()</a>
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#alert-1">alert/1</a></td><td></td></tr><tr><td valign="top"><a href="#alert-2">alert/2</a></td><td></td></tr><tr><td valign="top"><a href="#alert-3">alert/3</a></td><td></td></tr><tr><td valign="top"><a href="#critical-1">critical/1</a></td><td></td></tr><tr><td valign="top"><a href="#critical-2">critical/2</a></td><td></td></tr><tr><td valign="top"><a href="#critical-3">critical/3</a></td><td></td></tr><tr><td valign="top"><a href="#debug-1">debug/1</a></td><td></td></tr><tr><td valign="top"><a href="#debug-2">debug/2</a></td><td></td></tr><tr><td valign="top"><a href="#debug-3">debug/3</a></td><td></td></tr><tr><td valign="top"><a href="#default_logger-0">default_logger/0</a></td><td>Returns the default logger.</td></tr><tr><td valign="top"><a href="#delete_headers-1">delete_headers/1</a></td><td></td></tr><tr><td valign="top"><a href="#delete_headers-2">delete_headers/2</a></td><td></td></tr><tr><td valign="top"><a href="#delete_metadata-1">delete_metadata/1</a></td><td></td></tr><tr><td valign="top"><a href="#delete_metadata-2">delete_metadata/2</a></td><td></td></tr><tr><td valign="top"><a href="#emergency-1">emergency/1</a></td><td></td></tr><tr><td valign="top"><a href="#emergency-2">emergency/2</a></td><td></td></tr><tr><td valign="top"><a href="#emergency-3">emergency/3</a></td><td></td></tr><tr><td valign="top"><a href="#erase-1">erase/1</a></td><td></td></tr><tr><td valign="top"><a href="#error-1">error/1</a></td><td></td></tr><tr><td valign="top"><a href="#error-2">error/2</a></td><td></td></tr><tr><td valign="top"><a href="#error-3">error/3</a></td><td></td></tr><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td></td></tr><tr><td valign="top"><a href="#info-1">info/1</a></td><td></td></tr><tr><td valign="top"><a href="#info-2">info/2</a></td><td></td></tr><tr><td valign="top"><a href="#info-3">info/3</a></td><td></td></tr><tr><td valign="top"><a href="#is_logger-1">is_logger/1</a></td><td></td></tr><tr><td valign="top"><a href="#is_severity-1">is_severity/1</a></td><td>Returns <code>true</code> if <code>X</code> is a severity, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#load-1">load/1</a></td><td></td></tr><tr><td valign="top"><a href="#load_or_new-1">load_or_new/1</a></td><td></td></tr><tr><td valign="top"><a href="#load_or_new-2">load_or_new/2</a></td><td></td></tr><tr><td valign="top"><a href="#load_or_new-3">load_or_new/3</a></td><td></td></tr><tr><td valign="top"><a href="#log-4">log/4</a></td><td>(<em>Deprecated</em>.) </td></tr><tr><td valign="top"><a href="#log_levels-0">log_levels/0</a></td><td>Returns the available log level list.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td></td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td></td></tr><tr><td valign="top"><a href="#notice-1">notice/1</a></td><td></td></tr><tr><td valign="top"><a href="#notice-2">notice/2</a></td><td></td></tr><tr><td valign="top"><a href="#notice-3">notice/3</a></td><td></td></tr><tr><td valign="top"><a href="#save-2">save/2</a></td><td></td></tr><tr><td valign="top"><a href="#save_as_default-1">save_as_default/1</a></td><td></td></tr><tr><td valign="top"><a href="#set_headers-1">set_headers/1</a></td><td></td></tr><tr><td valign="top"><a href="#set_headers-2">set_headers/2</a></td><td></td></tr><tr><td valign="top"><a href="#set_metadata-1">set_metadata/1</a></td><td></td></tr><tr><td valign="top"><a href="#set_metadata-2">set_metadata/2</a></td><td></td></tr><tr><td valign="top"><a href="#severities-0">severities/0</a></td><td></td></tr><tr><td valign="top"><a href="#severity_level-1">severity_level/1</a></td><td></td></tr><tr><td valign="top"><a href="#to_map-1">to_map/1</a></td><td></td></tr><tr><td valign="top"><a href="#verbose-1">verbose/1</a></td><td></td></tr><tr><td valign="top"><a href="#verbose-2">verbose/2</a></td><td></td></tr><tr><td valign="top"><a href="#verbose-3">verbose/3</a></td><td></td></tr><tr><td valign="top"><a href="#warning-1">warning/1</a></td><td></td></tr><tr><td valign="top"><a href="#warning-2">warning/2</a></td><td></td></tr><tr><td valign="top"><a href="#warning-3">warning/3</a></td><td></td></tr><tr><td valign="top"><a href="#which_loggers-0">which_loggers/0</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#alert-1">alert/1</a></td><td></td></tr><tr><td valign="top"><a href="#alert-2">alert/2</a></td><td></td></tr><tr><td valign="top"><a href="#alert-3">alert/3</a></td><td></td></tr><tr><td valign="top"><a href="#critical-1">critical/1</a></td><td></td></tr><tr><td valign="top"><a href="#critical-2">critical/2</a></td><td></td></tr><tr><td valign="top"><a href="#critical-3">critical/3</a></td><td></td></tr><tr><td valign="top"><a href="#debug-1">debug/1</a></td><td></td></tr><tr><td valign="top"><a href="#debug-2">debug/2</a></td><td></td></tr><tr><td valign="top"><a href="#debug-3">debug/3</a></td><td></td></tr><tr><td valign="top"><a href="#default_logger-0">default_logger/0</a></td><td>Returns the default logger.</td></tr><tr><td valign="top"><a href="#delete_headers-1">delete_headers/1</a></td><td></td></tr><tr><td valign="top"><a href="#delete_headers-2">delete_headers/2</a></td><td></td></tr><tr><td valign="top"><a href="#delete_metadata-1">delete_metadata/1</a></td><td></td></tr><tr><td valign="top"><a href="#delete_metadata-2">delete_metadata/2</a></td><td></td></tr><tr><td valign="top"><a href="#emergency-1">emergency/1</a></td><td></td></tr><tr><td valign="top"><a href="#emergency-2">emergency/2</a></td><td></td></tr><tr><td valign="top"><a href="#emergency-3">emergency/3</a></td><td></td></tr><tr><td valign="top"><a href="#erase-0">erase/0</a></td><td></td></tr><tr><td valign="top"><a href="#erase-1">erase/1</a></td><td></td></tr><tr><td valign="top"><a href="#error-1">error/1</a></td><td></td></tr><tr><td valign="top"><a href="#error-2">error/2</a></td><td></td></tr><tr><td valign="top"><a href="#error-3">error/3</a></td><td></td></tr><tr><td valign="top"><a href="#from_list-1">from_list/1</a></td><td></td></tr><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td>Creates a new logger instance from <code>Map</code></td></tr><tr><td valign="top"><a href="#info-1">info/1</a></td><td></td></tr><tr><td valign="top"><a href="#info-2">info/2</a></td><td></td></tr><tr><td valign="top"><a href="#info-3">info/3</a></td><td></td></tr><tr><td valign="top"><a href="#is_logger-1">is_logger/1</a></td><td>Returns <code>true</code> if <code>X</code> is a logger, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_severity-1">is_severity/1</a></td><td>Returns <code>true</code> if <code>X</code> is a severity, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#load-1">load/1</a></td><td></td></tr><tr><td valign="top"><a href="#load_or_new-1">load_or_new/1</a></td><td>Equivalent to <a href="#load_or_new-2"><tt>load_or_new(LoggerId, LoggerId)</tt></a>.</td></tr><tr><td valign="top"><a href="#load_or_new-2">load_or_new/2</a></td><td>Equivalent to <a href="#load_or_new-3"><tt>load_or_new(LoggerId, ChannelId, [])</tt></a>.</td></tr><tr><td valign="top"><a href="#load_or_new-3">load_or_new/3</a></td><td></td></tr><tr><td valign="top"><a href="#log-4">log/4</a></td><td>(<em>Deprecated</em>.) </td></tr><tr><td valign="top"><a href="#new-0">new/0</a></td><td>Equivalent to <a href="#new-1"><tt>new(default_logger())</tt></a>.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Equivalent to <a href="#new-2"><tt>new(ChannelId, [])</tt></a>.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new logger instance.</td></tr><tr><td valign="top"><a href="#notice-1">notice/1</a></td><td></td></tr><tr><td valign="top"><a href="#notice-2">notice/2</a></td><td></td></tr><tr><td valign="top"><a href="#notice-3">notice/3</a></td><td></td></tr><tr><td valign="top"><a href="#save-2">save/2</a></td><td></td></tr><tr><td valign="top"><a href="#save_as_default-1">save_as_default/1</a></td><td>Equivalent to <a href="#save-2"><tt>save(default_logger(), Logger)</tt></a>.</td></tr><tr><td valign="top"><a href="#set_headers-1">set_headers/1</a></td><td>Equivalent to <a href="#set_headers-2"><tt>set_headers(Headers, [])</tt></a>.</td></tr><tr><td valign="top"><a href="#set_headers-2">set_headers/2</a></td><td></td></tr><tr><td valign="top"><a href="#set_metadata-1">set_metadata/1</a></td><td></td></tr><tr><td valign="top"><a href="#set_metadata-2">set_metadata/2</a></td><td></td></tr><tr><td valign="top"><a href="#severities-0">severities/0</a></td><td>Returns the available severity list.</td></tr><tr><td valign="top"><a href="#severity_level-1">severity_level/1</a></td><td>Returns the level of <code>Severity</code></td></tr><tr><td valign="top"><a href="#to_list-1">to_list/1</a></td><td></td></tr><tr><td valign="top"><a href="#to_map-1">to_map/1</a></td><td>Converts <code>Logger</code> into a map form.</td></tr><tr><td valign="top"><a href="#verbose-1">verbose/1</a></td><td></td></tr><tr><td valign="top"><a href="#verbose-2">verbose/2</a></td><td></td></tr><tr><td valign="top"><a href="#verbose-3">verbose/3</a></td><td></td></tr><tr><td valign="top"><a href="#warning-1">warning/1</a></td><td></td></tr><tr><td valign="top"><a href="#warning-2">warning/2</a></td><td></td></tr><tr><td valign="top"><a href="#warning-3">warning/3</a></td><td></td></tr><tr><td valign="top"><a href="#which_loggers-0">which_loggers/0</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -255,7 +255,7 @@ delete_headers(Keys::[term()]) -&gt; <a href="#type-logger_instance">logger_inst
 delete_headers(Keys::[term()], Options) -&gt; <a href="#type-logger_instance">logger_instance()</a>
 </code></pre>
 
-<ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {logger, <a href="#type-logger">logger()</a>}</code></li></ul>
+<ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {logger, <a href="#type-logger">logger()</a>} | {recursive, boolean()}</code></li></ul>
 
 <a name="delete_metadata-1"></a>
 
@@ -303,6 +303,15 @@ emergency(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], O
 </code></pre>
 <br />
 
+<a name="erase-0"></a>
+
+### erase/0 ###
+
+<pre><code>
+erase() -&gt; [{<a href="#type-logger_id">logger_id()</a>, <a href="#type-logger_instance">logger_instance()</a>}]
+</code></pre>
+<br />
+
 <a name="erase-1"></a>
 
 ### erase/1 ###
@@ -339,14 +348,32 @@ error(Format::<a href="io.md#type-format">io:format()</a>, Args::[term()], Optio
 </code></pre>
 <br />
 
+<a name="from_list-1"></a>
+
+### from_list/1 ###
+
+<pre><code>
+from_list(Loggers::[<a href="#type-logger">logger()</a>]) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+</code></pre>
+<br />
+
 <a name="from_map-1"></a>
 
 ### from_map/1 ###
 
 <pre><code>
-from_map(Map::<a href="#type-logger_map">logger_map()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
+from_map(Map::<a href="#type-logger_map_form">logger_map_form()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
 </code></pre>
 <br />
+
+Creates a new logger instance from `Map`
+
+Default Value:
+- channel_id: none (mandatory)
+- headers: `#{}`
+- metadata: `#{}`
+- filter: none (optional)
+- next: none (optional)
 
 <a name="info-1"></a>
 
@@ -384,6 +411,8 @@ is_logger(X::<a href="#type-logger">logger()</a> | term()) -&gt; boolean()
 </code></pre>
 <br />
 
+Returns `true` if `X` is a logger, otherwise `false`
+
 <a name="is_severity-1"></a>
 
 ### is_severity/1 ###
@@ -400,7 +429,7 @@ Returns `true` if `X` is a severity, otherwise `false`
 ### load/1 ###
 
 <pre><code>
-load(LoggerId::<a href="#type-logger_id">logger_id()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a> | undefined
+load(LoggerId::<a href="#type-logger_id">logger_id()</a>) -&gt; {ok, <a href="#type-logger_instance">logger_instance()</a>} | error
 </code></pre>
 <br />
 
@@ -413,6 +442,8 @@ load_or_new(LoggerId::<a href="#type-logger_id">logger_id()</a>) -&gt; <a href="
 </code></pre>
 <br />
 
+Equivalent to [`load_or_new(LoggerId, LoggerId)`](#load_or_new-2).
+
 <a name="load_or_new-2"></a>
 
 ### load_or_new/2 ###
@@ -421,6 +452,8 @@ load_or_new(LoggerId::<a href="#type-logger_id">logger_id()</a>) -&gt; <a href="
 load_or_new(LoggerId::<a href="#type-logger_id">logger_id()</a>, ChannelId::<a href="logi_channel.md#type-id">logi_channel:id()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
 </code></pre>
 <br />
+
+Equivalent to [`load_or_new(LoggerId, ChannelId, [])`](#load_or_new-3).
 
 <a name="load_or_new-3"></a>
 
@@ -442,18 +475,16 @@ log(Severity::<a href="#type-severity">severity()</a>, Format::<a href="io.md#ty
 
 __This function is deprecated:__ TODO
 
-<a name="log_levels-0"></a>
+<a name="new-0"></a>
 
-### log_levels/0 ###
+### new/0 ###
 
 <pre><code>
-log_levels() -&gt; [<a href="#type-log_level">log_level()</a>]
+new() -&gt; <a href="#type-logger_instance">logger_instance()</a>
 </code></pre>
 <br />
 
-Returns the available log level list
-
-The log levels are ordered by the severity (The lowest severity level will appear first).
+Equivalent to [`new(default_logger())`](#new-1).
 
 <a name="new-1"></a>
 
@@ -464,6 +495,8 @@ new(ChannelId::<a href="logi_channel.md#type-id">logi_channel:id()</a>) -&gt; <a
 </code></pre>
 <br />
 
+Equivalent to [`new(ChannelId, [])`](#new-2).
+
 <a name="new-2"></a>
 
 ### new/2 ###
@@ -472,6 +505,8 @@ new(ChannelId::<a href="logi_channel.md#type-id">logi_channel:id()</a>) -&gt; <a
 new(ChannelId::<a href="logi_channel.md#type-id">logi_channel:id()</a>, Options::<a href="#type-new_options">new_options()</a>) -&gt; <a href="#type-logger_instance">logger_instance()</a>
 </code></pre>
 <br />
+
+Creates a new logger instance
 
 <a name="notice-1"></a>
 
@@ -518,6 +553,8 @@ save_as_default(Logger::<a href="#type-logger">logger()</a>) -&gt; Old::<a href=
 </code></pre>
 <br />
 
+Equivalent to [`save(default_logger(), Logger)`](#save-2).
+
 <a name="set_headers-1"></a>
 
 ### set_headers/1 ###
@@ -527,6 +564,8 @@ set_headers(Headers::<a href="#type-headers">headers()</a>) -&gt; <a href="#type
 </code></pre>
 <br />
 
+Equivalent to [`set_headers(Headers, [])`](#set_headers-2).
+
 <a name="set_headers-2"></a>
 
 ### set_headers/2 ###
@@ -535,7 +574,7 @@ set_headers(Headers::<a href="#type-headers">headers()</a>) -&gt; <a href="#type
 set_headers(Headers::<a href="#type-headers">headers()</a>, Options) -&gt; <a href="#type-logger_instance">logger_instance()</a>
 </code></pre>
 
-<ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {logger, <a href="#type-logger">logger()</a>} | {if_exists, ignore | overwrite | supersede}</code></li></ul>
+<ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {logger, <a href="#type-logger">logger()</a>} | {if_exists, ignore | overwrite | supersede} | {recursive, boolean()}</code></li></ul>
 
 <a name="set_metadata-1"></a>
 
@@ -554,7 +593,7 @@ set_metadata(Metadata::<a href="#type-metadata">metadata()</a>) -&gt; <a href="#
 set_metadata(Metadata::<a href="#type-metadata">metadata()</a>, Options) -&gt; <a href="#type-logger_instance">logger_instance()</a>
 </code></pre>
 
-<ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {logger, <a href="#type-logger">logger()</a>} | {if_exists, ignore | overwrite | supersede}</code></li></ul>
+<ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {logger, <a href="#type-logger">logger()</a>} | {if_exists, ignore | overwrite | supersede} | {recursive, boolean()}</code></li></ul>
 
 <a name="severities-0"></a>
 
@@ -565,6 +604,10 @@ severities() -&gt; [<a href="#type-severity">severity()</a>]
 </code></pre>
 <br />
 
+Returns the available severity list
+
+The list are ordered by the their severity level (see: [`severity_level/1`](#severity_level-1)).
+
 <a name="severity_level-1"></a>
 
 ### severity_level/1 ###
@@ -574,14 +617,29 @@ severity_level(Severity::<a href="#type-severity">severity()</a>) -&gt; 1..9
 </code></pre>
 <br />
 
+Returns the level of `Severity`
+
+The higher the severity is, the lower the level is.
+
+<a name="to_list-1"></a>
+
+### to_list/1 ###
+
+<pre><code>
+to_list(Logger::<a href="#type-logger">logger()</a>) -&gt; [<a href="#type-logger_instance">logger_instance()</a>]
+</code></pre>
+<br />
+
 <a name="to_map-1"></a>
 
 ### to_map/1 ###
 
 <pre><code>
-to_map(Logger::<a href="#type-logger_instance">logger_instance()</a>) -&gt; <a href="#type-logger_map">logger_map()</a>
+to_map(Logger::<a href="#type-logger">logger()</a>) -&gt; <a href="#type-logger_map_form">logger_map_form()</a>
 </code></pre>
 <br />
+
+Converts `Logger` into a map form
 
 <a name="verbose-1"></a>
 

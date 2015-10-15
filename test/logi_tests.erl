@@ -133,21 +133,167 @@ process_dictionary_test_() ->
        end}
      ]}.
 
-%% header_test_() ->
-%%     [
-%%      {"Sets header of a logger",
-%%       fun () ->
-%%       end},
-%%      {"Sets header with `if_exists' option"
-%%       fun () ->
-%%       end},
-%%      {"Sets header with `recursive' option",
-%%       fun () ->
-%%       end},
-%%      {"Deletes header",
-%%       fun () ->
-%%       end}
-%%     ].
+headers_test_() ->
+    [
+     {"Initially no headers exist",
+      fun () ->
+              Logger = logi:new(),
+              ?assertEqual(error, maps:find(headers, logi:to_map(Logger)))
+      end},
+     {"Creates a logger with headers",
+      fun () ->
+              Logger = logi:new(test, [{headers, #{a => b, 1 => 2}}]),
+              ?assertEqual({ok, #{a => b, 1 => 2}}, maps:find(headers, logi:to_map(Logger)))
+      end},
+     {"Sets headers of a logger",
+      fun () ->
+              Logger0 = logi:new(),
+              Logger1 = logi:set_headers(#{a => b, 1 => 2}, [{logger, Logger0}]),
+              ?assertEqual({ok, #{a => b, 1 => 2}}, maps:find(headers, logi:to_map(Logger1)))
+      end},
+     {"Sets headers of a saved logger",
+      fun () ->
+              logi:save(hoge, logi:new()),
+              logi:set_headers(#{a => b, 1 => 2}, [{logger, hoge}]),
+              ?assertEqual({ok, #{a => b, 1 => 2}}, maps:find(headers, logi:to_map(hoge))),
+              logi:erase()
+      end},
+     {"Sets headers with `if_exists' option",
+      fun () ->
+              Set =
+                  fun (Logger, Headers, Optins) ->
+                          maps:get(headers, logi:to_map(logi:set_headers(Headers, [{logger, Logger} | Optins])))
+                  end,
+              Logger = logi:new(test, [{headers, #{a => b, "x" => "y"}}]),
+
+              %% if_exists=overwrite (default)
+              ?assertEqual(#{a => c, "x" => "y", 1 => 2}, Set(Logger, #{a => c, 1 => 2}, [])),
+              ?assertEqual(#{a => c, "x" => "y", 1 => 2}, Set(Logger, #{a => c, 1 => 2}, [{if_exists, overwrite}])),
+
+              %% if_exists=ignore
+              ?assertEqual(#{a => b, "x" => "y", 1 => 2}, Set(Logger, #{a => c, 1 => 2}, [{if_exists, ignore}])),
+
+              %% if_exists=supersede
+              ?assertEqual(#{a => c, 1 => 2}, Set(Logger, #{a => c, 1 => 2}, [{if_exists, supersede}]))
+      end},
+     {"Sets headers with `recursive' option",
+      fun () ->
+              Logger0 =
+                  logi:from_list(
+                    [
+                     logi:new(log_0, [{headers, #{a => b}}]),
+                     logi:new(log_1, [{headers, #{1 => 2}}])
+                    ]),
+
+              %% recursive=true (default)
+              Logger1 = logi:set_headers(#{"x" => "y"}, [{logger, Logger0}, {recursive, true}]),
+              ?assertEqual(#{a => b, "x" => "y"}, maps:get(headers, logi:to_map(Logger1))),
+              ?assertEqual(#{1 => 2, "x" => "y"}, maps:get(headers, logi:to_map(maps:get(next, logi:to_map(Logger1))))),
+
+              %% recursive=false
+              Logger2 = logi:set_headers(#{"x" => "y"}, [{logger, Logger0}, {recursive, false}]),
+              ?assertEqual(#{a => b, "x" => "y"}, maps:get(headers, logi:to_map(Logger2))),
+              ?assertEqual(#{1 => 2},             maps:get(headers, logi:to_map(maps:get(next, logi:to_map(Logger2)))))
+      end},
+     {"Deletes headers",
+      fun () ->
+              Logger0 =
+                  logi:from_list(
+                    [
+                     logi:new(log_0, [{headers, #{a => b, "x" => "y"}}]),
+                     logi:new(log_1, [{headers, #{1 => 2, "x" => "y"}}])
+                    ]),
+
+              Logger1 = logi:delete_headers(["x"], [{logger, Logger0}]),
+              ?assertEqual(#{a => b}, maps:get(headers, logi:to_map(Logger1))),
+              ?assertEqual(#{1 => 2}, maps:get(headers, logi:to_map(maps:get(next, logi:to_map(Logger1))))),
+
+              Logger2 = logi:delete_headers(["x"], [{logger, Logger0}, {recursive, false}]),
+              ?assertEqual(#{a => b},             maps:get(headers, logi:to_map(Logger2))),
+              ?assertEqual(#{1 => 2, "x" => "y"}, maps:get(headers, logi:to_map(maps:get(next, logi:to_map(Logger2)))))
+      end}
+    ].
+
+metadata_test_() ->
+    [
+     {"Initially no metadata exist",
+      fun () ->
+              Logger = logi:new(),
+              ?assertEqual(error, maps:find(metadata, logi:to_map(Logger)))
+      end},
+     {"Creates a logger with metadata",
+      fun () ->
+              Logger = logi:new(test, [{metadata, #{a => b, 1 => 2}}]),
+              ?assertEqual({ok, #{a => b, 1 => 2}}, maps:find(metadata, logi:to_map(Logger)))
+      end},
+     {"Sets metadata of a logger",
+      fun () ->
+              Logger0 = logi:new(),
+              Logger1 = logi:set_metadata(#{a => b, 1 => 2}, [{logger, Logger0}]),
+              ?assertEqual({ok, #{a => b, 1 => 2}}, maps:find(metadata, logi:to_map(Logger1)))
+      end},
+     {"Sets metadata of a saved logger",
+      fun () ->
+              logi:save(hoge, logi:new()),
+              logi:set_metadata(#{a => b, 1 => 2}, [{logger, hoge}]),
+              ?assertEqual({ok, #{a => b, 1 => 2}}, maps:find(metadata, logi:to_map(hoge))),
+              logi:erase()
+      end},
+     {"Sets metadata with `if_exists' option",
+      fun () ->
+              Set =
+                  fun (Logger, Metadata, Optins) ->
+                          maps:get(metadata, logi:to_map(logi:set_metadata(Metadata, [{logger, Logger} | Optins])))
+                  end,
+              Logger = logi:new(test, [{metadata, #{a => b, "x" => "y"}}]),
+
+              %% if_exists=overwrite (default)
+              ?assertEqual(#{a => c, "x" => "y", 1 => 2}, Set(Logger, #{a => c, 1 => 2}, [])),
+              ?assertEqual(#{a => c, "x" => "y", 1 => 2}, Set(Logger, #{a => c, 1 => 2}, [{if_exists, overwrite}])),
+
+              %% if_exists=ignore
+              ?assertEqual(#{a => b, "x" => "y", 1 => 2}, Set(Logger, #{a => c, 1 => 2}, [{if_exists, ignore}])),
+
+              %% if_exists=supersede
+              ?assertEqual(#{a => c, 1 => 2}, Set(Logger, #{a => c, 1 => 2}, [{if_exists, supersede}]))
+      end},
+     {"Sets metadata with `recursive' option",
+      fun () ->
+              Logger0 =
+                  logi:from_list(
+                    [
+                     logi:new(log_0, [{metadata, #{a => b}}]),
+                     logi:new(log_1, [{metadata, #{1 => 2}}])
+                    ]),
+
+              %% recursive=true (default)
+              Logger1 = logi:set_metadata(#{"x" => "y"}, [{logger, Logger0}, {recursive, true}]),
+              ?assertEqual(#{a => b, "x" => "y"}, maps:get(metadata, logi:to_map(Logger1))),
+              ?assertEqual(#{1 => 2, "x" => "y"}, maps:get(metadata, logi:to_map(maps:get(next, logi:to_map(Logger1))))),
+
+              %% recursive=false
+              Logger2 = logi:set_metadata(#{"x" => "y"}, [{logger, Logger0}, {recursive, false}]),
+              ?assertEqual(#{a => b, "x" => "y"}, maps:get(metadata, logi:to_map(Logger2))),
+              ?assertEqual(#{1 => 2},             maps:get(metadata, logi:to_map(maps:get(next, logi:to_map(Logger2)))))
+      end},
+     {"Deletes metadata",
+      fun () ->
+              Logger0 =
+                  logi:from_list(
+                    [
+                     logi:new(log_0, [{metadata, #{a => b, "x" => "y"}}]),
+                     logi:new(log_1, [{metadata, #{1 => 2, "x" => "y"}}])
+                    ]),
+
+              Logger1 = logi:delete_metadata(["x"], [{logger, Logger0}]),
+              ?assertEqual(#{a => b}, maps:get(metadata, logi:to_map(Logger1))),
+              ?assertEqual(#{1 => 2}, maps:get(metadata, logi:to_map(maps:get(next, logi:to_map(Logger1))))),
+
+              Logger2 = logi:delete_metadata(["x"], [{logger, Logger0}, {recursive, false}]),
+              ?assertEqual(#{a => b},             maps:get(metadata, logi:to_map(Logger2))),
+              ?assertEqual(#{1 => 2, "x" => "y"}, maps:get(metadata, logi:to_map(maps:get(next, logi:to_map(Logger2)))))
+      end}
+    ].
 
 %%----------------------------------------------------------
 %% Logging

@@ -87,7 +87,7 @@ walk_expr(Expr, _Loc)                                                -> Expr.
 transform_logi_call({call, _, {remote, _, _, {atom, _, location}}, []}, Loc) ->
     logi_location_expr(Loc);
 transform_logi_call({call, _, {remote, _, _, {atom, _, Severity}}, Args} = Call, Loc = #location{line = Line}) ->
-    case lists:member(Severity, logi:log_levels()) of
+    case logi:is_severity(Severity) of
         false -> Call;
         true  ->
             case Args of

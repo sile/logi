@@ -78,7 +78,7 @@ new(ChannelId, Options) ->
 -spec is_logger(X :: (logger() | term())) -> boolean().
 is_logger(X) -> is_record(X, ?LOGGER).
 
--spec to_map(logger()) -> logi:logger_map().
+-spec to_map(logger()) -> logi:logger_map_form().
 to_map(L = #?LOGGER{}) ->
     maps:filter(
       fun is_not_default/2,
@@ -90,7 +90,7 @@ to_map(L = #?LOGGER{}) ->
          next       => L#?LOGGER.next
        }).
 
--spec from_map(logi:logger_map()) -> logger().
+-spec from_map(logi:logger_map_form()) -> logger().
 from_map(Map = #{channel_id := ChannelId}) -> new(ChannelId, maps:to_list(Map));
 from_map(Map)                              -> error(badarg, [Map]).
 
