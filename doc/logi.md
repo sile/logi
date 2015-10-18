@@ -641,6 +641,8 @@ to_map(Logger::<a href="#type-logger">logger()</a>) -&gt; <a href="#type-logger_
 
 Converts `Logger` into a map form
 
+The entries which has default values will be omitted from the resulting map
+
 <a name="verbose-1"></a>
 
 ### verbose/1 ###

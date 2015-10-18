@@ -298,3 +298,176 @@ metadata_test_() ->
 %%----------------------------------------------------------
 %% Logging
 %%---------------------------------------------------------
+-define(assertLog(Format, Data, AssertContextFun),
+        (fun () ->
+             receive
+                 {'LOGI_MSG', _, __Context, Format, Data, _} -> AssertContextFun(__Context)
+             after 25 ->
+                     ?assert(timeout)
+             end
+         end)()).
+
+-define(assertNotLog(),
+        (fun () ->
+                 receive
+                     {'LOGI_MSG', _, _, _, _, _} -> ?assert(unexpectedly_delivered_log)
+                 after 25 ->
+                         ?assert(true)
+                 end
+         end)()).
+
+log_test_() ->
+    InstallProcessSinkOpt =
+        fun (Severity, Optins) ->
+                {ok, _} = logi_builtin_sink_process:install(Severity, self(), [{if_exists, supersede} | Optins]),
+                ok
+        end,
+    InstallProcessSink = fun (Severity) -> InstallProcessSinkOpt(Severity, []) end,
+    {foreach,
+     fun () ->
+             {ok, Apps} = application:ensure_all_started(logi),
+             Apps
+     end,
+     fun (Apps) ->
+             logi:erase(),
+             lists:foreach(fun application:stop/1, Apps)
+     end,
+     [
+      {"Basic: default options",
+       fun () ->
+               InstallProcessSink(info),
+
+               logi:log(debug, "Hello ~s", ["World"], []),
+               ?assertNotLog(),
+
+               logi:log(info, "Hello ~s", ["World"], []),
+               ?assertLog("Hello ~s", ["World"], fun (C) -> ?assertEqual(info, logi_context:get_severity(C)) end),
+
+               logi:log(alert, "Hello ~s", ["World"], []),
+               ?assertLog("Hello ~s", ["World"], fun (C) -> ?assertEqual(alert, logi_context:get_severity(C)) end)
+       end},
+      {"Wrapper: logi:Severity/{1,2,3}",
+       fun () ->
+               InstallProcessSink(debug),
+               lists:foreach(
+                 fun (Severity) ->
+                         logi:Severity("hello world"),
+                         ?assertLog("hello world", [], fun (C) -> ?assertEqual(Severity, logi_context:get_severity(C)) end)
+                 end,
+                 logi:severities())
+       end},
+      {"Option: `logger'",
+       fun () ->
+               ok = logi_channel:create(test_log),
+               InstallProcessSinkOpt(info, [{channel, test_log}]),
+
+               logi:info("hello world"),
+               ?assertNotLog(),
+
+               logi:info("hello world", [], [{logger, test_log}]),
+               ?assertLog("hello world", [], fun (_) -> true end),
+
+               Logger = logi:new(test_log),
+               logi:info("hello world", [], [{logger, Logger}]),
+               ?assertLog("hello world", [], fun (_) -> true end)
+       end},
+      {"Option: `headers'",
+       fun () ->
+               InstallProcessSink(info),
+
+               logi:info("hello world", [], [{headers, #{a => b}}]),
+               ?assertLog("hello world", [], fun (C) -> ?assertEqual(#{a => b}, logi_context:get_headers(C)) end),
+
+               logi:set_headers(#{a => b}),
+               logi:info("hello world"),
+               ?assertLog("hello world", [], fun (C) -> ?assertEqual(#{a => b}, logi_context:get_headers(C)) end)
+       end},
+      {"Option: `metadata'",
+       fun () ->
+               InstallProcessSink(info),
+
+               logi:info("hello world", [], [{metadata, #{a => b}}]),
+               ?assertLog("hello world", [], fun (C) -> ?assertEqual(#{a => b}, logi_context:get_metadata(C)) end),
+
+               logi:set_metadata(#{a => b}),
+               logi:info("hello world"),
+               ?assertLog("hello world", [], fun (C) -> ?assertEqual(#{a => b}, logi_context:get_metadata(C)) end)
+       end},
+      {"Option: `location'",
+       fun () ->
+               InstallProcessSink(info),
+
+               Location = logi_location:guess_location(),
+               logi:info("hello world", [], [{location, Location}]),
+               ?assertLog("hello world", [], fun (C) -> ?assertEqual(Location, logi_context:get_location(C)) end)
+       end},
+      {"Option: `timestamp'",
+       fun () ->
+               InstallProcessSink(info),
+
+               Timestamp = {0, 0, 0},
+               logi:info("hello world", [], [{timestamp, Timestamp}]),
+               ?assertLog("hello world", [], fun (C) -> ?assertEqual(Timestamp, logi_context:get_timestamp(C)) end)
+       end},
+      {"Option: `subject'",
+       fun () ->
+               InstallProcessSink(info),
+
+               logi:info("hello world"),
+               ?assertLog("hello world", [], fun (C) -> ?assertEqual(undefined, logi_context:get_subject(C)) end),
+
+               logi:info("hello world", [], [{subject, hoge}]),
+               ?assertLog("hello world", [], fun (C) -> ?assertEqual(hoge, logi_context:get_subject(C)) end)
+       end},
+      {"Filter",
+       fun () ->
+               InstallProcessSink(info),
+
+               Filter =
+                   logi_builtin_filter_fun:new(
+                     fun (C) ->
+                             case logi_context:get_metadata(C) of
+                                 #{discard := true} -> false;
+                                 _                  -> true
+                             end
+                     end),
+               Logger = logi:new(logi:default_logger(), [{filter, Filter}]), % TODO: channelもデフォルト指定可にしてしまう(?)
+               logi:save_as_default(Logger),
+
+               logi:info("hello world"),
+               ?assertLog("hello world", [], fun (_) -> true end),
+
+               logi:info("hello world", [], [{metadata, #{discard => true}}]),
+               ?assertNotLog(),
+
+               logi:info("hello world", [], [{metadata, #{discard => false}}]),
+               ?assertLog("hello world", [], fun (_) -> true end)
+       end},
+      {"Multiple sinks",
+       fun () ->
+               InstallProcessSinkOpt(info, [{id, sink_0}]),
+               InstallProcessSinkOpt(info, [{id, sink_1}]),
+
+               logi:info("hello world"),
+               ?assertLog("hello world", [], fun (_) -> true end),
+               ?assertLog("hello world", [], fun (_) -> true end)
+       end},
+      {"Aggregated logger",
+       fun () ->
+               InstallProcessSink(info),
+
+               Logger =
+                   logi:from_list(
+                     [
+                      logi:new(logi:default_logger(), [{headers, #{id => a}}]),
+                      logi:new(logi:default_logger(), [{headers, #{id => b}}])
+                     ]),
+               logi:save_as_default(Logger),
+
+               logi:info("hello world"),
+               ?assertLog("hello world", [], fun (C) -> ?assertEqual(#{id => a}, logi_context:get_headers(C)) end),
+               ?assertLog("hello world", [], fun (C) -> ?assertEqual(#{id => b}, logi_context:get_headers(C)) end)
+       end}
+     ]}.
+
+%% TODO: logi_transform_tests

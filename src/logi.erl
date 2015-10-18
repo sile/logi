@@ -159,6 +159,8 @@ new(ChannelId, Options) -> logi_logger:new(ChannelId, Options).
 is_logger(X) -> is_atom(X) orelse logi_logger:is_logger(X).
 
 %% @doc Converts `Logger' into a map form
+%%
+%% The entries which has default values will be omitted from the resulting map
 -spec to_map(logger()) -> logger_map_form().
 to_map(Logger) -> logi_logger:to_map(element(2, load_if_need(Logger))).
 
@@ -181,6 +183,7 @@ to_list(Logger) ->
         _               -> [Logger]
     end.
 
+%% TODO: nextが既に設定されていた場合の挙動
 -spec from_list([logger()]) -> logger_instance().
 from_list([])      -> erlang:error(badarg, [[]]);
 from_list(Loggers) ->
@@ -302,7 +305,7 @@ delete_headers(Keys) -> delete_headers(Keys, []).
 -spec delete_headers([term()], Options) -> logger_instance() when
       Options :: [Option],
       Option  :: {logger, logger()}
-               | {recursive, boolean()}.
+               | {recursive, boolean()}. % TODO: remove(?)
 delete_headers(Keys, Options) ->
     _ = is_list(Options) orelse erlang:error(badarg, [Keys, Options]),
     Recursive = proplists:get_value(recursive, Options, true),
