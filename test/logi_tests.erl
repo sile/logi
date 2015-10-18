@@ -326,6 +326,7 @@ log_test_() ->
     {foreach,
      fun () ->
              {ok, Apps} = application:ensure_all_started(logi),
+             application:set_env(logi, warn_no_parse_transform, false),
              Apps
      end,
      fun (Apps) ->
@@ -469,5 +470,3 @@ log_test_() ->
                ?assertLog("hello world", [], fun (C) -> ?assertEqual(#{id => b}, logi_context:get_headers(C)) end)
        end}
      ]}.
-
-%% TODO: logi_transform_tests

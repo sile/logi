@@ -78,32 +78,37 @@ walk_clauses(Clauses, Loc) ->
      end || Clause <- Clauses].
 
 -spec walk_expr(expr(), #location{}) -> expr().
-walk_expr({call, Line, {remote, _, {atom, _, logi}, _}, _} = C, Loc) -> transform_logi_call(C, Loc#location{line = Line});
-walk_expr(Expr, Loc) when is_tuple(Expr)                             -> list_to_tuple(walk_expr(tuple_to_list(Expr), Loc));
-walk_expr(Expr, Loc) when is_list(Expr)                              -> [walk_expr(E, Loc) || E <- Expr];
-walk_expr(Expr, _Loc)                                                -> Expr.
+walk_expr({call, Line, {remote, _, {atom, _, M}, {atom, _, F}}, _} = C0, Loc) ->
+    C1 = list_to_tuple(walk_expr(tuple_to_list(C0), Loc)),
+    transform_call(M, F, C1, Loc#location{line = Line});
+walk_expr(Expr, Loc) when is_tuple(Expr) ->
+    list_to_tuple(walk_expr(tuple_to_list(Expr), Loc));
+walk_expr(Expr, Loc) when is_list(Expr) ->
+    [walk_expr(E, Loc) || E <- Expr];
+walk_expr(Expr, _Loc) ->
+    Expr.
 
--spec transform_logi_call(expr_call_remote(), #location{}) -> expr_call_remote().
-transform_logi_call({call, _, {remote, _, _, {atom, _, location}}, []}, Loc) ->
+-spec transform_call(module(), atom(), expr_call_remote(), #location{}) -> expr().
+transform_call(logi_location, guess_location, _, Loc) ->
     logi_location_expr(Loc);
-transform_logi_call({call, _, {remote, _, _, {atom, _, Severity}}, Args} = Call, Loc = #location{line = Line}) ->
+transform_call(logi, Severity, {_, _, _, Args} = Call, Loc = #location{line = Line}) ->
     case logi:is_severity(Severity) of
         false -> Call;
         true  ->
             case Args of
-                [Fmt]                -> logi_call_expr(Severity, Fmt, {nil, Line}, {map, Line, []}, Loc);
-                [Fmt, FmtArgs]       -> logi_call_expr(Severity, Fmt, FmtArgs,     {map, Line, []}, Loc);
-                [Fmt, FmtArgs, Opts] -> logi_call_expr(Severity, Fmt, FmtArgs,     Opts,            Loc);
-                _                    -> Call
+                [Fmt]             -> logi_call_expr(Severity, Fmt, {nil, Line}, {nil, Line}, Loc);
+                [Fmt, Data]       -> logi_call_expr(Severity, Fmt, Data,        {nil, Line}, Loc);
+                [Fmt, Data, Opts] -> logi_call_expr(Severity, Fmt, Data,        Opts,        Loc);
+                _                 -> Call
             end
     end;
-transform_logi_call(Call, _Loc) ->
+transform_call(_, _, Call, _Loc) ->
     Call.
 
 -spec logi_location_expr(#location{}) -> expr().
 logi_location_expr(Loc = #location{line = Line}) ->
     logi_transform_utils:make_call_remote(
-      Line, logi_location, make,
+      Line, logi_location, unsafe_new,
       [
        {call, Line, {atom, Line, node}, []},
        {call, Line, {atom, Line, self}, []},
@@ -114,19 +119,20 @@ logi_location_expr(Loc = #location{line = Line}) ->
       ]).
 
 -spec logi_call_expr(logi:severity(), expr(), expr(), expr(), #location{}) -> expr().
-logi_call_expr(Severity, FormatExpr, FormatArgsExpr, OptionsExpr, Loc = #location{line = Line}) ->
+logi_call_expr(Severity, FormatExpr, DataExpr, OptionsExpr, Loc = #location{line = Line}) ->
     LocationExpr = logi_location_expr(Loc),
-    BackendsVar = logi_transform_utils:make_var(Line, "__Backends"),
-    ContextVar = logi_transform_utils:make_var(Line, "__Context"),
-    MsgInfoVar = logi_transform_utils:make_var(Line, "__MsgInfo"),
-    {'case', Line, logi_transform_utils:make_call_remote(Line, logi_client, ready, [{atom, Line, Severity}, LocationExpr, OptionsExpr]),
+    LoggerVar = logi_transform_utils:make_var(Line, "__Logger"),
+    ResultVar = logi_transform_utils:make_var(Line, "__Result"),
+    LogiReadyCall = logi_transform_utils:make_call_remote(
+                      Line, logi, '_ready', [{atom, Line, Severity}, LocationExpr, OptionsExpr]),
+    {'case', Line, LogiReadyCall,
      [
-      %% {skip, Context} -> Context
-      {clause, Line, [{tuple, Line, [{atom, Line, skip}, ContextVar]}], [],
-       [ContextVar]},
+      %% {Logger, []} -> Logger
+      {clause, Line, [{tuple, Line, [LoggerVar, {nil, Line}]}], [],
+       [LoggerVar]},
 
-      %% {ok, Backends, MsgInfo, Context} -> logi_client:write(Context, Backends, MsgInfo, Format, Args)
-      {clause, Line, [{tuple, Line, [{atom, Line, ok}, BackendsVar, MsgInfoVar, ContextVar]}], [],
-       [logi_transform_utils:make_call_remote(Line, logi_client, write, [BackendsVar, MsgInfoVar, FormatExpr, FormatArgsExpr]),
-        ContextVar]}
+      %% {Logger, Result} -> logi:'_write'(Result, Format, Data), Logger
+      {clause, Line, [{tuple, Line, [LoggerVar, ResultVar]}], [],
+       [logi_transform_utils:make_call_remote(Line, logi, '_write', [ResultVar, FormatExpr, DataExpr]),
+        LoggerVar]}
      ]}.

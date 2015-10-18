@@ -81,5 +81,34 @@ select_test_() ->
       {"If an unknown table is specified, `select/4` will return an empty list",
        fun () ->
                ?assertEqual([], logi_sink_table:select('UNKNOWN_TABLE', debug, select, lists))
+       end},
+      {"Under high contention",
+       fun () ->
+               Monitors =
+                   [element(
+                      2,
+                      spawn_monitor(
+                        fun () ->
+                                lists:foreach(
+                                  fun (_) ->
+                                          timer:sleep(1),
+                                          Sinks = logi_sink_table:select(?CHANNEL, info, stdlib, lists),
+                                          ?assert(Sinks =:= [] orelse length(Sinks) =:= 1)
+                                  end,
+                                  lists:seq(1, 1000))
+                        end)) || _ <- lists:seq(1, 100)],
+               SelectLoop =
+                   fun Recur ([])   -> ok;
+                       Recur (List) ->
+                           receive
+                               {'DOWN', Monitor, _, _, _} -> Recur(lists:delete(Monitor, List))
+                           after 0 ->
+                                   Sink = logi_sink:new(hoge, ?NULL_SINK),
+                                   ok = logi_sink_table:register(?CHANNEL, Sink, undefined),
+                                   logi_sink_table:deregister(?CHANNEL, Sink),
+                                   Recur(List)
+                           end
+                   end,
+               SelectLoop(Monitors)
        end}
      ]}.

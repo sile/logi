@@ -62,6 +62,11 @@
 -export_type([log_option/0, log_options/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
+%% Application Internal API
+%%----------------------------------------------------------------------------------------------------------------------
+-export(['_ready'/3, '_write'/3]). % for `logi_transform'
+
+%%----------------------------------------------------------------------------------------------------------------------
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
 -type log_level() :: debug | verbose | info | notice | warning | error | critical | alert | emergency. % TODO: => severity_level/0 (?)
@@ -351,17 +356,15 @@ delete_metadata(Keys, Options) ->
 %% TODO: private(?)
 -spec log(severity(), io:format(), [term()], log_options()) -> logger_instance().
 log(Severity, Format, FormatArgs, Options) ->
-    %% TODO: application:get_env(warn_deprecated) orelse do_warn()
     _ = is_list(Options) orelse erlang:error(badarg, [Severity, Format, FormatArgs, Options]),
     DefaultLocation =
         case lists:keyfind(location, 1, Options) of
             false         -> logi_location:guess_location();
             {_, Location} -> Location
         end,
-    {Need, Logger0} = load_if_need(proplists:get_value(logger, Options, default_logger())),
-    {Results, Logger1} = logi_logger:ready(Logger0, Severity, DefaultLocation, Options),
-    ok = lists:foreach(fun ({Context, Sinks}) -> logi_logger:write(Sinks, Context, Format, FormatArgs) end, Results),
-    save_if_need(Need, Logger1).
+    {Logger1, Result} = '_ready'(Severity, DefaultLocation, Options),
+    _ = '_write'(Result, Format, FormatArgs),
+    Logger1.
 
 -spec debug(io:format()) -> logger_instance().
 debug(Format) -> debug(Format, []).
@@ -443,6 +446,26 @@ emergency(Format, Args) -> emergency(Format, Args, []).
 
 -spec emergency(io:format(), [term()], log_options()) -> logger_instance().
 emergency(Format, Args, Options) -> log(emergency, Format, Args, Options).
+
+%%----------------------------------------------------------------------------------------------------------------------
+%% Application Internal Functions
+%%----------------------------------------------------------------------------------------------------------------------
+
+%% @private
+-spec '_ready'(severity(), logi_location:location(), log_options()) ->
+                     {logger_instance(), [{logi_context:context(), [logi_sink:sink()]}]}.
+'_ready'(Severity, DefaultLocation, Options) ->
+    {Need, Logger0} = load_if_need(proplists:get_value(logger, Options, default_logger())),
+    {Result, Logger1} = logi_logger:ready(Logger0, Severity, DefaultLocation, Options),
+    {save_if_need(Need, Logger1), Result}.
+
+%% @private
+-spec '_write'([{logi_context:context(), [logi_sink:sink()]}], io:format(), [term()]) -> ok.
+'_write'([], _Format, _Data) ->
+    ok;
+'_write'([{Context, Sinks} | Rest], Format, Data) ->
+    _ = logi_logger:write(Sinks, Context, Format, Data),
+    '_write'(Rest, Format, Data).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions

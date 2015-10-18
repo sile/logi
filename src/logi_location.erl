@@ -151,16 +151,37 @@ to_map(L) ->
 %%             which replaces the function call to a more efficient code.
 -spec guess_location() -> location().
 guess_location() ->
-    case process_info(self(), current_stacktrace) of % NOTE: In the case of tail calls, this will return inaccurate result
-        {current_stacktrace, Stack} ->
-            case lists:dropwhile(fun ({M, _, _, _}) -> guess_application(M) =:= logi end, Stack) of
-                [{Module, Function, _, Location} | _] ->
-                    Line = proplists:get_value(line, Location, 0),
-                    new(Module, Function, Line);
-                _ -> new(undefined, undefined, 0)
-            end;
-        _ -> new(undefined, undefined, 0)
-    end.
+    Location =
+        case process_info(self(), current_stacktrace) of % NOTE: In the case of tail calls, this will return inaccurate result
+            {current_stacktrace, Stack} ->
+                case lists:dropwhile(fun ({M, _, _, _}) -> guess_application(M) =:= logi end, Stack) of
+                    [{Module, Function, _, Loc} | _] ->
+                        Line = proplists:get_value(line, Loc, 0),
+                        new(Module, Function, Line);
+                    _ -> new(undefined, undefined, 0)
+                end;
+            _ -> new(undefined, undefined, 0)
+        end,
+    _ = case application:get_env(logi, warn_no_parse_transform, true) of
+            false -> ok;
+            true  ->
+                Message =
+                    "A deprecated function 'logi_location:guess_location/0' is called. "
+                    "Please use the `{parse_transform, logi_transform}' compiler option.",
+                case application:get_env(logi, warnings_as_errors, false) of
+                    true  -> error(Message);
+                    false ->
+                        error_logger:warning_report(
+                          [
+                           {pid, get_process(Location)},
+                           {module, get_module(Location)},
+                           {function, get_function(Location)},
+                           {line, get_line(Location)},
+                           {msg, Message}
+                          ])
+                end
+        end,
+    Location.
 
 %% @doc Guesses the application to which `Module' belongs
 -spec guess_application(module()) -> atom() | undefined.

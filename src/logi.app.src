@@ -5,6 +5,10 @@
   {vsn, git},
   {registered, [logi_sup, logi_channel_sup, logi_default_log]},
   {applications, [kernel, stdlib]},
-  {mod, { logi_app, []}},
-  {env, []}
+  {mod, {logi_app, []}},
+  {env,
+   [
+    {warnings_as_errors, false},
+    {warn_no_parse_transform, true}
+   ]}
  ]}.

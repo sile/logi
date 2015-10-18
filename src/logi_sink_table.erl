@@ -163,10 +163,8 @@ pop_sink_id(Table, Key, SinkId) ->
 
 -spec fetch(table(), term()) -> term().
 fetch(Table, Key) ->
-    case ets:lookup(Table, Key) of
-        []       -> error({no_such_key, Key}, [Table, Key]);
-        [{_, V}] -> V
-    end.
+    [{_, V}] = ets:lookup(Table, Key),
+    V.
 
 -spec fetch(table(), term(), term()) -> term().
 fetch(Table, Key, Default) ->

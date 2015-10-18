@@ -22,7 +22,7 @@ is_timestamp({A, B, C}) when is_integer(A), A >= 0,
 is_timestamp(_) ->
     false.
 
-%% @doc Equivalent to {@link erlang:function_exported/3} except `Module' will be loaded if it isn't loaded
+%% @doc Equivalent to {@link erlang:function_exported/3} except `Module' will be loaded if it has not been loaded
 -spec function_exported(module(), atom(), arity()) -> boolean().
 function_exported(Module, Function, Arity) ->
     _ = is_atom(Module) orelse error(badarg, [Module, Function, Arity]),

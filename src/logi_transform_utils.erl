@@ -1,6 +1,6 @@
 %% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc utility functions for logi_transform
+%% @doc Utility functions for logi_transform
 %% @private
 -module(logi_transform_utils).
 
