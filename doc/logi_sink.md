@@ -18,15 +18,43 @@ __This module defines the `logi_sink` behaviour.__<br /> Required callback funct
 
 A sink will consume the log messages sent to the channel which the sink have been installed.
 
+
+### <a name="EXAMPLE">EXAMPLE</a> ###
+
+
 ```erlang
 
-  %%%
-  %%% Example
-  %%%
   > ok = logi_channel:create(sample_log).
-  > Sink = logi_sink:new(logi_builtin_sink_null).
+  > WriteFun = fun (_, Format, Data) -> io:format("[my_sink] " ++ Format ++ "\n", Data) end.
+  > Sink = logi_sink:new(my_sink, logi_builtin_sink_fun, info, WriteFun).
   > {ok, _} = logi_channel:install_sink(sample_log, Sink).
-  > logi:info("Hello World", [], [{logger, sample_log}]). % 'logi_builtin_sink_null:write/4' will be invoked
+  > logi:info("Hello World", [], [{logger, sample_log}]).
+  [my_sink] Hello World  % 'logi_builtin_sink_fun:write/4' was invoked
+```
+
+Conventionally, sink implementation modules provide `install` function to install the sink.
+
+```erlang
+
+  > ok = logi_channel:create(sample_log).
+  > WriteFun = fun (_, Format, Data) -> io:format("[my_sink] " ++ Format ++ "\n", Data) end.
+  > {ok, _} = logi_builtin_sink_fun:install(info, WriteFun, [{channel, sample_log}]).
+  > logi:info("Hello World", [], [{logger, sample_log}]).
+  [my_sink] Hello World  % 'logi_builtin_sink_fun:write/4' was invoked
+```
+
+A channel can have multiple sinks.
+
+```erlang
+
+  > ok = logi_channel:create(sample_log).
+  > WriteFun_0 = fun (_, Format, Data) -> io:format("[sink_0] " ++ Format ++ "\n", Data) end.
+  > WriteFun_1 = fun (_, Format, Data) -> io:format("[sink_1] " ++ Format ++ "\n", Data) end.
+  > {ok, _} = logi_builtin_sink_fun:install(info, WriteFun_0, [{id, sink_0}, {channel, sample_log}]).
+  > {ok, _} = logi_builtin_sink_fun:install(info, WriteFun_1, [{id, sink_1}, {channel, sample_log}]).
+  > logi:info("Hello World", [], [{logger, sample_log}]).
+  [sink_0] Hello World
+  [sink_1] Hello World
 ```
 
 <a name="types"></a>
@@ -99,6 +127,20 @@ The location is specified by `application` and `module` (OR condition).
 NOTE: The modules which does not belong to any application are forbidden.
 
 
+### <a name="EXAMPLE">EXAMPLE</a> ###
+
+
+```erlang
+
+  > logi_sink:new(Id, Module, #{application => stdlib}).                          % application
+  > logi_sink:new(Id, Module, #{application => [stdlib, kernel]}).                % applications
+  > logi_sink:new(Id, Module, #{module => lists}).                                % module
+  > logi_sink:new(Id, Module, #{module => [lists, dict]}).                        % modules
+  > logi_sink:new(Id, Module, #{application => kernel, module => [lists, dict]}). % application and modules
+  > logi_sink:new(Id, Module, #{severity => [info, alert], module => lists}).     % severity and module
+```
+
+
 
 ### <a name="type-map_form">map_form()</a> ###
 
@@ -152,6 +194,17 @@ severity_condition() = (Min::<a href="logi.md#type-severity">logi:severity()</a>
 
 `Severities`:
 - The messages with severity included in `Severities` will be consumed.
+
+
+### <a name="EXAMPLE">EXAMPLE</a> ###
+
+
+```erlang
+
+  > logi_sink:new(Id, Module, info).          % level
+  > logi_sink:new(Id, Module, {info, alert}). % range
+  > logi_sink:new(Id, Module, [info, alert]). % list
+```
 
 
 

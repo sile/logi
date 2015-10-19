@@ -6,7 +6,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/7, unsafe_new/7]).
+-export([new/2, new/7, unsafe_new/7]).
 -export([is_context/1]).
 -export([to_map/1, from_map/1]).
 -export([get_channel/1, get_timestamp/1, get_severity/1, get_subject/1, get_location/1, get_headers/1, get_metadata/1]).
@@ -48,6 +48,10 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
+%% @equiv new(Channel, os:timestamp(), Severity, undefined, logi_location:guess_location(), #{}, #{})
+-spec new(logi_channel:id(), logi:severity()) -> context().
+new(Channel, Severity) -> new(Channel, os:timestamp(), Severity, undefined, logi_location:guess_location(), #{}, #{}).
+
 %% @doc Creates a new context object
 -spec new(logi_channel:id(), erlang:timestamp(), logi:severity(), term(), logi_location:location(), logi:headers(),
           logi:metadata()) -> context().
@@ -66,13 +70,13 @@ new(Channel, Timestamp, Severity, Subject, Location, Headers, Metadata) ->
                  logi:metadata()) -> context().
 unsafe_new(Channel, Timestamp, Severity, Subject, Location, Headers, Metadata) ->
     #?CONTEXT{
-        channel = Channel,
+        channel   = Channel,
         timestamp = Timestamp,
-        severity = Severity,
-        subject = Subject,
-        location = Location,
-        headers = Headers,
-        metadata = Metadata
+        severity  = Severity,
+        subject   = Subject,
+        location  = Location,
+        headers   = Headers,
+        metadata  = Metadata
        }.
 
 %% @doc Returns `true' if `X' is a context object, `false' otherwise.

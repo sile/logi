@@ -151,13 +151,13 @@ is_severity(X) -> lists:member(X, severities()).
 -spec new() -> logger_instance().
 new() -> new(default_logger()).
 
-%% @equiv new(ChannelId, [])
+%% @equiv new(Channel, [])
 -spec new(logi_channel:id()) -> logger_instance().
-new(ChannelId) -> new(ChannelId, []).
+new(Channel) -> new(Channel, []).
 
 %% @doc Creates a new logger instance
 -spec new(logi_channel:id(), new_options()) -> logger_instance().
-new(ChannelId, Options) -> logi_logger:new(ChannelId, Options).
+new(Channel, Options) -> logi_logger:new(Channel, Options).
 
 %% @doc Returns `true' if `X' is a logger, otherwise `false'
 -spec is_logger(X :: (logger() | term())) -> boolean().
@@ -226,14 +226,14 @@ load(LoggerId) ->
 -spec load_or_new(logger_id()) -> logger_instance().
 load_or_new(LoggerId) -> load_or_new(LoggerId, LoggerId).
 
-%% @equiv load_or_new(LoggerId, ChannelId, [])
+%% @equiv load_or_new(LoggerId, Channel, [])
 -spec load_or_new(logger_id(), logi_channel:id()) -> logger_instance().
-load_or_new(LoggerId, ChannelId) -> load_or_new(LoggerId, ChannelId, []).
+load_or_new(LoggerId, Channel) -> load_or_new(LoggerId, Channel, []).
 
 -spec load_or_new(logger_id(), logi_channel:id(), new_options()) -> logger_instance().
-load_or_new(LoggerId, ChannelId, Options) ->
+load_or_new(LoggerId, Channel, Options) ->
     case load(LoggerId) of
-        error        -> new(ChannelId, Options);
+        error        -> new(Channel, Options);
         {ok, Logger} -> Logger
     end.
 

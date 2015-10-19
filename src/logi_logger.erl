@@ -53,21 +53,21 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @equiv new(ChannelId, [])
+%% @equiv new(Channel, [])
 -spec new(logi_channel:id()) -> logger().
-new(ChannelId) -> new(ChannelId, []).
+new(Channel) -> new(Channel, []).
 
 -spec new(logi_channel:id(), logi:new_options()) -> logger().
-new(ChannelId, Options) ->
-    Args = [ChannelId, Options],
-    _ = is_atom(ChannelId) orelse error(badarg, Args),
+new(Channel, Options) ->
+    Args = [Channel, Options],
+    _ = is_atom(Channel) orelse error(badarg, Args),
     _ = is_list(Options) orelse error(badarg, Args),
     Headers  = ?GET_AND_VALIDATE(headers, Options, #{}, fun erlang:is_map/1, Args),
     Metadata = ?GET_AND_VALIDATE(metadata, Options, #{}, fun erlang:is_map/1, Args),
     Filter   = ?GET_AND_VALIDATE(filter, Options, undefined, fun logi_filter:is_filter/1, Args),
     Next     = ?GET_AND_VALIDATE(next, Options, undefined, fun is_logger/1, Args),
     #?LOGGER{
-        channel_id = ChannelId,
+        channel_id = Channel,
         headers    = Headers,
         metadata   = Metadata,
         filter     = Filter,
@@ -91,8 +91,8 @@ to_map(L = #?LOGGER{}) ->
        }).
 
 -spec from_map(logi:logger_map_form()) -> logger().
-from_map(Map = #{channel_id := ChannelId}) -> new(ChannelId, maps:to_list(Map));
-from_map(Map)                              -> error(badarg, [Map]).
+from_map(Map = #{channel_id := Channel}) -> new(Channel, maps:to_list(Map));
+from_map(Map)                            -> error(badarg, [Map]).
 
 -spec set_headers(logi:headers(), ignore | overwrite | supersede, logger()) -> logger().
 set_headers(Headers, ignore,    Logger) -> Logger#?LOGGER{headers = maps:merge(Headers, Logger#?LOGGER.headers)};

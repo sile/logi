@@ -3,23 +3,39 @@
 %% @doc Log Message Filter Behaviour
 %%
 %% A filter decides whether to allow or deny a message which send to the target channel.
-%% TODO: doc
 %%
-%% TODO: filter shuold not raise exceptions
+%% == NOTE ==
+%% A filter should not raise exceptions when it's `filter/2' is called.
 %%
-%% TODO: more realistic example (logi:add_filter => logi:info)
+%% If any exception is raised, the invocation of the log function will be aborted and
+%% the exception will be propagated to the caller process.
 %%
-%% TODO: logi_builtin_filter_or, logi_builtin_filter_and, logi_builtin_filter_true, logi_builtin_filter_false
-%%
+%% == EXAMPLE ==
 %% <pre lang="erlang">
-%% %%%
-%% %%% Example
-%% %%%
-%% > Context = logi_context:new(sample_log, os:timestamp(), info, logi_location:guess_location(), #{}, #{}).
-%% > FilterFun = fun (_, _, _) -> true end,
-%% > Filter = logi_builtin_filter_fun:new(FilterFun),
-%% > logi_filter:apply(Context, [], Filter).
+%% > Context0 = logi_context:new(sample_log, info).
+%% > FilterFun = fun (C) -> not maps:get(discard, logi_context:get_metadata(C), false) end.
+%% > Filter = logi_builtin_filter_fun:new(FilterFun).
+%% > logi_filter:apply(Context0, Filter).
 %% true
+%% > Context1 = logi_context:from_map(maps:put(metadata, #{discard => true}, logi_context:to_map(Context0))).
+%% > logi_filter:apply(Context1, Filter).
+%% false
+%% </pre>
+%%
+%% A more realistic example:
+%% <pre lang="erlang">
+%% > application:set_env(logi, warn_no_parse_transform, false).
+%% > {ok, _} = logi_builtin_sink_fun:install(info, fun (_, Format, Data) -> io:format(Format ++ "\n", Data) end).
+%%
+%% > FilterFun = fun (C) -> not maps:get(discard, logi_context:get_metadata(C), false) end.
+%% > Logger = logi:new([{filter, logi_builtin_filter_fun:new(FilterFun)}]).
+%% > logi:save_as_default(Logger).
+%%
+%% > logi:info("hello world").
+%% hello world
+%%
+%% > logi:info("hello world", [], [{metadata, #{discard => true}}]).
+%% % No output: the log message was discarded by the filter
 %% </pre>
 -module(logi_filter).
 
@@ -87,7 +103,11 @@ get_state(Module) when is_atom(Module) -> undefined;
 get_state({_, State})                  -> State.
 
 %% @doc Applies `Filter'
--spec apply(logi_context:context(), Filter :: filter()) -> boolean() | {boolean(), filter()}.
+%%
+%% This function returns `DoAllow' if the state of `Filter' is not changed, `{DoAllow, NewFilter}' otherwise.
+-spec apply(logi_context:context(), Filter :: filter()) -> DoAllow | {DoAllow, NewFilter} when
+      DoAllow   :: boolean(),
+      NewFilter :: filter().
 apply(Context, Filter) ->
     Module = get_module(Filter),
     State0 = get_state(Filter),

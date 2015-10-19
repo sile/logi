@@ -6,7 +6,7 @@
 * [Function Index](#index)
 * [Function Details](#functions)
 
-Log Message location.
+The location where log message issued.
 
 Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
@@ -14,17 +14,38 @@ Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
 ## Description ##
 
+
+### <a name="EXAMPLE">EXAMPLE</a> ###
+
+
 ```erlang
 
-  %%%
-  %%% Example
-  %%%
   > Location = logi_location:new(lists, filter, 10).
   > logi_location:to_map(Location).
   #{application => stdlib,
     function => filter,
     line => 10,
     module => lists,
+    node => nonode@nohost,
+    process => <0.91.0>}
+```
+
+[`guess_location/0`](#guess_location-0) returns the current location.
+
+```erlang
+
+  > Location = logi_location:guess_location(). % If <code>logi_transform</code> is not used, a warning will be emitted.
+  =WARNING REPORT==== 19-Oct-2015::14:02:26 ===
+     pid: <0.91.0>
+     module: erl_eval
+     function: do_apply
+     line: 673
+     msg: "A deprecated function 'logi_location:guess_location/0' is called. Please use the <code>{parse_transform, logi_transform}</code> compiler option."
+  > logi_location:to_map(Location).
+  #{application => stdlib,
+    function => do_apply,
+    line => 673,
+    module => erl_eval,
     node => nonode@nohost,
     process => <0.91.0>}
 ```
@@ -65,7 +86,7 @@ line() = pos_integer() | 0
 
 __abstract datatype__: `location()`
 
- A location
+ A log message issued location
 
 
 

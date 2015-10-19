@@ -15,7 +15,48 @@ __This module defines the `logi_filter` behaviour.__<br /> Required callback fun
 <a name="description"></a>
 
 ## Description ##
+
 A filter decides whether to allow or deny a message which send to the target channel.
+
+
+### <a name="NOTE">NOTE</a> ###
+
+A filter should not raise exceptions when it's `filter/2` is called.
+
+If any exception is raised, the invocation of the log function will be aborted and
+the exception will be propagated to the caller process.
+
+
+### <a name="EXAMPLE">EXAMPLE</a> ###
+
+
+```erlang
+
+  > Context0 = logi_context:new(sample_log, info).
+  > FilterFun = fun (C) -> not maps:get(discard, logi_context:get_metadata(C), false) end.
+  > Filter = logi_builtin_filter_fun:new(FilterFun).
+  > logi_filter:apply(Context0, Filter).
+  true
+  > Context1 = logi_context:from_map(maps:put(metadata, #{discard => true}, logi_context:to_map(Context0))).
+  > logi_filter:apply(Context1, Filter).
+  false
+```
+
+A more realistic example:
+
+```erlang
+
+  > application:set_env(logi, warn_no_parse_transform, false).
+  > {ok, _} = logi_builtin_sink_fun:install(info, fun (_, Format, Data) -> io:format(Format ++ "\n", Data) end).
+  > FilterFun = fun (C) -> not maps:get(discard, logi_context:get_metadata(C), false) end.
+  > Logger = logi:new([{filter, logi_builtin_filter_fun:new(FilterFun)}]).
+  > logi:save_as_default(Logger).
+  > logi:info("hello world").
+  hello world
+  > logi:info("hello world", [], [{metadata, #{discard => true}}]).
+  % No output: the log message was discarded by the filter
+```
+
 <a name="types"></a>
 
 ## Data Types ##
@@ -83,11 +124,14 @@ If the `filter()` does not have an explicit `state()`, `undefined` will be passe
 ### apply/2 ###
 
 <pre><code>
-apply(Context::<a href="logi_context.md#type-context">logi_context:context()</a>, Filter::<a href="#type-filter">filter()</a>) -&gt; boolean() | {boolean(), <a href="#type-filter">filter()</a>}
+apply(Context::<a href="logi_context.md#type-context">logi_context:context()</a>, Filter::<a href="#type-filter">filter()</a>) -&gt; DoAllow | {DoAllow, NewFilter}
 </code></pre>
-<br />
+
+<ul class="definitions"><li><code>DoAllow = boolean()</code></li><li><code>NewFilter = <a href="#type-filter">filter()</a></code></li></ul>
 
 Applies `Filter`
+
+This function returns `DoAllow` if the state of `Filter` is not changed, `{DoAllow, NewFilter}` otherwise.
 
 <a name="get_module-1"></a>
 

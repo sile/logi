@@ -19,15 +19,16 @@ __This module defines the `logi_layout` behaviour.__<br /> Required callback fun
 This module defines the standard interface to format log messages issued by `logi` functions
 (e.g. [`logi:info/3`](logi.md#info-3), [`logi:warning/3`](logi.md#warning-3), etc).
 
+
+### <a name="EXAMPLE">EXAMPLE</a> ###
+
+
 ```erlang
 
-  %%%
-  %%% Example
-  %%%
-  > Context = logi_context:new(sample_log, os:timestamp(), info, logi_location:guess_location(), #{}, #{}).
-  > FormatFun = fun (_, Format, Data) -> io_lib:format("EXAMPLE: " ++ Format, Data) end.
+  > Context = logi_context:new(sample_log, info).
+  > FormatFun = fun (_, Format, Data) -> lists:flatten(io_lib:format("EXAMPLE: " ++ Format, Data)) end.
   > Layout = logi_builtin_layout_fun:new(FormatFun).
-  > lists:flatten(logi_layout:format(Context, "Hello ~s", ["World"], Layout)).
+  > logi_layout:format(Context, "Hello ~s", ["World"], Layout).
   "EXAMPLE: Hello World"
 ```
 

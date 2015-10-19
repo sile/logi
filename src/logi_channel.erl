@@ -2,15 +2,14 @@
 %%
 %% @doc Log Message Channels
 %%
-%% A channel manages conditional sinks
+%% A channel manages conditional sinks.
 %%
+%% == EXAMPLE ==
 %% <pre lang="erlang">
-%% %%%
-%% %%% Example
-%% %%%
+%% > application:set_env(logi, warn_no_parse_transform, false). % Suppresses noisy warnings
 %%
 %% %%
-%% %% CREATE
+%% %% CREATE CHANNEL
 %% %%
 %% > ok = logi_channel:create(sample_log).
 %% > logi_channel:which_channels().
@@ -19,10 +18,26 @@
 %% %%
 %% %% INSTALL SINK
 %% %%
-%% > Sink = logi_sink:new(logi_builtin_sink_null).
+%% > WriteFun = fun (_, Format, Data) -> io:format("[my_sink] " ++ Format ++ "\n", Data) end.
+%% > Sink = logi_sink:new(my_sink, logi_builtin_sink_fun, info, WriteFun). % Installs the sink with `info' level
 %% > {ok, _} = logi_channel:install_sink(sample_log, Sink).
 %% > logi_channel:which_sinks(sample_log).
-%% [logi_builtin_sink_null]
+%% [my_sink]
+%%
+%% %%
+%% %% OUTPUT LOG MESSAGE
+%% %%
+%% > logi:debug("hello world", [], [{logger, sample_log}]).
+%% % The message is not emitted (the severity is too low).
+%%
+%% > logi:info("hello world", [], [{logger, sample_log}]).
+%% [my_sink] hello world
+%%
+%% > logi:alert("hello world", [], [{logger, sample_log}]).
+%% [my_sink] hello world
+%%
+%% > logi:info("hello world"). % If `logger' option is omitted, the default channel will be used
+%% % The message is not emitted (no sinks are installed to the default channel).
 %% </pre>
 -module(logi_channel).
 

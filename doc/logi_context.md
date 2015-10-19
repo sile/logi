@@ -40,7 +40,8 @@ map_form() = #{channel =&gt; <a href="logi_channel.md#type-id">logi_channel:id()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td>Creates a new context object from <code>Map</code></td></tr><tr><td valign="top"><a href="#get_channel-1">get_channel/1</a></td><td>Gets the channel of <code>Context</code></td></tr><tr><td valign="top"><a href="#get_headers-1">get_headers/1</a></td><td>Gets the headers of <code>Context</code></td></tr><tr><td valign="top"><a href="#get_location-1">get_location/1</a></td><td>Gets the location of <code>Context</code></td></tr><tr><td valign="top"><a href="#get_metadata-1">get_metadata/1</a></td><td>Gets the metadata of <code>Context</code></td></tr><tr><td valign="top"><a href="#get_severity-1">get_severity/1</a></td><td>Gets the severity of <code>Context</code></td></tr><tr><td valign="top"><a href="#get_subject-1">get_subject/1</a></td><td>Gets the subject of <code>Context</code></td></tr><tr><td valign="top"><a href="#get_timestamp-1">get_timestamp/1</a></td><td>Gets the timestamp of <code>Context</code></td></tr><tr><td valign="top"><a href="#is_context-1">is_context/1</a></td><td>Returns <code>true</code> if <code>X</code> is a context object, <code>false</code> otherwise.</td></tr><tr><td valign="top"><a href="#new-7">new/7</a></td><td>Creates a new context object.</td></tr><tr><td valign="top"><a href="#to_map-1">to_map/1</a></td><td>Converts <code>Context</code> into a map form.</td></tr><tr><td valign="top"><a href="#unsafe_new-7">unsafe_new/7</a></td><td>Equivalent to <a href="#new-6"><code>new/6</code></a> except omission of the arguments validation.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td>Creates a new context object from <code>Map</code></td></tr><tr><td valign="top"><a href="#get_channel-1">get_channel/1</a></td><td>Gets the channel of <code>Context</code></td></tr><tr><td valign="top"><a href="#get_headers-1">get_headers/1</a></td><td>Gets the headers of <code>Context</code></td></tr><tr><td valign="top"><a href="#get_location-1">get_location/1</a></td><td>Gets the location of <code>Context</code></td></tr><tr><td valign="top"><a href="#get_metadata-1">get_metadata/1</a></td><td>Gets the metadata of <code>Context</code></td></tr><tr><td valign="top"><a href="#get_severity-1">get_severity/1</a></td><td>Gets the severity of <code>Context</code></td></tr><tr><td valign="top"><a href="#get_subject-1">get_subject/1</a></td><td>Gets the subject of <code>Context</code></td></tr><tr><td valign="top"><a href="#get_timestamp-1">get_timestamp/1</a></td><td>Gets the timestamp of <code>Context</code></td></tr><tr><td valign="top"><a href="#is_context-1">is_context/1</a></td><td>Returns <code>true</code> if <code>X</code> is a context object, <code>false</code> otherwise.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Equivalent to <a href="#new-7"><tt>new(Channel, os:timestamp(), Severity, undefined,
+logi_location:guess_location(), #{}, #{})</tt></a>.</td></tr><tr><td valign="top"><a href="#new-7">new/7</a></td><td>Creates a new context object.</td></tr><tr><td valign="top"><a href="#to_map-1">to_map/1</a></td><td>Converts <code>Context</code> into a map form.</td></tr><tr><td valign="top"><a href="#unsafe_new-7">unsafe_new/7</a></td><td>Equivalent to <a href="#new-6"><code>new/6</code></a> except omission of the arguments validation.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -145,6 +146,17 @@ is_context(X::<a href="#type-context">context()</a> | term()) -&gt; boolean()
 <br />
 
 Returns `true` if `X` is a context object, `false` otherwise.
+
+<a name="new-2"></a>
+
+### new/2 ###
+
+<pre><code>
+new(Channel::<a href="logi_channel.md#type-id">logi_channel:id()</a>, Severity::<a href="logi.md#type-severity">logi:severity()</a>) -&gt; <a href="#type-context">context()</a>
+</code></pre>
+<br />
+
+Equivalent to [`new(Channel, os:timestamp(), Severity, undefined,logi_location:guess_location(), #{}, #{})`](#new-7).
 
 <a name="new-7"></a>
 

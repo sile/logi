@@ -1,17 +1,34 @@
 %% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc Log Message location
+%% @doc The location where log message issued
 %%
+%% == EXAMPLE ==
 %% <pre lang="erlang">
-%% %%%
-%% %%% Example
-%% %%%
 %% > Location = logi_location:new(lists, filter, 10).
 %% > logi_location:to_map(Location).
 %% #{application => stdlib,
 %%   function => filter,
 %%   line => 10,
 %%   module => lists,
+%%   node => nonode@nohost,
+%%   process => &lt;0.91.0&gt;}
+%% </pre>
+%%
+%% {@link guess_location/0} returns the current location.
+%% <pre lang="erlang">
+%% > Location = logi_location:guess_location(). % If `logi_transform' is not used, a warning will be emitted.
+%% =WARNING REPORT==== 19-Oct-2015::14:02:26 ===
+%%    pid: &lt;0.91.0&gt;
+%%    module: erl_eval
+%%    function: do_apply
+%%    line: 673
+%%    msg: "A deprecated function 'logi_location:guess_location/0' is called. Please use the `{parse_transform, logi_transform}' compiler option."
+%%
+%% > logi_location:to_map(Location).
+%% #{application => stdlib,
+%%   function => do_apply,
+%%   line => 673,
+%%   module => erl_eval,
 %%   node => nonode@nohost,
 %%   process => &lt;0.91.0&gt;}
 %% </pre>
@@ -49,7 +66,7 @@
         }).
 
 -opaque location() :: #?LOCATION{}.
-%% A location
+%% A log message issued location
 
 -type map_form() ::
         #{

@@ -51,6 +51,12 @@ log_test_() ->
                ?assertLog("hello world", [], fun (C) -> ?assertEqual(info, logi_context:get_severity(C)) end),
                ?assert(logi:is_logger(Logger))
        end},
+      {"`Data` arugment will not be evaluated if it is unnecessary",
+       fun () ->
+               InstallProcessSink(info),
+               ?assert(logi:is_logger(logi:debug("hello world: ~p", [error(unevaluated)]))),
+               ?assertError(evaluated, logi:info("hello world: ~p", [error(evaluated)]))
+       end},
       {"`logi_location:guess_location/0` is transformed",
        fun () ->
                ?assertError(_, apply(logi_location, guess_location, [])), % => error (function call)

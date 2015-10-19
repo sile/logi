@@ -28,15 +28,15 @@ start_link() ->
 %% @doc Starts a new channel process
 -spec start_child(logi_channel:id()) -> {ok, pid()} | {error, Reason} when
       Reason :: {already_started, pid()} | term().
-start_child(ChannelId) ->
-    Child = {ChannelId, {logi_channel, start_link, [ChannelId]}, permanent, 5000, worker, [logi_channel]},
+start_child(Channel) ->
+    Child = {Channel, {logi_channel, start_link, [Channel]}, permanent, 5000, worker, [logi_channel]},
     supervisor:start_child(?MODULE, Child).
 
-%% @doc Stops a channel process which name is `ChannelId'
+%% @doc Stops a channel process which name is `Channel'
 -spec stop_child(logi_channel:id()) -> ok.
-stop_child(ChannelId) ->
-    _ = supervisor:terminate_child(?MODULE, ChannelId),
-    _ = supervisor:delete_child(?MODULE, ChannelId),
+stop_child(Channel) ->
+    _ = supervisor:terminate_child(?MODULE, Channel),
+    _ = supervisor:delete_child(?MODULE, Channel),
     ok.
 
 %% @doc Returns a channel list
