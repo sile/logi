@@ -24,6 +24,7 @@ A channel manages conditional sinks.
 
 ```erlang
 
+  > application:set_env(logi, warn_no_parse_transform, false). % Suppresses noisy warnings
   %%
   %% CREATE CHANNEL
   %%
@@ -36,6 +37,7 @@ A channel manages conditional sinks.
   > WriteFun = fun (_, Format, Data) -> io:format("[my_sink] " ++ Format ++ "\n", Data) end.
   > Sink = logi_sink:new(my_sink, logi_builtin_sink_fun, info, WriteFun). % Installs the sink with <code>info</code> level
   > {ok, _} = logi_channel:install_sink(sample_log, Sink).
+  > logi_channel:which_sinks(sample_log).
   [my_sink]
   %%
   %% OUTPUT LOG MESSAGE
@@ -167,6 +169,8 @@ default_channel() -&gt; <a href="#type-id">id()</a>
 The default channel
 
 This channel is created automatically when `logi` application was started.
+
+NOTE: The default channel ID is the same as the default logger ID ([`logi:default_logger/0`](logi.md#default_logger-0))
 
 <a name="delete-1"></a>
 

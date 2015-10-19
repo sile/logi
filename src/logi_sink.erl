@@ -104,7 +104,7 @@
 %% `Severities':
 %% - The messages with severity included in `Severities' will be consumed.
 %%
-%% == EXAMPLE ==
+%% === EXAMPLE ===
 %% <pre lang="erlang">
 %% > logi_sink:new(Id, Module, info).          % level
 %% > logi_sink:new(Id, Module, {info, alert}). % range
@@ -123,7 +123,7 @@
 %%
 %% NOTE: The modules which does not belong to any application are forbidden.
 %%
-%% == EXAMPLE ==
+%% === EXAMPLE ===
 %% <pre lang="erlang">
 %% > logi_sink:new(Id, Module, #{application => stdlib}).                          % application
 %% > logi_sink:new(Id, Module, #{application => [stdlib, kernel]}).                % applications

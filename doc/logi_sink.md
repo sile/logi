@@ -127,7 +127,7 @@ The location is specified by `application` and `module` (OR condition).
 NOTE: The modules which does not belong to any application are forbidden.
 
 
-### <a name="EXAMPLE">EXAMPLE</a> ###
+#### <a name="EXAMPLE">EXAMPLE</a> ####
 
 
 ```erlang
@@ -196,7 +196,7 @@ severity_condition() = (Min::<a href="logi.md#type-severity">logi:severity()</a>
 - The messages with severity included in `Severities` will be consumed.
 
 
-### <a name="EXAMPLE">EXAMPLE</a> ###
+#### <a name="EXAMPLE">EXAMPLE</a> ####
 
 
 ```erlang

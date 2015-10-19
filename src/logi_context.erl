@@ -6,10 +6,10 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/2, new/7, unsafe_new/7]).
+-export([new/2, new/6, unsafe_new/6]).
 -export([is_context/1]).
 -export([to_map/1, from_map/1]).
--export([get_channel/1, get_timestamp/1, get_severity/1, get_subject/1, get_location/1, get_headers/1, get_metadata/1]).
+-export([get_channel/1, get_timestamp/1, get_severity/1, get_location/1, get_headers/1, get_metadata/1]).
 
 -export_type([context/0]).
 -export_type([map_form/0]).
@@ -24,7 +24,6 @@
           channel   :: logi_channel:id(),
           timestamp :: erlang:timestamp(),
           severity  :: logi:severity(),
-          subject   :: term(),
           location  :: logi_location:location(),
           headers   :: logi:headers(),
           metadata  :: logi:metadata()
@@ -38,7 +37,6 @@
            channel   => logi_channel:id(),
            timestamp => erlang:timestamp(),
            severity  => logi:severity(),
-           subject   => term(),
            location  => logi_location:location(),
            headers   => logi:headers(),
            metadata  => logi:metadata()
@@ -48,32 +46,31 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @equiv new(Channel, os:timestamp(), Severity, undefined, logi_location:guess_location(), #{}, #{})
+%% @equiv new(Channel, os:timestamp(), Severity, logi_location:guess_location(), #{}, #{})
 -spec new(logi_channel:id(), logi:severity()) -> context().
-new(Channel, Severity) -> new(Channel, os:timestamp(), Severity, undefined, logi_location:guess_location(), #{}, #{}).
+new(Channel, Severity) -> new(Channel, os:timestamp(), Severity, logi_location:guess_location(), #{}, #{}).
 
 %% @doc Creates a new context object
--spec new(logi_channel:id(), erlang:timestamp(), logi:severity(), term(), logi_location:location(), logi:headers(),
+-spec new(logi_channel:id(), erlang:timestamp(), logi:severity(), logi_location:location(), logi:headers(),
           logi:metadata()) -> context().
-new(Channel, Timestamp, Severity, Subject, Location, Headers, Metadata) ->
-    Args = [Channel, Timestamp, Severity, Subject, Location, Headers, Metadata],
+new(Channel, Timestamp, Severity, Location, Headers, Metadata) ->
+    Args = [Channel, Timestamp, Severity, Location, Headers, Metadata],
     _ = is_atom(Channel) orelse error(badarg, Args),
     _ = logi_utils:is_timestamp(Timestamp) orelse error(badarg, Args),
     _ = logi:is_severity(Severity) orelse error(badarg, Args),
     _ = logi_location:is_location(Location) orelse error(badarg, Args),
     _ = is_map(Headers) orelse error(badarg, Args),
     _ = is_map(Metadata) orelse error(badarg, Args),
-    unsafe_new(Channel, Timestamp, Severity, Subject, Location, Headers, Metadata).
+    unsafe_new(Channel, Timestamp, Severity, Location, Headers, Metadata).
 
 %% @doc Equivalent to {@link new/6} except omission of the arguments validation
--spec unsafe_new(logi_channel:id(), erlang:timestamp(), logi:severity(), term(), logi_location:location(), logi:headers(),
+-spec unsafe_new(logi_channel:id(), erlang:timestamp(), logi:severity(), logi_location:location(), logi:headers(),
                  logi:metadata()) -> context().
-unsafe_new(Channel, Timestamp, Severity, Subject, Location, Headers, Metadata) ->
+unsafe_new(Channel, Timestamp, Severity, Location, Headers, Metadata) ->
     #?CONTEXT{
         channel   = Channel,
         timestamp = Timestamp,
         severity  = Severity,
-        subject   = Subject,
         location  = Location,
         headers   = Headers,
         metadata  = Metadata
@@ -90,7 +87,6 @@ from_map(Map) ->
     new(maps:get(channel, Map),
         maps:get(timestamp, Map),
         maps:get(severity, Map),
-        maps:get(subject, Map),
         maps:get(location, Map),
         maps:get(headers, Map),
         maps:get(metadata, Map)).
@@ -102,7 +98,6 @@ to_map(C) ->
        channel   => C#?CONTEXT.channel,
        timestamp => C#?CONTEXT.timestamp,
        severity  => C#?CONTEXT.severity,
-       subject   => C#?CONTEXT.subject,
        location  => C#?CONTEXT.location,
        headers   => C#?CONTEXT.headers,
        metadata  => C#?CONTEXT.metadata
@@ -119,10 +114,6 @@ get_timestamp(#?CONTEXT{timestamp = Timestamp}) -> Timestamp.
 %% @doc Gets the severity of `Context'
 -spec get_severity(Context :: context()) -> logi:severity().
 get_severity(#?CONTEXT{severity = Severity}) -> Severity.
-
-%% @doc Gets the subject of `Context'
--spec get_subject(Context :: context()) -> term().
-get_subject(#?CONTEXT{subject = Subject}) -> Subject.
 
 %% @doc Gets the location of `Context'
 -spec get_location(Context :: context()) -> logi_location:location().

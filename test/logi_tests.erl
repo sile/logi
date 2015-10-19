@@ -48,23 +48,27 @@ new_test_() ->
       end},
      {"Creates with options",
       fun () ->
-              New = fun (Options) -> logi:to_map(logi:new(test, Options)) end,
+              Default = logi_channel:default_channel(),
+              New = fun (Options) -> logi:to_map(logi:new(Options)) end,
 
               %% no option
-              ?assertEqual(#{channel_id => test}, New([])),
+              ?assertEqual(#{channel => Default, headers => #{}, metadata => #{}}, New([])),
+
+              %% with `channel'
+              ?assertEqual(#{channel => test_log, headers => #{}, metadata => #{}}, New([{channel, test_log}])),
 
               %% with `headers'
-              ?assertEqual(#{channel_id => test, headers => #{a => b}}, New([{headers, #{a => b}}])),
+              ?assertEqual(#{channel => Default, headers => #{a => b}, metadata => #{}}, New([{headers, #{a => b}}])),
 
               %% with `metadata'
-              ?assertEqual(#{channel_id => test, metadata => #{a => b}}, New([{metadata, #{a => b}}])),
+              ?assertEqual(#{channel => Default, headers => #{}, metadata => #{a => b}}, New([{metadata, #{a => b}}])),
 
               %% with `filter'
               Filter = logi_builtin_filter_fun:new(fun (_) -> true end),
-              ?assertEqual(#{channel_id => test, filter => Filter}, New([{filter, Filter}])),
+              ?assertEqual(#{channel => Default, headers => #{}, metadata => #{}, filter => Filter}, New([{filter, Filter}])),
 
               %% with `next'
-              ?assertEqual(#{channel_id => test, next => logi:new()}, New([{next, logi:new()}]))
+              ?assertEqual(#{channel => Default, headers => #{}, metadata => #{}, next => logi:new()}, New([{next, logi:new()}]))
       end},
      {"Converts from/to a map",
       fun () ->
@@ -105,16 +109,16 @@ process_dictionary_test_() ->
        end},
       {"Overwrite a saved logger",
        fun () ->
-               Logger0 = logi:new(log_0),
-               Logger1 = logi:new(log_1),
+               Logger0 = logi:new([{channel, log_0}]),
+               Logger1 = logi:new([{channel, log_1}]),
                ?assertEqual(undefined,     logi:save(hoge, Logger0)), % save
                ?assertEqual(Logger0,       logi:save(hoge, Logger1)), % overwrite
                ?assertEqual({ok, Logger1}, logi:load(hoge))           % load
        end},
       {"Erases all saved loggers",
        fun () ->
-               Logger0 = logi:new(log_0),
-               Logger1 = logi:new(log_1),
+               Logger0 = logi:new([{channel, log_0}]),
+               Logger1 = logi:new([{channel, log_1}]),
                undefined = logi:save(log_0, Logger0),
                undefined = logi:save(log_1, Logger1),
                ?assertEqual(lists:sort([{log_0, Logger0}, {log_1, Logger1}]), lists:sort(logi:erase())),
@@ -128,7 +132,7 @@ process_dictionary_test_() ->
 
                %% If the specified logger have not been saved, `logi:new/1' will be implicitly called
                ?assertEqual(error, logi:load(unsaved)),
-               ?assertEqual(logi:to_map(logi:new(unsaved)), logi:to_map(unsaved)),
+               ?assertEqual(logi:to_map(logi:new([{channel, unsaved}])), logi:to_map(unsaved)),
                ?assertEqual([hoge], logi:which_loggers())
        end}
      ]}.
@@ -138,11 +142,11 @@ headers_test_() ->
      {"Initially no headers exist",
       fun () ->
               Logger = logi:new(),
-              ?assertEqual(error, maps:find(headers, logi:to_map(Logger)))
+              ?assertEqual({ok, #{}}, maps:find(headers, logi:to_map(Logger)))
       end},
      {"Creates a logger with headers",
       fun () ->
-              Logger = logi:new(test, [{headers, #{a => b, 1 => 2}}]),
+              Logger = logi:new([{headers, #{a => b, 1 => 2}}]),
               ?assertEqual({ok, #{a => b, 1 => 2}}, maps:find(headers, logi:to_map(Logger)))
       end},
      {"Sets headers of a logger",
@@ -164,7 +168,7 @@ headers_test_() ->
                   fun (Logger, Headers, Optins) ->
                           maps:get(headers, logi:to_map(logi:set_headers(Headers, [{logger, Logger} | Optins])))
                   end,
-              Logger = logi:new(test, [{headers, #{a => b, "x" => "y"}}]),
+              Logger = logi:new([{headers, #{a => b, "x" => "y"}}]),
 
               %% if_exists=overwrite (default)
               ?assertEqual(#{a => c, "x" => "y", 1 => 2}, Set(Logger, #{a => c, 1 => 2}, [])),
@@ -176,41 +180,31 @@ headers_test_() ->
               %% if_exists=supersede
               ?assertEqual(#{a => c, 1 => 2}, Set(Logger, #{a => c, 1 => 2}, [{if_exists, supersede}]))
       end},
-     {"Sets headers with `recursive' option",
+     {"Sets headers recursively",
       fun () ->
               Logger0 =
                   logi:from_list(
                     [
-                     logi:new(log_0, [{headers, #{a => b}}]),
-                     logi:new(log_1, [{headers, #{1 => 2}}])
+                     logi:new([{channel, log_0}, {headers, #{a => b}}]),
+                     logi:new([{channel, log_1}, {headers, #{1 => 2}}])
                     ]),
 
-              %% recursive=true (default)
-              Logger1 = logi:set_headers(#{"x" => "y"}, [{logger, Logger0}, {recursive, true}]),
+              Logger1 = logi:set_headers(#{"x" => "y"}, [{logger, Logger0}]),
               ?assertEqual(#{a => b, "x" => "y"}, maps:get(headers, logi:to_map(Logger1))),
-              ?assertEqual(#{1 => 2, "x" => "y"}, maps:get(headers, logi:to_map(maps:get(next, logi:to_map(Logger1))))),
-
-              %% recursive=false
-              Logger2 = logi:set_headers(#{"x" => "y"}, [{logger, Logger0}, {recursive, false}]),
-              ?assertEqual(#{a => b, "x" => "y"}, maps:get(headers, logi:to_map(Logger2))),
-              ?assertEqual(#{1 => 2},             maps:get(headers, logi:to_map(maps:get(next, logi:to_map(Logger2)))))
+              ?assertEqual(#{1 => 2, "x" => "y"}, maps:get(headers, logi:to_map(maps:get(next, logi:to_map(Logger1)))))
       end},
      {"Deletes headers",
       fun () ->
               Logger0 =
                   logi:from_list(
                     [
-                     logi:new(log_0, [{headers, #{a => b, "x" => "y"}}]),
-                     logi:new(log_1, [{headers, #{1 => 2, "x" => "y"}}])
+                     logi:new([{channel, log_0}, {headers, #{a => b, "x" => "y"}}]),
+                     logi:new([{channel, log_1}, {headers, #{1 => 2, "x" => "y"}}])
                     ]),
 
               Logger1 = logi:delete_headers(["x"], [{logger, Logger0}]),
               ?assertEqual(#{a => b}, maps:get(headers, logi:to_map(Logger1))),
-              ?assertEqual(#{1 => 2}, maps:get(headers, logi:to_map(maps:get(next, logi:to_map(Logger1))))),
-
-              Logger2 = logi:delete_headers(["x"], [{logger, Logger0}, {recursive, false}]),
-              ?assertEqual(#{a => b},             maps:get(headers, logi:to_map(Logger2))),
-              ?assertEqual(#{1 => 2, "x" => "y"}, maps:get(headers, logi:to_map(maps:get(next, logi:to_map(Logger2)))))
+              ?assertEqual(#{1 => 2}, maps:get(headers, logi:to_map(maps:get(next, logi:to_map(Logger1)))))
       end}
     ].
 
@@ -219,11 +213,11 @@ metadata_test_() ->
      {"Initially no metadata exist",
       fun () ->
               Logger = logi:new(),
-              ?assertEqual(error, maps:find(metadata, logi:to_map(Logger)))
+              ?assertEqual({ok, #{}}, maps:find(metadata, logi:to_map(Logger)))
       end},
      {"Creates a logger with metadata",
       fun () ->
-              Logger = logi:new(test, [{metadata, #{a => b, 1 => 2}}]),
+              Logger = logi:new([{metadata, #{a => b, 1 => 2}}]),
               ?assertEqual({ok, #{a => b, 1 => 2}}, maps:find(metadata, logi:to_map(Logger)))
       end},
      {"Sets metadata of a logger",
@@ -245,7 +239,7 @@ metadata_test_() ->
                   fun (Logger, Metadata, Optins) ->
                           maps:get(metadata, logi:to_map(logi:set_metadata(Metadata, [{logger, Logger} | Optins])))
                   end,
-              Logger = logi:new(test, [{metadata, #{a => b, "x" => "y"}}]),
+              Logger = logi:new([{metadata, #{a => b, "x" => "y"}}]),
 
               %% if_exists=overwrite (default)
               ?assertEqual(#{a => c, "x" => "y", 1 => 2}, Set(Logger, #{a => c, 1 => 2}, [])),
@@ -257,41 +251,31 @@ metadata_test_() ->
               %% if_exists=supersede
               ?assertEqual(#{a => c, 1 => 2}, Set(Logger, #{a => c, 1 => 2}, [{if_exists, supersede}]))
       end},
-     {"Sets metadata with `recursive' option",
+     {"Sets metadata recursively",
       fun () ->
               Logger0 =
                   logi:from_list(
                     [
-                     logi:new(log_0, [{metadata, #{a => b}}]),
-                     logi:new(log_1, [{metadata, #{1 => 2}}])
+                     logi:new([{channel, log_0}, {metadata, #{a => b}}]),
+                     logi:new([{channel, log_1}, {metadata, #{1 => 2}}])
                     ]),
 
-              %% recursive=true (default)
-              Logger1 = logi:set_metadata(#{"x" => "y"}, [{logger, Logger0}, {recursive, true}]),
+              Logger1 = logi:set_metadata(#{"x" => "y"}, [{logger, Logger0}]),
               ?assertEqual(#{a => b, "x" => "y"}, maps:get(metadata, logi:to_map(Logger1))),
-              ?assertEqual(#{1 => 2, "x" => "y"}, maps:get(metadata, logi:to_map(maps:get(next, logi:to_map(Logger1))))),
-
-              %% recursive=false
-              Logger2 = logi:set_metadata(#{"x" => "y"}, [{logger, Logger0}, {recursive, false}]),
-              ?assertEqual(#{a => b, "x" => "y"}, maps:get(metadata, logi:to_map(Logger2))),
-              ?assertEqual(#{1 => 2},             maps:get(metadata, logi:to_map(maps:get(next, logi:to_map(Logger2)))))
+              ?assertEqual(#{1 => 2, "x" => "y"}, maps:get(metadata, logi:to_map(maps:get(next, logi:to_map(Logger1)))))
       end},
      {"Deletes metadata",
       fun () ->
               Logger0 =
                   logi:from_list(
                     [
-                     logi:new(log_0, [{metadata, #{a => b, "x" => "y"}}]),
-                     logi:new(log_1, [{metadata, #{1 => 2, "x" => "y"}}])
+                     logi:new([{channel, log_0}, {metadata, #{a => b, "x" => "y"}}]),
+                     logi:new([{channel, log_1}, {metadata, #{1 => 2, "x" => "y"}}])
                     ]),
 
               Logger1 = logi:delete_metadata(["x"], [{logger, Logger0}]),
               ?assertEqual(#{a => b}, maps:get(metadata, logi:to_map(Logger1))),
-              ?assertEqual(#{1 => 2}, maps:get(metadata, logi:to_map(maps:get(next, logi:to_map(Logger1))))),
-
-              Logger2 = logi:delete_metadata(["x"], [{logger, Logger0}, {recursive, false}]),
-              ?assertEqual(#{a => b},             maps:get(metadata, logi:to_map(Logger2))),
-              ?assertEqual(#{1 => 2, "x" => "y"}, maps:get(metadata, logi:to_map(maps:get(next, logi:to_map(Logger2)))))
+              ?assertEqual(#{1 => 2}, maps:get(metadata, logi:to_map(maps:get(next, logi:to_map(Logger1)))))
       end}
     ].
 
@@ -368,7 +352,7 @@ log_test_() ->
                logi:info("hello world", [], [{logger, test_log}]),
                ?assertLog("hello world", [], fun (_) -> true end),
 
-               Logger = logi:new(test_log),
+               Logger = logi:new([{channel, test_log}]),
                logi:info("hello world", [], [{logger, Logger}]),
                ?assertLog("hello world", [], fun (_) -> true end)
        end},
@@ -410,16 +394,6 @@ log_test_() ->
                logi:info("hello world", [], [{timestamp, Timestamp}]),
                ?assertLog("hello world", [], fun (C) -> ?assertEqual(Timestamp, logi_context:get_timestamp(C)) end)
        end},
-      {"Option: `subject'",
-       fun () ->
-               InstallProcessSink(info),
-
-               logi:info("hello world"),
-               ?assertLog("hello world", [], fun (C) -> ?assertEqual(undefined, logi_context:get_subject(C)) end),
-
-               logi:info("hello world", [], [{subject, hoge}]),
-               ?assertLog("hello world", [], fun (C) -> ?assertEqual(hoge, logi_context:get_subject(C)) end)
-       end},
       {"Filter",
        fun () ->
                InstallProcessSink(info),
@@ -432,7 +406,7 @@ log_test_() ->
                                  _                  -> true
                              end
                      end),
-               Logger = logi:new(logi:default_logger(), [{filter, Filter}]), % TODO: channelもデフォルト指定可にしてしまう(?)
+               Logger = logi:new([{filter, Filter}]),
                logi:save_as_default(Logger),
 
                logi:info("hello world"),
@@ -460,8 +434,8 @@ log_test_() ->
                Logger =
                    logi:from_list(
                      [
-                      logi:new(logi:default_logger(), [{headers, #{id => a}}]),
-                      logi:new(logi:default_logger(), [{headers, #{id => b}}])
+                      logi:new([{headers, #{id => a}}]),
+                      logi:new([{headers, #{id => b}}])
                      ]),
                logi:save_as_default(Logger),
 
@@ -470,3 +444,5 @@ log_test_() ->
                ?assertLog("hello world", [], fun (C) -> ?assertEqual(#{id => b}, logi_context:get_headers(C)) end)
        end}
      ]}.
+
+%% TODO: single sink error

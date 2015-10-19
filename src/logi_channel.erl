@@ -141,6 +141,8 @@
 %% @doc The default channel
 %%
 %% This channel is created automatically when `logi' application was started.
+%%
+%% NOTE: The default channel ID is the same as the default logger ID ({@link logi:default_logger/0})
 -spec default_channel() -> id().
 default_channel() -> logi:default_logger().
 
