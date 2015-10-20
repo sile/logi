@@ -9,16 +9,30 @@
 %%
 %% A layout will be stored into a logi_channel's ETS.
 %% Then it will be loaded every time a log message is issued.
-%% Therefore if the format function (`format_fun/3') of the layout is a huge size anonymous function,
+%% Therefore if the format function (`format_fun/0') of the layout is a huge size anonymous function,
 %% all log issuers which use the channel will have to pay a non negligible cost to load it.
 %%
 %% == EXAMPLE ==
 %% <pre lang="erlang">
-%% > Context = logi_context:new(sample_log, os:timestamp(), info, logi_location:guess_location(), #{}, #{}).
+%% > Context = logi_context:new(sample_log, info).
 %% > FormatFun = fun (_, Format, Data) -> io_lib:format("EXAMPLE: " ++ Format, Data) end.
 %% > Layout = logi_builtin_layout_fun:new(FormatFun).
 %% > lists:flatten(logi_layout:format(Context, "Hello ~s", ["World"], Layout)).
 %% "EXAMPLE: Hello World"
+%% </pre>
+%%
+%% A layout can be passed to the sink `logi_builtin_sink_io_device' (for example):
+%% <pre lang="erlang">
+%% > Layout0 = logi_builtin_layout_fun:new(fun (_, Format, Data) -> io_lib:format("[LAYOUT_0] " ++ Format ++ "\n", Data) end).
+%% > logi_builtin_sink_io_device:install(info, [{id, sink_0}, {layout, Layout0}]).
+%% > logi:info("hello world").
+%% [LAYOUT_0] hello world
+%%
+%% > Layout1 = logi_builtin_layout_fun:new(fun (_, Format, Data) -> io_lib:format("[LAYOUT_1] " ++ Format ++ "\n", Data) end).
+%% > logi_builtin_sink_io_device:install(info, [{id, sink_1}, {layout, Layout1}]).
+%% > logi:info("hello world").
+%% [LAYOUT_0] hello world
+%% [LAYOUT_1] hello world
 %% </pre>
 -module(logi_builtin_layout_fun).
 
@@ -43,13 +57,13 @@
 %% A log message formatting function
 
 %%----------------------------------------------------------------------------------------------------------------------
-%% Exported API
+%% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @doc Creates a layout which formats log messages by `Fun'
--spec new(format_fun()) -> logi_layout:layout(format_fun()).
-new(Fun) ->
-    _ = erlang:is_function(Fun, 3) orelse error(badarg, [Fun]),
-    logi_layout:new(?MODULE, Fun).
+%% @doc Creates a layout which formats log messages by `FormatFun'
+-spec new(FormatFun) -> logi_layout:layout(FormatFun) when FormatFun :: format_fun().
+new(FormatFun) ->
+    _ = erlang:is_function(FormatFun, 3) orelse error(badarg, [FormatFun]),
+    logi_layout:new(?MODULE, FormatFun).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_layout' Callback Functions

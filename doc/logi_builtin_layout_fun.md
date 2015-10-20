@@ -25,7 +25,7 @@ This module is provided for debuging/testing purposes only.
 
 A layout will be stored into a logi_channel's ETS.
 Then it will be loaded every time a log message is issued.
-Therefore if the format function (`format_fun/3`) of the layout is a huge size anonymous function,
+Therefore if the format function (`format_fun/0`) of the layout is a huge size anonymous function,
 all log issuers which use the channel will have to pay a non negligible cost to load it.
 
 
@@ -34,11 +34,26 @@ all log issuers which use the channel will have to pay a non negligible cost to 
 
 ```erlang
 
-  > Context = logi_context:new(sample_log, os:timestamp(), info, logi_location:guess_location(), #{}, #{}).
+  > Context = logi_context:new(sample_log, info).
   > FormatFun = fun (_, Format, Data) -> io_lib:format("EXAMPLE: " ++ Format, Data) end.
   > Layout = logi_builtin_layout_fun:new(FormatFun).
   > lists:flatten(logi_layout:format(Context, "Hello ~s", ["World"], Layout)).
   "EXAMPLE: Hello World"
+```
+
+A layout can be passed to the sink `logi_builtin_sink_io_device` (for example):
+
+```erlang
+
+  > Layout0 = logi_builtin_layout_fun:new(fun (_, Format, Data) -> io_lib:format("[LAYOUT_0] " ++ Format ++ "\n", Data) end).
+  > logi_builtin_sink_io_device:install(info, [{id, sink_0}, {layout, Layout0}]).
+  > logi:info("hello world").
+  [LAYOUT_0] hello world
+  > Layout1 = logi_builtin_layout_fun:new(fun (_, Format, Data) -> io_lib:format("[LAYOUT_1] " ++ Format ++ "\n", Data) end).
+  > logi_builtin_sink_io_device:install(info, [{id, sink_1}, {layout, Layout1}]).
+  > logi:info("hello world").
+  [LAYOUT_0] hello world
+  [LAYOUT_1] hello world
 ```
 
 <a name="types"></a>
@@ -62,7 +77,7 @@ format_fun() = fun((<a href="logi_context.md#type-context">logi_context:context(
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Creates a layout which formats log messages by <code>Fun</code></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Creates a layout which formats log messages by <code>FormatFun</code></td></tr></table>
 
 
 <a name="functions"></a>
@@ -74,9 +89,10 @@ format_fun() = fun((<a href="logi_context.md#type-context">logi_context:context(
 ### new/1 ###
 
 <pre><code>
-new(Fun::<a href="#type-format_fun">format_fun()</a>) -&gt; <a href="logi_layout.md#type-layout">logi_layout:layout</a>(<a href="#type-format_fun">format_fun()</a>)
+new(FormatFun) -&gt; <a href="logi_layout.md#type-layout">logi_layout:layout</a>(FormatFun)
 </code></pre>
-<br />
 
-Creates a layout which formats log messages by `Fun`
+<ul class="definitions"><li><code>FormatFun = <a href="#type-format_fun">format_fun()</a></code></li></ul>
+
+Creates a layout which formats log messages by `FormatFun`
 

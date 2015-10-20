@@ -2,10 +2,10 @@
 %%
 %% @doc Logger Interface
 %%
-%% TODO: doc
-%%
-%% TODO: examples
-%%
+%% == EXAMPLE ==
+%% <pre lang="erlang">
+%% > TODO
+%% </pre>
 -module(logi).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -26,7 +26,7 @@
 -export([is_logger/1]).
 -export([to_map/1, from_map/1]).
 -export([to_list/1, from_list/1]).
--export([save/2, save_as_default/1]).
+-export([save/2, save_as_default/1]). % TODO: => save/1 (?)
 -export([load/1, load_or_new/1, load_or_new/2]).
 -export([erase/0, erase/1]).
 -export([which_loggers/0]).
@@ -35,8 +35,6 @@
 -export([set_metadata/1, set_metadata/2]).
 -export([delete_headers/1, delete_headers/2]).
 -export([delete_metadata/1, delete_metadata/2]).
-
-%% TODO: get_xxx (?)
 
 %%----------------------------------------------------------
 %% Logging

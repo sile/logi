@@ -285,7 +285,7 @@ metadata_test_() ->
 -define(assertLog(Format, Data, AssertContextFun),
         (fun () ->
              receive
-                 {'LOGI_MSG', _, __Context, Format, Data, _} -> AssertContextFun(__Context)
+                 {'LOGI_MSG', __Context, Format, Data} -> AssertContextFun(__Context)
              after 25 ->
                      ?assert(timeout)
              end
@@ -294,19 +294,21 @@ metadata_test_() ->
 -define(assertNotLog(),
         (fun () ->
                  receive
-                     {'LOGI_MSG', _, _, _, _, _} -> ?assert(unexpectedly_delivered_log)
+                     {'LOGI_MSG', _, _, _} -> ?assert(unexpectedly_delivered_log)
                  after 25 ->
                          ?assert(true)
                  end
          end)()).
 
 log_test_() ->
-    InstallProcessSinkOpt =
+    InstallSinkOpt =
         fun (Severity, Optins) ->
-                {ok, _} = logi_builtin_sink_process:install(Severity, self(), [{if_exists, supersede} | Optins]),
+                Caller = self(),
+                WriteFun = fun (Context, Format, Data) -> Caller ! {'LOGI_MSG', Context, Format, Data} end,
+                {ok, _} = logi_builtin_sink_fun:install(Severity, WriteFun, [{if_exists, supersede} | Optins]),
                 ok
         end,
-    InstallProcessSink = fun (Severity) -> InstallProcessSinkOpt(Severity, []) end,
+    InstallSink = fun (Severity) -> InstallSinkOpt(Severity, []) end,
     {foreach,
      fun () ->
              {ok, Apps} = application:ensure_all_started(logi),
@@ -320,7 +322,7 @@ log_test_() ->
      [
       {"Basic: default options",
        fun () ->
-               InstallProcessSink(info),
+               InstallSink(info),
 
                logi:log(debug, "Hello ~s", ["World"], []),
                ?assertNotLog(),
@@ -333,7 +335,7 @@ log_test_() ->
        end},
       {"Wrapper: logi:Severity/{1,2,3}",
        fun () ->
-               InstallProcessSink(debug),
+               InstallSink(debug),
                lists:foreach(
                  fun (Severity) ->
                          logi:Severity("hello world"),
@@ -344,7 +346,7 @@ log_test_() ->
       {"Option: `logger'",
        fun () ->
                ok = logi_channel:create(test_log),
-               InstallProcessSinkOpt(info, [{channel, test_log}]),
+               InstallSinkOpt(info, [{channel, test_log}]),
 
                logi:info("hello world"),
                ?assertNotLog(),
@@ -358,7 +360,7 @@ log_test_() ->
        end},
       {"Option: `headers'",
        fun () ->
-               InstallProcessSink(info),
+               InstallSink(info),
 
                logi:info("hello world", [], [{headers, #{a => b}}]),
                ?assertLog("hello world", [], fun (C) -> ?assertEqual(#{a => b}, logi_context:get_headers(C)) end),
@@ -369,7 +371,7 @@ log_test_() ->
        end},
       {"Option: `metadata'",
        fun () ->
-               InstallProcessSink(info),
+               InstallSink(info),
 
                logi:info("hello world", [], [{metadata, #{a => b}}]),
                ?assertLog("hello world", [], fun (C) -> ?assertEqual(#{a => b}, logi_context:get_metadata(C)) end),
@@ -380,7 +382,7 @@ log_test_() ->
        end},
       {"Option: `location'",
        fun () ->
-               InstallProcessSink(info),
+               InstallSink(info),
 
                Location = logi_location:guess_location(),
                logi:info("hello world", [], [{location, Location}]),
@@ -388,7 +390,7 @@ log_test_() ->
        end},
       {"Option: `timestamp'",
        fun () ->
-               InstallProcessSink(info),
+               InstallSink(info),
 
                Timestamp = {0, 0, 0},
                logi:info("hello world", [], [{timestamp, Timestamp}]),
@@ -396,7 +398,7 @@ log_test_() ->
        end},
       {"Filter",
        fun () ->
-               InstallProcessSink(info),
+               InstallSink(info),
 
                Filter =
                    logi_builtin_filter_fun:new(
@@ -420,8 +422,8 @@ log_test_() ->
        end},
       {"Multiple sinks",
        fun () ->
-               InstallProcessSinkOpt(info, [{id, sink_0}]),
-               InstallProcessSinkOpt(info, [{id, sink_1}]),
+               InstallSinkOpt(info, [{id, sink_0}]),
+               InstallSinkOpt(info, [{id, sink_1}]),
 
                logi:info("hello world"),
                ?assertLog("hello world", [], fun (_) -> true end),
@@ -429,7 +431,7 @@ log_test_() ->
        end},
       {"Aggregated logger",
        fun () ->
-               InstallProcessSink(info),
+               InstallSink(info),
 
                Logger =
                    logi:from_list(

@@ -11,7 +11,7 @@
 -define(assertLog(Format, Data, AssertContextFun),
         (fun () ->
              receive
-                 {'LOGI_MSG', _, __Context, Format, Data, _} -> AssertContextFun(__Context)
+                 {'LOGI_MSG', __Context, Format, Data} -> AssertContextFun(__Context)
              after 25 ->
                      ?assert(timeout)
              end
@@ -21,12 +21,14 @@
 %% Unit Tests
 %%----------------------------------------------------------------------------------------------------------------------
 log_test_() ->
-    InstallProcessSinkOpt =
+    InstallSinkOpt =
         fun (Severity, Optins) ->
-                {ok, _} = logi_builtin_sink_process:install(Severity, self(), [{if_exists, supersede} | Optins]),
+                Caller = self(),
+                WriteFun = fun (Context, Format, Data) -> Caller ! {'LOGI_MSG', Context, Format, Data} end,
+                {ok, _} = logi_builtin_sink_fun:install(Severity, WriteFun, [{if_exists, supersede} | Optins]),
                 ok
         end,
-    InstallProcessSink = fun (Severity) -> InstallProcessSinkOpt(Severity, []) end,
+    InstallSink = fun (Severity) -> InstallSinkOpt(Severity, []) end,
     {foreach,
      fun () ->
              {ok, Apps} = application:ensure_all_started(logi),
@@ -41,7 +43,7 @@ log_test_() ->
      [
       {"`logi:Severity/Arity` is transformed",
        fun () ->
-               InstallProcessSink(info),
+               InstallSink(info),
 
                %% [ERROR] function call
                ?assertError(_, apply(logi, info, ["hello world"])),
@@ -53,7 +55,7 @@ log_test_() ->
        end},
       {"`Data` arugment will not be evaluated if it is unnecessary",
        fun () ->
-               InstallProcessSink(info),
+               InstallSink(info),
                ?assert(logi:is_logger(logi:debug("hello world: ~p", [error(unevaluated)]))),
                ?assertError(evaluated, logi:info("hello world: ~p", [error(evaluated)]))
        end},
@@ -65,7 +67,7 @@ log_test_() ->
        end},
       {"`logi:log/4` is not transformed",
        fun () ->
-               InstallProcessSink(info),
+               InstallSink(info),
 
                %% [ERROR] Calls `logi:log/4` with default options
                ?assertError(_, logi:log(info, "hello world", [], [])),

@@ -59,6 +59,8 @@ data() = [term()]
 
  A data which is subject to format
 
+This type is an alias of the type of second arguemnt of the [`io_lib:format/2`](io_lib.md#format-2)
+
 
 
 ### <a name="type-extra_data">extra_data()</a> ###

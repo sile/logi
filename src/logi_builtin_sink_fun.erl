@@ -1,7 +1,24 @@
 %% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% TODO:
+%% @doc A built-in sink which consumes log messages by an arbitrary user defined function
 %%
+%% == NOTE ==
+%% This module is provided for debuging/testing purposes only.
+%%
+%% A sink is stored into a logi_channel's ETS.
+%% Then it will be loaded every time a log message is issued.
+%% Therefore if the write function (`write_fun/0') of the sink is a huge size anonymous function,
+%% all log issuers which use the channel will have to pay a non negligible cost to load it.
+%%
+%% And there is no overload protection.
+%%
+%% == EXAMPLE ==
+%% <pre lang="erlang">
+%% > WriteFun = fun (_, Format, Data) -> io:format("[CONSUMED] " ++ Format ++ "\n", Data) end.
+%% > {ok, _} = logi_builtin_sink_fun:install(info, WriteFun).
+%% > logi:info("hello world").
+%% [CONSUMED] hello world
+%% </pre>
 -module(logi_builtin_sink_fun).
 
 -behaviour(logi_sink).
@@ -23,6 +40,7 @@
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
 -type write_fun() :: fun ((logi_context:context(), io:format(), logi_layout:data()) -> any()).
+%% A function which is used to consume log messages issued by `logi'
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
@@ -31,7 +49,7 @@
 -spec install(logi_sink:condition(), write_fun()) -> logi_channel:install_sink_result().
 install(Condition, Fun) -> install(Condition, Fun, []).
 
-%% @doc Installs a sink
+%% @doc Installs a sink which writes log messages by `Fun'
 %%
 %% The default value of `Options': <br />
 %% - id: `logi_builtin_sink_fun' <br />
@@ -54,7 +72,7 @@ uninstall() -> uninstall([]).
 %% @doc Uninstalls a sink
 %%
 %% The default value of `Options': <br />
-%% - id: `logi_builtin_sink_null' <br />
+%% - id: `logi_builtin_sink_fun' <br />
 %% - channel: `logi_channel:default_channel()' <br />
 -spec uninstall(Options) -> logi_channel:uninstall_sink_result() when
       Options :: [Option],

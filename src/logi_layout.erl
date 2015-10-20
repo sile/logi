@@ -54,6 +54,8 @@
 
 -type data() :: [term()].
 %% A data which is subject to format
+%%
+%% This type is an alias of the type of second arguemnt of the {@link io_lib:format/2}
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions

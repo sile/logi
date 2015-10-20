@@ -13,29 +13,42 @@ Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
 ## Description ##
 
-NOTE: This module is provided for debuging/testing purposes only.
+This sink writes log messages to an IO device (e.g. standard output, file, etc)
+
+
+### <a name="NOTE">NOTE</a> ###
+
+This module is provided for debugging/testing purposes only.
 (e.g. Overload protection is missing)
 
-```
-  %%%
-  %%% Usage Example
-  %%%
+
+### <a name="EXAMPLE">EXAMPLE</a> ###
+
+
+```erlang
+
+  > application:set_env(logi, warn_no_parse_transform, false). % Suppresses noisy warnings
   %%
-  %% 1. The default IO device is `standard_io'
+  %% 1. The default IO device is <code>standard_io</code>
   %%
   > logi_builtin_sink_io_device:install(info).
-  > logi:info("Hello World").
-  # TODO: show output
-  > logi_builtin_sink_io_device:uninstall().
+  > logi:info("hello world").
+  2015-10-21 05:21:52.332 [info] nonode@nohost <0.91.0> erl_eval:do_apply:673 [] hello world
   %%
-  %% 2. Output to a file
+  %% 2. Outputs to a file
   %%
   > {ok, Fd} = file:open("/tmp/hoge", [write]).
-  > logi_builtin_sink_io_device:install(info, [{io_device, Fd}]).
-  > logi:info("Hello World").
-  > logi_builtin_sink_io_device:uninstall().
+  > logi_builtin_sink_io_device:install(info, [{io_device, Fd}, {if_exists, supersede}]).
+  > logi:info("hello world").
   > file:read_file("/tmp/hoge").
-  # TODO: show result
+  {ok,<<"2015-10-21 05:23:19.940 [info] nonode@nohost <0.91.0> erl_eval:do_apply:673 [] hello world\n">>}
+  %%
+  %% 3. Customizes message layout
+  %%
+  > Layout = logi_builtin_layout_fun:new(fun (_, Format, Data) -> io_lib:format("[my_layout] " ++ Format ++ "\n", Data) end).
+  > logi_builtin_sink_io_device:install(info, [{layout, Layout}, {if_exists, supersede}]).
+  > logi:info("hello world").
+  [my_layout] hello world
 ```
 <a name="index"></a>
 
@@ -73,10 +86,10 @@ install(Condition::<a href="logi_sink.md#type-condition">logi_sink:condition()</
 Installs a sink
 
 The default value of `Options`: <br />
-- id: `logi_builtin_sink_null` <br />
+- id: `logi_builtin_sink_io_device` <br />
 - channel: `logi_channel:default_channel()` <br />
 - io_device: `standard_io` <br />
-- layout: `logi_builtin_layout_simple` <br />
+- layout: `logi_builtin_layout_simple:new()` <br />
 
 <a name="uninstall-0"></a>
 
@@ -102,6 +115,6 @@ uninstall(Options) -&gt; <a href="logi_channel.md#type-uninstall_sink_result">lo
 Uninstalls a sink
 
 The default value of `Options`: <br />
-- id: `logi_builtin_sink_null` <br />
+- id: `logi_builtin_sink_io_device` <br />
 - channel: `logi_channel:default_channel()` <br />
 

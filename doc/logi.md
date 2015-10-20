@@ -10,6 +10,19 @@ Logger Interface.
 
 Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
+<a name="description"></a>
+
+## Description ##
+
+
+### <a name="EXAMPLE">EXAMPLE</a> ###
+
+
+```erlang
+
+  > TODO
+```
+
 <a name="types"></a>
 
 ## Data Types ##

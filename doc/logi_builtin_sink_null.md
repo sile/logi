@@ -19,10 +19,12 @@ This sink discards all log messages.
 
 This module is still useful as a simplest referential implementation of the `logi_sink` behaviour.
 
-```
-  %%%
-  %%% Usage Example
-  %%%
+
+### <a name="EXAMPLE">EXAMPLE</a> ###
+
+
+```erlang
+
   %%
   %% 1. Default Channel
   %%
@@ -36,6 +38,14 @@ This module is still useful as a simplest referential implementation of the `log
   > logi_builtin_sink_null:install(info, [{channel, null_channel}]).
   > logi:info("Hello World").
   > logi_builtin_sink_null:uninstall([{channel, null_channel}]).
+  %%
+  %% 3. Non-default Sink ID
+  %%
+  > {ok, _} = logi_builtin_sink_null:install(info).
+  > {error, {already_installed, _}} = logi_builtin_sink_null:install(info).
+  > {ok, _} = logi_builtin_sink_null:install(info, [{id, other_id}]).
+  > logi_builtin_sink_null:uninstall().
+  > logi_builtin_sink_null:uninstall([{id, other_id}]).
 ```
 <a name="index"></a>
 
