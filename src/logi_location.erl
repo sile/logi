@@ -10,7 +10,6 @@
 %%   function => filter,
 %%   line => 10,
 %%   module => lists,
-%%   node => nonode@nohost,
 %%   process => &lt;0.91.0&gt;}
 %% </pre>
 %%
@@ -29,7 +28,6 @@
 %%   function => do_apply,
 %%   line => 673,
 %%   module => erl_eval,
-%%   node => nonode@nohost,
 %%   process => &lt;0.91.0&gt;}
 %% </pre>
 -module(logi_location).
@@ -39,12 +37,12 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/3, new/6, unsafe_new/6]).
+-export([new/3, new/5, unsafe_new/5]).
 -export([is_location/1]).
 -export([to_map/1, from_map/1]).
 -export([guess_location/0]).
 -export([guess_application/1]).
--export([get_node/1, get_process/1, get_application/1, get_module/1, get_function/1, get_line/1]).
+-export([get_process/1, get_application/1, get_module/1, get_function/1, get_line/1]).
 
 -export_type([location/0]).
 -export_type([map_form/0]).
@@ -57,7 +55,6 @@
 
 -record(?LOCATION,
         {
-          node        :: node(),
           process     :: pid(),
           application :: application(),
           module      :: module(),
@@ -70,7 +67,6 @@
 
 -type map_form() ::
         #{
-           node        => node(),
            process     => pid(),
            application => application(),
            module      => module(),
@@ -90,28 +86,26 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @equiv new(node(), self(), guess_application(Module), Module, Function, Line)
+%% @equiv new(self(), guess_application(Module), Module, Function, Line)
 -spec new(module(), atom(), line()) -> location().
 new(Module, Function, Line) ->
-    new(node(), self(), guess_application(Module), Module, Function, Line).
+    new(self(), guess_application(Module), Module, Function, Line).
 
 %% @doc Creates a new location object
--spec new(node(), pid(), application(), module(), atom(), line()) -> location().
-new(Node, Pid, Application, Module, Function, Line) ->
-    Args = [Node, Pid, Application, Module, Function, Line],
-    _ = is_atom(Node) orelse error(badarg, Args),
+-spec new(pid(), application(), module(), atom(), line()) -> location().
+new(Pid, Application, Module, Function, Line) ->
+    Args = [Pid, Application, Module, Function, Line],
     _ = is_pid(Pid) orelse error(badarg, Args),
     _ = is_atom(Application) orelse error(badarg, Args),
     _ = is_atom(Module) orelse error(badarg, Args),
     _ = is_atom(Function) orelse error(badarg, Args),
     _ = (is_integer(Line) andalso Line >= 0) orelse error(badarg, Args),
-    unsafe_new(Node, Pid, Application, Module, Function, Line).
+    unsafe_new(Pid, Application, Module, Function, Line).
 
-%% @doc Equivalent to {@link new/6} except omission of the arguments validation
--spec unsafe_new(node(), pid(), application(), module(), atom(), line()) -> location().
-unsafe_new(Node, Pid, Application, Module, Function, Line) ->
+%% @doc Equivalent to {@link new/5} except omission of the arguments validation
+-spec unsafe_new(pid(), application(), module(), atom(), line()) -> location().
+unsafe_new(Pid, Application, Module, Function, Line) ->
     #?LOCATION{
-        node        = Node,
         process     = Pid,
         application = Application,
         module      = Module,
@@ -126,7 +120,6 @@ is_location(X) -> is_record(X, ?LOCATION).
 %% @doc Creates a new location from `Map'
 %%
 %% Default Value:
-%% - node: `node()'
 %% - process: `self()'
 %% - application: `guess_application(maps:get(module, Map))'
 %% - module: `undefined'
@@ -141,8 +134,7 @@ from_map(Map) ->
             error     -> guess_application(Module);
             {ok, App} -> App
         end,
-    new(maps:get(node, Map, node()),
-        maps:get(process, Map, self()),
+    new(maps:get(process, Map, self()),
         Application,
         Module,
         maps:get(function, Map, undefined),
@@ -152,7 +144,6 @@ from_map(Map) ->
 -spec to_map(Location :: location()) -> map_form().
 to_map(L) ->
     #{
-       node        => L#?LOCATION.node,
        process     => L#?LOCATION.process,
        application => L#?LOCATION.application,
        module      => L#?LOCATION.module,
@@ -207,10 +198,6 @@ guess_application(Module) ->
         {ok, App} -> App;
         undefined -> undefined
     end.
-
-%% @doc Gets the node name of `Location'
--spec get_node(Location :: location()) -> node().
-get_node(#?LOCATION{node = Node}) -> Node.
 
 %% @doc Gets the PID of `Location'
 -spec get_process(Location :: location()) -> pid().

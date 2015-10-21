@@ -20,15 +20,14 @@ new_test_() ->
       end},
      {"Converts from an empty map",
       fun () ->
-              L = logi_location:new(node(), self(), undefined, undefined, undefined, 0),
+              L = logi_location:new(self(), undefined, undefined, undefined, 0),
               ?assertEqual(L, logi_location:from_map(#{}))
       end}
     ].
 
 get_test_() ->
-    L = logi_location:new(node(), self(), stdlib, lists, map, 10),
+    L = logi_location:new(self(), stdlib, lists, map, 10),
     [
-     ?_assertEqual(node(), logi_location:get_node(L)),
      ?_assertEqual(self(), logi_location:get_process(L)),
      ?_assertEqual(stdlib, logi_location:get_application(L)),
      ?_assertEqual(lists,  logi_location:get_module(L)),
@@ -43,7 +42,7 @@ guess_test_() ->
      [
       {"Guesses the location",
        fun () ->
-               L = logi_location:new(node(), self(), undefined, logi_location_tests, '-guess_test_/0-fun-2-', 47),
+               L = logi_location:new(self(), undefined, logi_location_tests, '-guess_test_/0-fun-2-', 46),
                ?assertEqual(L, logi_location:guess_location())
        end},
       {"Guesses the application",

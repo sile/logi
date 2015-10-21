@@ -52,7 +52,7 @@ format(Context, Format, Data, _) ->
       [
        format_timestamp(logi_context:get_timestamp(Context)),
        logi_context:get_severity(Context),
-       logi_location:get_node(Location),
+       node(logi_location:get_process(Location)),
        logi_location:get_process(Location),
        logi_location:get_module(Location),
        logi_location:get_function(Location),

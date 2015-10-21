@@ -15,6 +15,7 @@
 -export([set_metadata/3]).
 -export([delete_headers/2]).
 -export([delete_metadata/2]).
+-export([recursive_update/2]).
 
 -export([get_channel/1, get_headers/1, get_metadata/1, get_filter/1, get_next/1]).
 
@@ -142,6 +143,16 @@ delete_headers(Keys, Logger) -> Logger#?LOGGER{headers = maps:without(Keys, Logg
 %% @doc Deletes the logger metadata
 -spec delete_metadata([term()], logger()) -> logger().
 delete_metadata(Keys, Logger) -> Logger#?LOGGER{metadata = maps:without(Keys, Logger#?LOGGER.metadata)}.
+
+%% @doc Updates the nested loggers recursively
+-spec recursive_update(UpdateFun, logger()) -> logger() when
+      UpdateFun :: fun ((logger()) -> logger()).
+recursive_update(UpdateFun, Logger0) ->
+    Logger1 = UpdateFun(Logger0),
+    case Logger1 of
+        #?LOGGER{next = undefined} -> Logger1;
+        #?LOGGER{next = Next}      -> Logger1#?LOGGER{next = recursive_update(UpdateFun, Next)}
+    end.
 
 %% @doc Prepares the list of log output context and sinks
 -spec ready(logger(), logi:severity(), logi_location:location(), logi:log_options()) -> {[ContextAndSinks], logger()} when

@@ -429,6 +429,18 @@ log_test_() ->
                ?assertLog("hello world", [], fun (_) -> true end),
                ?assertLog("hello world", [], fun (_) -> true end)
        end},
+      {"A crash of a sink is isolated from others",
+       fun () ->
+               ErroneousWriteFun = fun (_, _, _) -> error(something_wrong) end,
+               InstallSinkOpt(info, [{id, sink_0}]),
+               {ok, _} = logi_builtin_sink_fun:install(info, ErroneousWriteFun, [{id, sink_1}]),
+               InstallSinkOpt(info, [{id, sink_2}]),
+
+               logi:info("hello world"),
+               ?assertLog("hello world", [], fun (_) -> true end),
+               ?assertLog("hello world", [], fun (_) -> true end),
+               ?assertNotLog()
+       end},
       {"Aggregated logger",
        fun () ->
                InstallSink(info),
@@ -446,5 +458,3 @@ log_test_() ->
                ?assertLog("hello world", [], fun (C) -> ?assertEqual(#{id => b}, logi_context:get_headers(C)) end)
        end}
      ]}.
-
-%% TODO: single sink error

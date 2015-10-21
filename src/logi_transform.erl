@@ -110,7 +110,6 @@ logi_location_expr(Loc = #location{line = Line}) ->
     logi_transform_utils:make_call_remote(
       Line, logi_location, unsafe_new,
       [
-       {call, Line, {atom, Line, node}, []},
        {call, Line, {atom, Line, self}, []},
        {atom, Line, Loc#location.application},
        {atom, Line, Loc#location.module},
