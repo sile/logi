@@ -59,10 +59,9 @@ log_option() = {logger, <a href="#type-logger">logger()</a>} | {location, <a hre
 - The logger of interest
 - Default: `logi:default_logger()`
 
-[locatoin]
+[location]
 - The log message issued location
 - Default: `logi_location:guess_location()`
-- see also
 
 [headers]
 - The headers of the log message
