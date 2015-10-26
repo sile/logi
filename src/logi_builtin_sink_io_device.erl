@@ -78,7 +78,7 @@ install(Condition) -> install(Condition, []).
 install(Condition, Options) ->
     Channel = proplists:get_value(channel, Options, logi_channel:default_channel()),
     IoDevice = proplists:get_value(io_device, Options, standard_io),
-    Layout = proplists:get_value(layout, Options, logi_builtin_layout_simple),
+    Layout = proplists:get_value(layout, Options, logi_builtin_layout_simple:new()),
     _ = is_pid(IoDevice) orelse is_atom(IoDevice) orelse error(badarg, [Condition, Options]),
     _ = logi_layout:is_layout(Layout) orelse error(badarg, [Condition, Options]),
 
