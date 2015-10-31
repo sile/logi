@@ -86,8 +86,8 @@ to_string(V) when is_pid(V)       -> erlang:pid_to_list(V);
 to_string(V) when is_port(V)      -> erlang:port_to_list(V);
 to_string(V) when is_reference(V) -> erlang:ref_to_list(V);
 to_string(V) when is_list(V)      ->
-    IsNonNegInteger = fun (C) -> is_integer(C) andalso C >= 0 end,
-    case lists:all(IsNonNegInteger, V) of
+    IsChar = fun (C) -> 0 =< C andalso C =< 16#10ffff end,
+    case lists:all(IsChar, V) of
         true  -> V;
         false -> io_lib:format("~1000000p", [V])
     end;
