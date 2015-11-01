@@ -13,13 +13,13 @@ install_test_() ->
      [
       {"Installs a `logi_builtin_sink_fun' sink",
        fun () ->
-               WriteFun = fun (_, Format, Data) ->  io_lib:format(Format, Data) end,
+               WriteFun = fun (_, _, Format, Data) ->  io_lib:format(Format, Data) end,
                ?assertMatch({ok, _}, logi_builtin_sink_fun:install(info, WriteFun)),
                ?assertEqual([logi_builtin_sink_fun], logi_channel:which_sinks(logi_channel:default_channel()))
        end},
       {"Uninstalls a `logi_builtin_sink_fun` sink",
        fun () ->
-               WriteFun = fun (_, Format, Data) ->  io_lib:format(Format, Data) end,
+               WriteFun = fun (_, _, Format, Data) ->  io_lib:format(Format, Data) end,
                {ok, _} = logi_builtin_sink_fun:install(info, WriteFun),
                [logi_builtin_sink_fun] = logi_channel:which_sinks(logi_channel:default_channel()),
 
@@ -41,7 +41,7 @@ write_test_() ->
       {"Writes a log message",
        fun () ->
                Issuer = self(),
-               WriteFun = fun (_, Format, Data) -> Issuer ! {write, Format, Data} end,
+               WriteFun = fun (_, _, Format, Data) -> Issuer ! {write, Format, Data} end,
                {ok, _} = logi_builtin_sink_fun:install(info, WriteFun),
                logi:info("hello world"),
                receive

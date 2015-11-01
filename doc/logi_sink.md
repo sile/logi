@@ -10,7 +10,7 @@ Sinks.
 
 Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
-__This module defines the `logi_sink` behaviour.__<br /> Required callback functions: `write/4`.
+__This module defines the `logi_sink` behaviour.__<br /> Required callback functions: `write/5`, `default_layout/1`.
 
 <a name="description"></a>
 
@@ -37,7 +37,7 @@ Conventionally, sink implementation modules provide `install` function to instal
 ```erlang
 
   > ok = logi_channel:create(sample_log).
-  > WriteFun = fun (_, Format, Data) -> io:format("[my_sink] " ++ Format ++ "\n", Data) end.
+  > WriteFun = fun (_, _, Format, Data) -> io:format("[my_sink] " ++ Format ++ "\n", Data) end.
   > {ok, _} = logi_builtin_sink_fun:install(info, WriteFun, [{channel, sample_log}]).
   > logi:info("Hello World", [], [{logger, sample_log}]).
   [my_sink] Hello World  % 'logi_builtin_sink_fun:write/4' was invoked
@@ -48,8 +48,8 @@ A channel can have multiple sinks.
 ```erlang
 
   > ok = logi_channel:create(sample_log).
-  > WriteFun_0 = fun (_, Format, Data) -> io:format("[sink_0] " ++ Format ++ "\n", Data) end.
-  > WriteFun_1 = fun (_, Format, Data) -> io:format("[sink_1] " ++ Format ++ "\n", Data) end.
+  > WriteFun_0 = fun (_, _, Format, Data) -> io:format("[sink_0] " ++ Format ++ "\n", Data) end.
+  > WriteFun_1 = fun (_, _, Format, Data) -> io:format("[sink_1] " ++ Format ++ "\n", Data) end.
   > {ok, _} = logi_builtin_sink_fun:install(info, WriteFun_0, [{id, sink_0}, {channel, sample_log}]).
   > {ok, _} = logi_builtin_sink_fun:install(info, WriteFun_1, [{id, sink_1}, {channel, sample_log}]).
   > logi:info("Hello World", [], [{logger, sample_log}]).
@@ -220,12 +220,23 @@ __abstract datatype__: `sink()`
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td>Creates a new sink from <code>Map</code></td></tr><tr><td valign="top"><a href="#get_condition-1">get_condition/1</a></td><td>Gets the condition of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_extra_data-1">get_extra_data/1</a></td><td>Gets the extra data of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_id-1">get_id/1</a></td><td>Gets the ID of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_normalized_condition-1">get_normalized_condition/1</a></td><td>Gets the normalized condition of <code>Sink</code></td></tr><tr><td valign="top"><a href="#is_callback_module-1">is_callback_module/1</a></td><td>Returns <code>true</code> if <code>X</code> is a module which implements the <code>sink</code> behaviour, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_condition-1">is_condition/1</a></td><td>Returns <code>true</code> if <code>X</code> is a valid <code>condition()</code> value, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_sink-1">is_sink/1</a></td><td>Returns <code>true</code> if <code>X</code> is a sink, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Equivalent to <a href="#new-2"><tt>new(Module, Module)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Equivalent to <a href="#new-3"><tt>new(Id, Module, debug)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td>Equivalent to <a href="#new-4"><tt>new(Id, Module, Condition, undefined)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-4">new/4</a></td><td>Creates a new sink.</td></tr><tr><td valign="top"><a href="#to_map-1">to_map/1</a></td><td>Converts <code>Sink</code> into a map form.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#default_layout-1">default_layout/1</a></td><td>Returns the default layout of <code>Sink</code></td></tr><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td>Creates a new sink from <code>Map</code></td></tr><tr><td valign="top"><a href="#get_condition-1">get_condition/1</a></td><td>Gets the condition of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_extra_data-1">get_extra_data/1</a></td><td>Gets the extra data of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_id-1">get_id/1</a></td><td>Gets the ID of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_normalized_condition-1">get_normalized_condition/1</a></td><td>Gets the normalized condition of <code>Sink</code></td></tr><tr><td valign="top"><a href="#is_callback_module-1">is_callback_module/1</a></td><td>Returns <code>true</code> if <code>X</code> is a module which implements the <code>sink</code> behaviour, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_condition-1">is_condition/1</a></td><td>Returns <code>true</code> if <code>X</code> is a valid <code>condition()</code> value, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_sink-1">is_sink/1</a></td><td>Returns <code>true</code> if <code>X</code> is a sink, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Equivalent to <a href="#new-2"><tt>new(Module, Module)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Equivalent to <a href="#new-3"><tt>new(Id, Module, debug)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td>Equivalent to <a href="#new-4"><tt>new(Id, Module, Condition, undefined)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-4">new/4</a></td><td>Creates a new sink.</td></tr><tr><td valign="top"><a href="#to_map-1">to_map/1</a></td><td>Converts <code>Sink</code> into a map form.</td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
+
+<a name="default_layout-1"></a>
+
+### default_layout/1 ###
+
+<pre><code>
+default_layout(Sink::<a href="#type-sink">sink()</a>) -&gt; <a href="logi_layout.md#type-layout">logi_layout:layout()</a>
+</code></pre>
+<br />
+
+Returns the default layout of `Sink`
 
 <a name="from_map-1"></a>
 

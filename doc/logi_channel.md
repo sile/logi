@@ -74,11 +74,18 @@ id() = atom()
 
 
 <pre><code>
-install_sink_option() = {lifetime, timeout() | pid()} | {if_exists, error | ignore | supersede}
+install_sink_option() = {layout, <a href="logi_layout.md#type-layout">logi_layout:layout()</a>} | {lifetime, timeout() | pid()} | {if_exists, error | ignore | supersede}
 </code></pre>
 
+ Let `Sink` be the sink which is subject of the installation.
+
+`layout`:
+- The layout of `Sink`.
+- This layout will be passed as the second argument of the `SinkModule:write/5` function.
+- default: `logi_sink:default_layout(Sink)`
+
 `lifetime`:
-- The lifetime of a sink.
+- The lifetime of `Sink`.
 - When `timeout()` expires or `pid()` exits, the sink will be automatically uninstalled from the channel.
 - default: `infinity`
 

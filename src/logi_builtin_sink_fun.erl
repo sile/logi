@@ -2,6 +2,8 @@
 %%
 %% @doc A built-in sink which consumes log messages by an arbitrary user defined function
 %%
+%% The default layout is `logi_builtin_layout_simple:new()'.
+%%
 %% == NOTE ==
 %% This module is provided for debuging/testing purposes only.
 %%
@@ -14,7 +16,7 @@
 %%
 %% == EXAMPLE ==
 %% <pre lang="erlang">
-%% > WriteFun = fun (_, Format, Data) -> io:format("[CONSUMED] " ++ Format ++ "\n", Data) end.
+%% > WriteFun = fun (_, _, Format, Data) -> io:format("[CONSUMED] " ++ Format ++ "\n", Data) end.
 %% > {ok, _} = logi_builtin_sink_fun:install(info, WriteFun).
 %% > logi:info("hello world").
 %% [CONSUMED] hello world
@@ -34,12 +36,12 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback API
 %%----------------------------------------------------------------------------------------------------------------------
--export([write/4]).
+-export([write/5, default_layout/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
--type write_fun() :: fun ((logi_context:context(), io:format(), logi_layout:data()) -> any()).
+-type write_fun() :: fun ((logi_context:context(), logi_layout:layout(), io:format(), logi_layout:data()) -> any()).
 %% A function which is used to consume log messages issued by `logi'
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -60,7 +62,7 @@ install(Condition, Fun) -> install(Condition, Fun, []).
                | {channel, logi_channel:id()}
                | logi_channel:install_sink_option().
 install(Condition, Fun, Options) ->
-    _ = erlang:is_function(Fun, 3) orelse error(badarg, [Condition, Fun, Options]),
+    _ = erlang:is_function(Fun, 4) orelse error(badarg, [Condition, Fun, Options]),
     Channel = proplists:get_value(channel, Options, logi_channel:default_channel()),
     Sink = logi_sink:new(proplists:get_value(id, Options, ?MODULE), ?MODULE, Condition, Fun),
     logi_channel:install_sink(Channel, Sink, Options).
@@ -87,5 +89,9 @@ uninstall(Options) ->
 %% 'logi_sink' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-write(Context, Format, Data, Fun) ->
-    Fun(Context, Format, Data).
+write(Context, Layout, Format, Data, Fun) ->
+    Fun(Context, Layout, Format, Data).
+
+%% @private
+default_layout(_Extra) ->
+    logi_builtin_layout_simple:new().

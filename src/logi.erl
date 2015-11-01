@@ -687,14 +687,14 @@ emergency(Format, Data, Options) -> log(emergency, Format, Data, Options).
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
 -spec '_ready'(severity(), logi_location:location(), log_options()) ->
-                     {logger_instance(), [{logi_context:context(), [logi_sink:sink()]}]}.
+                      {logger_instance(), [{logi_context:context(), logi_sink_table:select_result()}]}.
 '_ready'(Severity, DefaultLocation, Options) ->
     {Need, Logger0} = load_if_need(proplists:get_value(logger, Options, default_logger())),
     {Result, Logger1} = logi_logger:ready(Logger0, Severity, DefaultLocation, Options),
     {save_if_need(Need, Logger1), Result}.
 
 %% @private
--spec '_write'([{logi_context:context(), [logi_sink:sink()]}], io:format(), [term()]) -> ok.
+-spec '_write'([{logi_context:context(), logi_sink_table:select_result()}], io:format(), [term()]) -> ok.
 '_write'([], _Format, _Data) ->
     ok;
 '_write'([{Context, Sinks} | Rest], Format, Data) ->

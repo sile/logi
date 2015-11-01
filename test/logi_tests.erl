@@ -304,7 +304,7 @@ log_test_() ->
     InstallSinkOpt =
         fun (Severity, Optins) ->
                 Caller = self(),
-                WriteFun = fun (Context, Format, Data) -> Caller ! {'LOGI_MSG', Context, Format, Data} end,
+                WriteFun = fun (Context, _, Format, Data) -> Caller ! {'LOGI_MSG', Context, Format, Data} end,
                 {ok, _} = logi_builtin_sink_fun:install(Severity, WriteFun, [{if_exists, supersede} | Optins]),
                 ok
         end,
@@ -431,7 +431,7 @@ log_test_() ->
        end},
       {"A crash of a sink is isolated from others",
        fun () ->
-               ErroneousWriteFun = fun (_, _, _) -> error(something_wrong) end,
+               ErroneousWriteFun = fun (_, _, _, _) -> error(something_wrong) end,
                InstallSinkOpt(info, [{id, sink_0}]),
                {ok, _} = logi_builtin_sink_fun:install(info, ErroneousWriteFun, [{id, sink_1}]),
                InstallSinkOpt(info, [{id, sink_2}]),

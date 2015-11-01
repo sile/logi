@@ -4,6 +4,8 @@
 %%
 %% This sink writes log messages to an IO device (e.g. standard output, file, etc)
 %%
+%% The default layout is `logi_builtin_layout_simple:new()'.
+%%
 %% == NOTE ==
 %% This module is provided for debugging/testing purposes only.
 %% (e.g. Overload protection is missing)
@@ -47,12 +49,12 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback API
 %%----------------------------------------------------------------------------------------------------------------------
--export([write/4]).
+-export([write/5, default_layout/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
--type extra_data() :: {io:device(), logi_layout:layout()}.
+-type extra_data() :: io:device().
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
@@ -63,26 +65,22 @@ install(Condition) -> install(Condition, []).
 
 %% @doc Installs a sink
 %%
-%% The default value of `Options': <br />
-%% - id: `logi_builtin_sink_io_device' <br />
-%% - channel: `logi_channel:default_channel()' <br />
-%% - io_device: `standard_io' <br />
-%% - layout: `logi_builtin_layout_simple:new()' <br />
+%% The default value of `Options':
+%% - id: `logi_builtin_sink_io_device'
+%% - channel: `logi_channel:default_channel()'
+%% - io_device: `standard_io'
 -spec install(logi_sink:condition(), Options) -> logi_channel:install_sink_result() when
       Options :: [Option],
       Option  :: {id, logi_sink:id()}
                | {channel, logi_channel:id()}
                | {io_device, io:device()}
-               | {layout, logi_layout:layout()}
                | logi_channel:install_sink_option().
 install(Condition, Options) ->
     Channel = proplists:get_value(channel, Options, logi_channel:default_channel()),
     IoDevice = proplists:get_value(io_device, Options, standard_io),
-    Layout = proplists:get_value(layout, Options, logi_builtin_layout_simple:new()),
     _ = is_pid(IoDevice) orelse is_atom(IoDevice) orelse error(badarg, [Condition, Options]),
-    _ = logi_layout:is_layout(Layout) orelse error(badarg, [Condition, Options]),
 
-    Sink = logi_sink:new(proplists:get_value(id, Options, ?MODULE), ?MODULE, Condition, {IoDevice, Layout}),
+    Sink = logi_sink:new(proplists:get_value(id, Options, ?MODULE), ?MODULE, Condition, IoDevice),
     logi_channel:install_sink(Channel, Sink, Options).
 
 %% @equiv uninstall([])
@@ -107,7 +105,11 @@ uninstall(Options) ->
 %% 'logi_sink' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
--spec write(logi_context:context(), io:format(), logi_layout:data(), extra_data()) -> any().
-write(Context, Format, Data, {IoDevice, Layout}) ->
+-spec write(logi_context:context(), logi_layout:layout(), io:format(), logi_layout:data(), extra_data()) -> any().
+write(Context, Layout, Format, Data, IoDevice) ->
     IoData = logi_layout:format(Context, Format, Data, Layout),
     io:put_chars(IoDevice, IoData).
+
+%% @private
+default_layout(_Extra) ->
+    logi_builtin_layout_simple:new().

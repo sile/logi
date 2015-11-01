@@ -124,3 +124,9 @@ source --- logger --           -- sink
 ### memo
 
 設定するヘッダ、メタデータ、フィルタはライブラリの公開インタフェースにすべきかも (そもそもフィルタは利用者側のみが設定すべき)
+
+
+### memo
+
+ログレベルの指標:
+- http://otndnld.oracle.co.jp/document/products/wlevs/docs30/config_server/logging.html

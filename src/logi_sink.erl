@@ -17,7 +17,7 @@
 %% Conventionally, sink implementation modules provide `install' function to install the sink.
 %% <pre lang="erlang">
 %% > ok = logi_channel:create(sample_log).
-%% > WriteFun = fun (_, Format, Data) -> io:format("[my_sink] " ++ Format ++ "\n", Data) end.
+%% > WriteFun = fun (_, _, Format, Data) -> io:format("[my_sink] " ++ Format ++ "\n", Data) end.
 %% > {ok, _} = logi_builtin_sink_fun:install(info, WriteFun, [{channel, sample_log}]).
 %% > logi:info("Hello World", [], [{logger, sample_log}]).
 %% [my_sink] Hello World  % 'logi_builtin_sink_fun:write/4' was invoked
@@ -26,8 +26,8 @@
 %% A channel can have multiple sinks.
 %% <pre lang="erlang">
 %% > ok = logi_channel:create(sample_log).
-%% > WriteFun_0 = fun (_, Format, Data) -> io:format("[sink_0] " ++ Format ++ "\n", Data) end.
-%% > WriteFun_1 = fun (_, Format, Data) -> io:format("[sink_1] " ++ Format ++ "\n", Data) end.
+%% > WriteFun_0 = fun (_, _, Format, Data) -> io:format("[sink_0] " ++ Format ++ "\n", Data) end.
+%% > WriteFun_1 = fun (_, _, Format, Data) -> io:format("[sink_1] " ++ Format ++ "\n", Data) end.
 %% > {ok, _} = logi_builtin_sink_fun:install(info, WriteFun_0, [{id, sink_0}, {channel, sample_log}]).
 %% > {ok, _} = logi_builtin_sink_fun:install(info, WriteFun_1, [{id, sink_1}, {channel, sample_log}]).
 %% > logi:info("Hello World", [], [{logger, sample_log}]).
@@ -46,6 +46,7 @@
 -export([to_map/1, from_map/1]).
 -export([is_condition/1]).
 -export([is_callback_module/1]).
+-export([default_layout/1]).
 
 -export_type([sink/0]).
 -export_type([id/0]).
@@ -57,7 +58,8 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Behaviour Callbacks
 %%----------------------------------------------------------------------------------------------------------------------
--callback write(logi_context:context(), io:format(), logi_layout:data(), extra_data()) -> any().
+-callback write(logi_context:context(), logi_layout:layout(), io:format(), logi_layout:data(), extra_data()) -> any().
+-callback default_layout(extra_data()) -> logi_layout:layout().
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros & Records & Types
@@ -247,7 +249,11 @@ is_condition(X)                -> is_severity_condition(X).
 %% @doc Returns `true' if `X' is a module which implements the `sink' behaviour, otherwise `false'
 -spec is_callback_module(X :: (callback_module() | term())) -> boolean().
 is_callback_module(X) ->
-    logi_utils:function_exported(X, write, 4).
+    logi_utils:function_exported(X, default_layout, 1) andalso logi_utils:function_exported(X, write, 5).
+
+%% @doc Returns the default layout of `Sink'
+-spec default_layout(Sink :: sink()) -> logi_layout:layout().
+default_layout(#?SINK{module = Module, extra_data = ExtraData}) -> Module:default_layout(ExtraData).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions

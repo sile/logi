@@ -156,7 +156,7 @@ recursive_update(UpdateFun, Logger0) ->
 
 %% @doc Prepares the list of log output context and sinks
 -spec ready(logger(), logi:severity(), logi_location:location(), logi:log_options()) -> {[ContextAndSinks], logger()} when
-      ContextAndSinks :: {logi_context:context(), [logi_sink:sink()]}.
+      ContextAndSinks :: {logi_context:context(), logi_sink_table:select_result()}.
 ready(Logger, Severity, DefaultLocation, Options) ->
     Args = [Logger, Severity, DefaultLocation, Options],
     _ = is_list(Options) orelse error(badarg, Args),
@@ -165,20 +165,18 @@ ready(Logger, Severity, DefaultLocation, Options) ->
     ready(Logger, Severity, Location, undefined, undefined, Timestamp, Options).
 
 %% @doc Writes a log message through the selected sinks
--spec write([logi_sink:sink()], logi_context:context(), io:format(), [term()]) -> ok.
-write([],                           _Context,_Format,_Data) -> ok;
-write([{Module, ExtraData} | Sinks], Context, Format, Data) ->
+-spec write(logi_sink_table:select_result(), logi_context:context(), io:format(), [term()]) -> ok.
+write([],                                   _Context,_Format,_Data) -> ok;
+write([{Module, ExtraData, Layout} | Sinks], Context, Format, Data) ->
+    %% An error of a sink does not affect to other sinks. Instead, an error report is emitted.
     try
-        Module:write(Context, Format, Data, ExtraData)
+        Module:write(Context, Layout, Format, Data, ExtraData)
     catch
         Class:Reason ->
-            %% The error of a sink does not affect to other sinks. Instead, an error report is emitted.
             error_logger:error_report(
-              [{pid, self()},
-               {module, ?MODULE},
-               {line, ?LINE},
-               {msg, atom_to_list(Module) ++ ":write/4 was aborted"},
-               {mfargs, {Module, write, [Context, Format, Data, ExtraData]}},
+              [{pid, self()}, {module, ?MODULE}, {line, ?LINE},
+               {msg, atom_to_list(Module) ++ ":write/5 was aborted"},
+               {mfargs, {Module, write, [Context, Layout, Format, Data, ExtraData]}},
                {exception, {Class, Reason, erlang:get_stacktrace()}}])
     end,
     write(Sinks, Context, Format, Data).

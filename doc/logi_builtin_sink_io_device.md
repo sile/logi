@@ -15,6 +15,8 @@ Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
 This sink writes log messages to an IO device (e.g. standard output, file, etc)
 
+The default layout is `logi_builtin_layout_simple:new()`.
+
 
 ### <a name="NOTE">NOTE</a> ###
 
@@ -81,15 +83,14 @@ Equivalent to [`install(Condition, [])`](#install-2).
 install(Condition::<a href="logi_sink.md#type-condition">logi_sink:condition()</a>, Options) -&gt; <a href="logi_channel.md#type-install_sink_result">logi_channel:install_sink_result()</a>
 </code></pre>
 
-<ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {id, <a href="logi_sink.md#type-id">logi_sink:id()</a>} | {channel, <a href="logi_channel.md#type-id">logi_channel:id()</a>} | {io_device, <a href="io.md#type-device">io:device()</a>} | {layout, <a href="logi_layout.md#type-layout">logi_layout:layout()</a>} | <a href="logi_channel.md#type-install_sink_option">logi_channel:install_sink_option()</a></code></li></ul>
+<ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {id, <a href="logi_sink.md#type-id">logi_sink:id()</a>} | {channel, <a href="logi_channel.md#type-id">logi_channel:id()</a>} | {io_device, <a href="io.md#type-device">io:device()</a>} | <a href="logi_channel.md#type-install_sink_option">logi_channel:install_sink_option()</a></code></li></ul>
 
 Installs a sink
 
-The default value of `Options`: <br />
-- id: `logi_builtin_sink_io_device` <br />
-- channel: `logi_channel:default_channel()` <br />
-- io_device: `standard_io` <br />
-- layout: `logi_builtin_layout_simple:new()` <br />
+The default value of `Options`:
+- id: `logi_builtin_sink_io_device`
+- channel: `logi_channel:default_channel()`
+- io_device: `standard_io`
 
 <a name="uninstall-0"></a>
 

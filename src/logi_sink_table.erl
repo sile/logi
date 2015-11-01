@@ -9,17 +9,19 @@
 %%----------------------------------------------------------------------------------------------------------------------
 -export([new/1]).
 -export([delete/1]).
--export([register/3]).
+-export([register/4]).
 -export([deregister/2]).
 -export([which_sinks/1]).
 -export([select/4]).
 
 -export_type([table/0]).
+-export_type([select_result/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
 -type table() :: ets:tab().
+-type select_result() :: [{logi_sink:callback_module(), logi_sink:extra_data(), logi_layout:layout()}].
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
@@ -36,12 +38,12 @@ delete(Table) ->
     ok.
 
 %% @doc Registers an sink
--spec register(table(), logi_sink:sink(), logi_sink:sink() | undefined) -> ok.
-register(Table, New, undefined) ->
-    register(Table, New, logi_sink:new(dummy, logi_builtin_sink_null, []));
-register(Table, New, Old) ->
+-spec register(table(), logi_sink:sink(), logi_sink:sink() | undefined, logi_layout:layout()) -> ok.
+register(Table, New, undefined, Layout) ->
+    register(Table, New, logi_sink:new(dummy, logi_builtin_sink_null, []), Layout);
+register(Table, New, Old, Layout) ->
     {Added, _, Deleted} = diff(logi_sink:get_normalized_condition(New), logi_sink:get_normalized_condition(Old)),
-    ok = insert_sink(Table, New),
+    ok = insert_sink(Table, New, Layout),
     ok = index_condition(Table, logi_sink:get_id(New), Added),
     ok = deindex_condition(Table, logi_sink:get_id(New), Deleted),
     ok.
@@ -59,7 +61,7 @@ which_sinks(Table) ->
     [Id || {Id, _} <- ets:tab2list(Table), is_atom(Id)].
 
 %% @doc Selects sinks that meet the condition
--spec select(table(), logi:severity(), atom(), module()) -> [{logi_sink:callback_module(), logi_sink:extra_data()}].
+-spec select(table(), logi:severity(), atom(), module()) -> select_result().
 select(Table, Severity, Application, Module) ->
     try
         SinkIds = select_id(Table, Severity, Application, Module),
@@ -88,9 +90,9 @@ diff(A, B) ->
       ordsets:to_list(ordsets:subtract(Bs, As))
     }.
 
--spec insert_sink(table(), logi_sink:sink()) -> ok.
-insert_sink(Table, Sink) ->
-    E = {logi_sink:get_id(Sink), {logi_sink:get_module(Sink), logi_sink:get_extra_data(Sink)}},
+-spec insert_sink(table(), logi_sink:sink(), logi_layout:layout()) -> ok.
+insert_sink(Table, Sink, Layout) ->
+    E = {logi_sink:get_id(Sink), {logi_sink:get_module(Sink), logi_sink:get_extra_data(Sink), Layout}},
     _ = ets:insert(Table, E),
     ok.
 

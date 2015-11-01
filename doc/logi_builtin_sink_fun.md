@@ -16,6 +16,8 @@ __Behaviours:__ [`logi_sink`](logi_sink.md).
 
 ## Description ##
 
+The default layout is `logi_builtin_layout_simple:new()`.
+
 
 ### <a name="NOTE">NOTE</a> ###
 
@@ -34,7 +36,7 @@ And there is no overload protection.
 
 ```erlang
 
-  > WriteFun = fun (_, Format, Data) -> io:format("[CONSUMED] " ++ Format ++ "\n", Data) end.
+  > WriteFun = fun (_, _, Format, Data) -> io:format("[CONSUMED] " ++ Format ++ "\n", Data) end.
   > {ok, _} = logi_builtin_sink_fun:install(info, WriteFun).
   > logi:info("hello world").
   [CONSUMED] hello world
@@ -51,7 +53,7 @@ And there is no overload protection.
 
 
 <pre><code>
-write_fun() = fun((<a href="logi_context.md#type-context">logi_context:context()</a>, <a href="io.md#type-format">io:format()</a>, <a href="logi_layout.md#type-data">logi_layout:data()</a>) -&gt; any())
+write_fun() = fun((<a href="logi_context.md#type-context">logi_context:context()</a>, <a href="logi_layout.md#type-layout">logi_layout:layout()</a>, <a href="io.md#type-format">io:format()</a>, <a href="logi_layout.md#type-data">logi_layout:data()</a>) -&gt; any())
 </code></pre>
 
  A function which is used to consume log messages issued by `logi`
