@@ -53,13 +53,13 @@
 -export([which_channels/0]).
 
 -export([install_sink/2, install_sink/3]).
--export([uninstall_sink/2]).
--export([find_sink/2]).
--export([which_sinks/1]).
--export([set_condition/3]).
+-export([uninstall_sink/1, uninstall_sink/2]).
+-export([update_sink/2]).
+-export([find_sink/1,  find_sink/2]).
+-export([which_sinks/0, which_sinks/1]).
 
 -export_type([id/0]).
--export_type([install_sink_option/0,  install_sink_options/0]).
+-export_type([install_sink_option/0, install_sink_options/0]).
 -export_type([install_sink_result/0]).
 -export_type([uninstall_sink_result/0]).
 -export_type([installed_sink/0]).
@@ -100,7 +100,7 @@
         {
           id                  :: logi_sink:id(),
           condition           :: logi_sink:condition(),
-          sink                :: logi_sink:sink(),
+          instance            :: logi_sink:sink(),
           layout              :: logi_layout:layout(),
           lifetime_ref        :: lifetime_ref(),
           cancel_lifetime_fun :: cancel_lifetime_fun()
@@ -116,7 +116,6 @@
 
 -type install_sink_options() :: [install_sink_option()].
 
-%% TODO: Add channel option
 -type install_sink_option() :: {id, logi_sink:id()}
                              | {channel, id()}
                              | {layout, logi_layout:layout()}
@@ -225,7 +224,6 @@ install_sink(Condition, Sink, Options) ->
     IfExists = proplists:get_value(if_exists, Options, error),
     Lifetime = proplists:get_value(lifetime, Options, infinity),
     _ = is_atom(Id) orelse error(badarg, Args),
-    _ = is_atom(Channel) orelse error(badarg, Args),
     _ = logi_layout:is_layout(Layout) orelse error(badarg, Args),
     _ = lists:member(IfExists, [error, ignore, supersede]) orelse error(badarg, Args),
     _ = is_valid_lifetime(Lifetime) orelse error(badarg, Args),
@@ -233,37 +231,103 @@ install_sink(Condition, Sink, Options) ->
     Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, Args),
     gen_server:call(Pid, {install_sink, {Id, Sink, Condition, Layout, Lifetime, IfExists}}).
 
+%% @equiv uninstall_sink(SinkId, [])
+-spec uninstall_sink(logi_sink:id()) -> uninstall_sink_result().
+uninstall_sink(SinkId) -> uninstall_sink(SinkId, []).
+
 %% @doc Uninstalls the sink which has the identifier `SinkId' from `Channel'
--spec uninstall_sink(id(), logi_sink:id()) -> uninstall_sink_result().
-uninstall_sink(Channel, SinkId) ->
-    %% TODO: uninstall_sink/1
-    _ = is_atom(SinkId) orelse error(badarg, [Channel, SinkId]),
-    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, [Channel, SinkId]),
+%%
+%% The default value of the `channel' option is `logi_channel:default_channel()'.
+-spec uninstall_sink(logi_sink:id(), Options) -> uninstall_sink_result() when
+      Options :: [{channel, Channel}],
+      Channel :: id().
+uninstall_sink(SinkId, Options) ->
+    _ = is_atom(SinkId) orelse error(badarg, [SinkId, Options]),
+    _ = is_list(Options) orelse error(badarg, [SinkId, Options]),
+
+    Channel = proplists:get_value(channel, Options, default_channel()),
+    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, [SinkId, Options]),
     gen_server:call(Pid, {uninstall_sink, SinkId}).
 
+%% @doc Updates the sink which associated to the identifier `SinkId'
+%%
+%% This function returns `{ok, Old}' if such a sink exists, `error' otherwise.
+%% `Old' is the old contents of the sink.
+%%
+%% === OPTIONS ===
+%% `channel':
+%% - The channel in which `SinkId' is installed
+%% - default: `logi_channel:default_channel()'
+%%
+%% `layout':
+%% - A new layout
+%% - default: The current layout associated to `SinkId'
+%%
+%% `condition':
+%% - A new condition
+%% - default: The current condition associated to `SinkId'
+%%
+%% `sink':
+%% - A new sink instance
+%% - default: The current sink instance associated to `SinkId'
+-spec update_sink(logi_sink:id(), Options) -> {ok, Old} | error when
+      Options :: [Option],
+      Option  :: {channel, id()}
+               | {layout, logi_layout:layout()}
+               | {condition, logi_sink:condition()}
+               | {sink, logi_sink:sink()},
+      Old :: installed_sink().
+update_sink(SinkId, Options) ->
+    Args = [SinkId, Options],
+    _ = is_atom(SinkId) orelse error(badarg, Args),
+    _ = is_list(Options) orelse error(badarg, Args),
+
+    Channel = proplists:get_value(channel, Options, default_channel()),
+    Layout = proplists:get_value(layout, Options),
+    Condition = proplists:get_value(condition, Options),
+    Sink = proplists:get_value(sink, Options),
+    _ = Layout =:= undefined orelse logi_layout:is_layout(Layout) orelse error(badarg, Args),
+    _ = Condition =:= undefined orelse logi_sink:is_condition(Condition) orelse error(badarg, Args),
+    _ = Sink =:= undefined orelse logi_sink:is_sink(Sink) orelse error(badarg, Args),
+
+    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, Args),
+    gen_server:call(Pid, {update_sink, {SinkId, Sink, Condition, Layout}}).
+
+%% @equiv find_sink(SinkId, [])
+-spec find_sink(logi_sink:id()) -> {ok, Sink :: installed_sink()} | error.
+find_sink(SinkId) -> find_sink(SinkId, []).
+
 %% @doc Searchs for `SinkId' in `Channel'; returns `{ok, Sink}', or `error' if `SinkId' is not present
--spec find_sink(id(), logi_sink:id()) -> {ok, Sink :: installed_sink()} | error.
-find_sink(Channel, SinkId) ->
-    _ = is_atom(SinkId) orelse error(badarg, [Channel, SinkId]),
-    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, [Channel, SinkId]),
+%%
+%% The default value of the `channel' option is `logi_channel:default_channel()'.
+-spec find_sink(logi_sink:id(), Options) -> {ok, Sink} | error when
+      Options :: [{channel, Channel}],
+      Channel :: id(),
+      Sink    :: installed_sink().
+find_sink(SinkId, Options) ->
+    _ = is_atom(SinkId) orelse error(badarg, [SinkId, Options]),
+    _ = is_list(Options) orelse error(badarg, [SinkId, Options]),
+
+    Channel = proplists:get_value(channel, Options, default_channel()),
+    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, [SinkId, Options]),
     gen_server:call(Pid, {find_sink, SinkId}).
 
-%% @doc Returns a list of installed sinks
--spec which_sinks(id()) -> [logi_sink:id()].
-which_sinks(Channel) ->
-    _ = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, [Channel]),
-    logi_sink_table:which_sinks(Channel).
+%% @equiv which_sinks([])
+-spec which_sinks() -> [logi_sink:id()].
+which_sinks() -> which_sinks([]).
 
-%% @doc Sets the condition of the sink which has the identifier `SinkId' to `Condition'
+%% @doc Returns a list of installed sinks
 %%
-%% This function returns `{ok, OldCondition}' if specified sink exists, `error' otherwise.
-%% `OldCondition' is the old condition of the sink.
--spec set_condition(id(), logi_sink:id(), logi_sink:condition()) -> {ok, logi_sink:condition()} | error.
-set_condition(Channel, SinkId, Condition) ->
-    _ = is_atom(SinkId) orelse error(badarg, [Channel, SinkId, Condition]),
-    _ = logi_sink:is_condition(Condition) orelse error(badarg, [Channel, SinkId, Condition]),
-    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, [Channel, SinkId, Condition]),
-    gen_server:call(Pid, {set_condition, {SinkId, Condition}}).
+%% The default value of the `channel' option is `logi_channel:default_channel()'.
+-spec which_sinks(Options) -> [logi_sink:id()] when
+      Options :: [{channel, Channel}],
+      Channel :: id().
+which_sinks(Options) ->
+    _ = is_list(Options) orelse error(badarg, [Options]),
+
+    Channel = proplists:get_value(channel, Options, default_channel()),
+    _ = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, [Options]),
+    logi_sink_table:which_sinks(Channel).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Application Internal Functions
@@ -301,8 +365,8 @@ init([Id]) ->
 %% @private
 handle_call({install_sink,   Arg}, _, State) -> handle_install_sink(Arg, State);
 handle_call({uninstall_sink, Arg}, _, State) -> handle_uninstall_sink(Arg, State);
+handle_call({update_sink,  Arg},   _, State) -> handle_update_sink(Arg, State);
 handle_call({find_sink,      Arg}, _, State) -> handle_find_sink(Arg, State);
-handle_call({set_condition,  Arg}, _, State) -> handle_set_condition(Arg, State);
 handle_call(_,                     _, State) -> {noreply, State}.
 
 %% @private
@@ -349,13 +413,41 @@ handle_install_sink({SinkId, Sink, Condition, Layout, Lifetime, IfExists}, State
                 #sink{
                    id                  = SinkId,
                    condition           = Condition,
-                   sink                = Sink,
+                   instance            = Sink,
                    layout              = Layout,
                    lifetime_ref        = LifetimeRef,
                    cancel_lifetime_fun = CancelLifetimeFun
                   },
             State1 = State0#?STATE{sinks = [Entry | Sinks]},
             {reply, {ok, to_installed_sink(OldSink)}, State1}
+    end.
+
+-spec handle_update_sink(Arg, #?STATE{}) -> {reply, Result, #?STATE{}} when
+      Arg    :: {logi_sink:id(), logi_sink:sink(), logi_sink:condition(), logi_layout:layout()},
+      Result :: {ok, installed_sink()} | error.
+handle_update_sink({SinkId, MaybeSinkInstance, MaybeCondition, MaybeLayout}, State0) ->
+    case lists:keytake(SinkId, #sink.id, State0#?STATE.sinks) of
+        false                 -> {reply, error, State0};
+        {value, Sink0, Sinks} ->
+            Condition =
+                case MaybeCondition of
+                    undefined -> Sink0#sink.condition;
+                    _         -> MaybeCondition
+                end,
+            Layout =
+                case MaybeLayout of
+                    undefined -> Sink0#sink.layout;
+                    _         -> MaybeLayout
+                end,
+            SinkInstance =
+                case MaybeSinkInstance of
+                    undefined -> Sink0#sink.instance;
+                    _         -> MaybeSinkInstance
+                end,
+            ok = logi_sink_table:register(State0#?STATE.table, SinkId, SinkInstance, Condition, Sink0#sink.condition, Layout),
+            Sink1 = Sink0#sink{instance = SinkInstance, condition = Condition, layout = Layout},
+            State1 = State0#?STATE{sinks = [Sink1 | Sinks]},
+            {reply, {ok, to_installed_sink(Sink0)}, State1}
     end.
 
 -spec handle_uninstall_sink(logi_sink:id(), #?STATE{}) -> {reply, Result, #?STATE{}} when
@@ -375,19 +467,6 @@ handle_find_sink(SinkId, State) ->
     case lists:keyfind(SinkId, #sink.id, State#?STATE.sinks) of
         false -> {reply, error, State};
         Sink  -> {reply, {ok, to_installed_sink(Sink)}, State}
-    end.
-
--spec handle_set_condition({logi_sink:id(), logi_sink:condition()}, #?STATE{}) -> {reply, Result, #?STATE{}} when
-      Result :: {ok, logi_sink:condition()} | error.
-handle_set_condition({SinkId, Condition}, State0) ->
-    case lists:keytake(SinkId, #sink.id, State0#?STATE.sinks) of
-        false                 -> {reply, error, State0};
-        {value, Sink0, Sinks} ->
-            #sink{condition = OldCondition, layout = Layout} = Sink0,
-            ok = logi_sink_table:register(State0#?STATE.table, SinkId, Sink0#sink.sink, Condition, OldCondition, Layout),
-            Sink1 = Sink0#sink{condition = Condition},
-            State1 = State0#?STATE{sinks = [Sink1 | Sinks]},
-            {reply, {ok, OldCondition}, State1}
     end.
 
 -spec handle_down(reference(), #?STATE{}) -> {noreply, #?STATE{}}.
@@ -417,5 +496,5 @@ is_valid_lifetime(_)                                                            
 -spec to_installed_sink(#sink{} | undefined) -> installed_sink().
 to_installed_sink(undefined) ->
     undefined;
-to_installed_sink(#sink{condition = Condition, layout = Layout, sink = Sink}) ->
-    {Condition, Layout, Sink}.
+to_installed_sink(#sink{condition = Condition, layout = Layout, instance = Instance}) ->
+    {Condition, Layout, Instance}.

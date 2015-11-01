@@ -25,7 +25,8 @@ log_test_() ->
         fun (Severity, Optins) ->
                 Caller = self(),
                 WriteFun = fun (Context, _, Format, Data) -> Caller ! {'LOGI_MSG', Context, Format, Data} end,
-                {ok, _} = logi_builtin_sink_fun:install(Severity, WriteFun, [{if_exists, supersede} | Optins]),
+                {ok, _} = logi_channel:install_sink(
+                            Severity, logi_builtin_sink_fun:new(WriteFun), [{if_exists, supersede} | Optins]),
                 ok
         end,
     InstallSink = fun (Severity) -> InstallSinkOpt(Severity, []) end,

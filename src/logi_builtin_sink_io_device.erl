@@ -43,8 +43,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([install/1, install/2]).
--export([uninstall/0, uninstall/1]).
+-export([new/0, new/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback API
@@ -59,45 +58,15 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @equiv install(Condition, [])
--spec install(logi_sink:condition()) -> logi_channel:install_sink_result().
-install(Condition) -> install(Condition, []).
+%% @equiv new(standard_io)
+-spec new() -> logi_sink:sink().
+new() -> new(standard_io).
 
-%% @doc Installs a sink
-%%
-%% The default value of `Options':
-%% - id: `logi_builtin_sink_io_device'
-%% - channel: `logi_channel:default_channel()'
-%% - io_device: `standard_io'
--spec install(logi_sink:condition(), Options) -> logi_channel:install_sink_result() when
-      Options :: [Option],
-      Option  :: {id, logi_sink:id()}
-               | {channel, logi_channel:id()}
-               | {io_device, io:device()}
-               | logi_channel:install_sink_option().
-install(Condition, Options) ->
-    IoDevice = proplists:get_value(io_device, Options, standard_io),
-    _ = is_pid(IoDevice) orelse is_atom(IoDevice) orelse error(badarg, [Condition, Options]),
-    Sink = logi_sink:new(?MODULE, IoDevice),
-    logi_channel:install_sink(Condition, Sink, Options).
-
-%% @equiv uninstall([])
--spec uninstall() -> logi_channel:uninstall_sink_result().
-uninstall() -> uninstall([]).
-
-%% @doc Uninstalls a sink
-%%
-%% The default value of `Options': <br />
-%% - id: `logi_builtin_sink_io_device' <br />
-%% - channel: `logi_channel:default_channel()' <br />
--spec uninstall(Options) -> logi_channel:uninstall_sink_result() when
-      Options :: [Option],
-      Option  :: {id, logi_sink:id()}
-               | {channel, logi_channel:id()}.
-uninstall(Options) ->
-    Channel = proplists:get_value(channel, Options, logi_channel:default_channel()),
-    SinkId = proplists:get_value(id, Options, ?MODULE),
-    logi_channel:uninstall_sink(Channel, SinkId).
+%% @doc Creates a new sink instance
+-spec new(io:device()) -> logi_sink:sink().
+new(IoDevice) ->
+    _ = is_pid(IoDevice) orelse is_atom(IoDevice) orelse error(badarg, [IoDevice]),
+    logi_sink:new(?MODULE, IoDevice).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback Functions

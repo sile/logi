@@ -28,8 +28,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([install/2, install/3]).
--export([uninstall/0, uninstall/1]).
+-export([new/1]).
 
 -export_type([write_fun/0]).
 
@@ -47,42 +46,11 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @equiv install(Condition, Fun, [])
--spec install(logi_sink:condition(), write_fun()) -> logi_channel:install_sink_result().
-install(Condition, Fun) -> install(Condition, Fun, []).
-
-%% @doc Installs a sink which writes log messages by `Fun'
-%%
-%% The default value of `Options': <br />
-%% - id: `logi_builtin_sink_fun' <br />
-%% - channel: `logi_channel:default_channel()' <br />
--spec install(logi_sink:condition(), write_fun(), Options) -> logi_channel:install_sink_result() when
-      Options :: [Option],
-      Option  :: {id, logi_sink:id()}
-               | {channel, logi_channel:id()}
-               | logi_channel:install_sink_option().
-install(Condition, Fun, Options) ->
-    _ = erlang:is_function(Fun, 4) orelse error(badarg, [Condition, Fun, Options]),
-    Sink = logi_sink:new(?MODULE, Fun),
-    logi_channel:install_sink(Condition, Sink, Options).
-
-%% @equiv uninstall([])
--spec uninstall() -> logi_channel:uninstall_sink_result().
-uninstall() -> uninstall([]).
-
-%% @doc Uninstalls a sink
-%%
-%% The default value of `Options': <br />
-%% - id: `logi_builtin_sink_fun' <br />
-%% - channel: `logi_channel:default_channel()' <br />
--spec uninstall(Options) -> logi_channel:uninstall_sink_result() when
-      Options :: [Option],
-      Option  :: {id, logi_sink:id()}
-               | {channel, logi_channel:id()}.
-uninstall(Options) ->
-    Channel = proplists:get_value(channel, Options, logi_channel:default_channel()),
-    SinkId = proplists:get_value(id, Options, ?MODULE),
-    logi_channel:uninstall_sink(Channel, SinkId).
+%% @doc Creats a new sink instance
+-spec new(write_fun()) -> logi_sink:sink().
+new(Fun) ->
+    _ = erlang:is_function(Fun, 4) orelse error(badarg, [Fun]),
+    logi_sink:new(?MODULE, Fun).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback Functions

@@ -7,7 +7,7 @@
 %% Macros
 %%----------------------------------------------------------------------------------------------------------------------
 -define(CHANNEL, logi_test_log).
--define(NULL_SINK, logi_builtin_sink_null).
+-define(TEST_SINK, logi_builtin_sink_fun).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Unit Tests
@@ -36,13 +36,13 @@ register_test_() ->
      [
       {"Registers a sink",
        fun () ->
-               ?assertEqual(ok, logi_sink_table:register(?CHANNEL, ?NULL_SINK, logi_sink:new(?NULL_SINK), debug, [], Layout)),
-               ?assertEqual([logi_builtin_sink_null], logi_sink_table:which_sinks(?CHANNEL))
+               ?assertEqual(ok, logi_sink_table:register(?CHANNEL, ?TEST_SINK, logi_sink:new(?TEST_SINK), debug, [], Layout)),
+               ?assertEqual([?TEST_SINK], logi_sink_table:which_sinks(?CHANNEL))
        end},
       {"Deregisters a sink",
        fun () ->
-               ok = logi_sink_table:register(?CHANNEL, hoge, logi_sink:new(?NULL_SINK), debug, [], Layout),
-               ok = logi_sink_table:register(?CHANNEL, fuga, logi_sink:new(?NULL_SINK), debug, [], Layout),
+               ok = logi_sink_table:register(?CHANNEL, hoge, logi_sink:new(?TEST_SINK), debug, [], Layout),
+               ok = logi_sink_table:register(?CHANNEL, fuga, logi_sink:new(?TEST_SINK), debug, [], Layout),
                ?assertEqual(lists:sort([hoge, fuga]), lists:sort(logi_sink_table:which_sinks(?CHANNEL))),
 
                ?assertEqual(ok, logi_sink_table:deregister(?CHANNEL, hoge, debug)),
@@ -61,7 +61,7 @@ select_test_() ->
      [
       {"Selects sinks that meet the condition",
        fun () ->
-               Sink = fun (Id, Condition) -> {Id, Condition, logi_sink:new(?NULL_SINK, Id)} end,
+               Sink = fun (Id, Condition) -> {Id, Condition, logi_sink:new(?TEST_SINK, Id)} end,
                Sink1 = Sink(s1, debug),
                Sink2 = Sink(s2, {info, alert}),
                Sink3 = Sink(s3, [info]),
@@ -105,7 +105,7 @@ select_test_() ->
                            receive
                                {'DOWN', Monitor, _, _, _} -> Recur(lists:delete(Monitor, List))
                            after 0 ->
-                                   Sink = logi_sink:new(?NULL_SINK),
+                                   Sink = logi_sink:new(?TEST_SINK),
                                    ok = logi_sink_table:register(?CHANNEL, hoge, Sink, debug, [], Layout),
                                    logi_sink_table:deregister(?CHANNEL, hoge, debug),
                                    Recur(List)

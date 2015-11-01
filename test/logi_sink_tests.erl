@@ -6,7 +6,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros
 %%----------------------------------------------------------------------------------------------------------------------
--define(NULL_SINK, logi_builtin_sink_null).
+-define(TEST_SINK, logi_builtin_sink_fun).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Unit Tests
@@ -15,8 +15,8 @@ new_test_() ->
     [
      {"Creates a sink",
       fun () ->
-              S0 = logi_sink:new(?NULL_SINK),
-              S1 = logi_sink:new(?NULL_SINK, undefined),
+              S0 = logi_sink:new(?TEST_SINK),
+              S1 = logi_sink:new(?TEST_SINK, undefined),
               ?assert(logi_sink:is_sink(S0)),
               ?assertEqual(S0, S1)
       end},
@@ -30,8 +30,8 @@ get_test_() ->
     [
      {"Gets the information from a sink",
       fun () ->
-              S = logi_sink:new(?NULL_SINK, "EXTRA"),
-              ?assertEqual(?NULL_SINK, logi_sink:get_module(S)),
+              S = logi_sink:new(?TEST_SINK, "EXTRA"),
+              ?assertEqual(?TEST_SINK, logi_sink:get_module(S)),
               ?assertEqual("EXTRA",    logi_sink:get_extra_data(S))
       end}
     ].

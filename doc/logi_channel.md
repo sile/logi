@@ -161,7 +161,7 @@ The function returns `{ok, Sink}` if the specified sink exists in the channel, `
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#create-1">create/1</a></td><td>Creates a new channel.</td></tr><tr><td valign="top"><a href="#default_channel-0">default_channel/0</a></td><td>The default channel.</td></tr><tr><td valign="top"><a href="#delete-1">delete/1</a></td><td>Deletes a channel.</td></tr><tr><td valign="top"><a href="#find_sink-2">find_sink/2</a></td><td>Searchs for <code>SinkId</code> in <code>Channel</code>; returns <code>{ok, Sink}</code>, or <code>error</code> if <code>SinkId</code> is not present.</td></tr><tr><td valign="top"><a href="#install_sink-2">install_sink/2</a></td><td>Equivalent to <a href="#install_sink-3"><tt>install_sink(Condition, Sink, [])</tt></a>.</td></tr><tr><td valign="top"><a href="#install_sink-3">install_sink/3</a></td><td>Installs <code>Sink</code></td></tr><tr><td valign="top"><a href="#set_condition-3">set_condition/3</a></td><td>Sets the condition of the sink which has the identifier <code>SinkId</code> to <code>Condition</code></td></tr><tr><td valign="top"><a href="#uninstall_sink-2">uninstall_sink/2</a></td><td>Uninstalls the sink which has the identifier <code>SinkId</code> from <code>Channel</code></td></tr><tr><td valign="top"><a href="#which_channels-0">which_channels/0</a></td><td>Returns a list of all existing channels.</td></tr><tr><td valign="top"><a href="#which_sinks-1">which_sinks/1</a></td><td>Returns a list of installed sinks.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#create-1">create/1</a></td><td>Creates a new channel.</td></tr><tr><td valign="top"><a href="#default_channel-0">default_channel/0</a></td><td>The default channel.</td></tr><tr><td valign="top"><a href="#delete-1">delete/1</a></td><td>Deletes a channel.</td></tr><tr><td valign="top"><a href="#find_sink-1">find_sink/1</a></td><td>Equivalent to <a href="#find_sink-2"><tt>find_sink(SinkId, [])</tt></a>.</td></tr><tr><td valign="top"><a href="#find_sink-2">find_sink/2</a></td><td>Searchs for <code>SinkId</code> in <code>Channel</code>; returns <code>{ok, Sink}</code>, or <code>error</code> if <code>SinkId</code> is not present.</td></tr><tr><td valign="top"><a href="#install_sink-2">install_sink/2</a></td><td>Equivalent to <a href="#install_sink-3"><tt>install_sink(Condition, Sink, [])</tt></a>.</td></tr><tr><td valign="top"><a href="#install_sink-3">install_sink/3</a></td><td>Installs <code>Sink</code></td></tr><tr><td valign="top"><a href="#uninstall_sink-1">uninstall_sink/1</a></td><td>Equivalent to <a href="#uninstall_sink-2"><tt>uninstall_sink(SinkId, [])</tt></a>.</td></tr><tr><td valign="top"><a href="#uninstall_sink-2">uninstall_sink/2</a></td><td>Uninstalls the sink which has the identifier <code>SinkId</code> from <code>Channel</code></td></tr><tr><td valign="top"><a href="#update_sink-2">update_sink/2</a></td><td>Updates the sink which associated to the identifier <code>SinkId</code></td></tr><tr><td valign="top"><a href="#which_channels-0">which_channels/0</a></td><td>Returns a list of all existing channels.</td></tr><tr><td valign="top"><a href="#which_sinks-0">which_sinks/0</a></td><td>Equivalent to <a href="#which_sinks-1"><tt>which_sinks([])</tt></a>.</td></tr><tr><td valign="top"><a href="#which_sinks-1">which_sinks/1</a></td><td>Returns a list of installed sinks.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -211,16 +211,30 @@ Deletes a channel
 
 If the channel does not exists, it is silently ignored.
 
+<a name="find_sink-1"></a>
+
+### find_sink/1 ###
+
+<pre><code>
+find_sink(SinkId::<a href="logi_sink.md#type-id">logi_sink:id()</a>) -&gt; {ok, Sink::<a href="#type-installed_sink">installed_sink()</a>} | error
+</code></pre>
+<br />
+
+Equivalent to [`find_sink(SinkId, [])`](#find_sink-2).
+
 <a name="find_sink-2"></a>
 
 ### find_sink/2 ###
 
 <pre><code>
-find_sink(Channel::<a href="#type-id">id()</a>, SinkId::<a href="logi_sink.md#type-id">logi_sink:id()</a>) -&gt; {ok, Sink::<a href="#type-installed_sink">installed_sink()</a>} | error
+find_sink(SinkId::<a href="logi_sink.md#type-id">logi_sink:id()</a>, Options) -&gt; {ok, Sink} | error
 </code></pre>
-<br />
+
+<ul class="definitions"><li><code>Options = [{channel, Channel}]</code></li><li><code>Channel = <a href="#type-id">id()</a></code></li><li><code>Sink = <a href="#type-installed_sink">installed_sink()</a></code></li></ul>
 
 Searchs for `SinkId` in `Channel`; returns `{ok, Sink}`, or `error` if `SinkId` is not present
+
+The default value of the `channel` option is `logi_channel:default_channel()`.
 
 <a name="install_sink-2"></a>
 
@@ -244,30 +258,64 @@ install_sink(Condition::<a href="logi_sink.md#type-condition">logi_sink:conditio
 
 Installs `Sink`
 
-<a name="set_condition-3"></a>
+<a name="uninstall_sink-1"></a>
 
-### set_condition/3 ###
+### uninstall_sink/1 ###
 
 <pre><code>
-set_condition(Channel::<a href="#type-id">id()</a>, SinkId::<a href="logi_sink.md#type-id">logi_sink:id()</a>, Condition::<a href="logi_sink.md#type-condition">logi_sink:condition()</a>) -&gt; {ok, <a href="logi_sink.md#type-condition">logi_sink:condition()</a>} | error
+uninstall_sink(SinkId::<a href="logi_sink.md#type-id">logi_sink:id()</a>) -&gt; <a href="#type-uninstall_sink_result">uninstall_sink_result()</a>
 </code></pre>
 <br />
 
-Sets the condition of the sink which has the identifier `SinkId` to `Condition`
-
-This function returns `{ok, OldCondition}` if specified sink exists, `error` otherwise.
-`OldCondition` is the old condition of the sink.
+Equivalent to [`uninstall_sink(SinkId, [])`](#uninstall_sink-2).
 
 <a name="uninstall_sink-2"></a>
 
 ### uninstall_sink/2 ###
 
 <pre><code>
-uninstall_sink(Channel::<a href="#type-id">id()</a>, SinkId::<a href="logi_sink.md#type-id">logi_sink:id()</a>) -&gt; <a href="#type-uninstall_sink_result">uninstall_sink_result()</a>
+uninstall_sink(SinkId::<a href="logi_sink.md#type-id">logi_sink:id()</a>, Options) -&gt; <a href="#type-uninstall_sink_result">uninstall_sink_result()</a>
 </code></pre>
-<br />
+
+<ul class="definitions"><li><code>Options = [{channel, Channel}]</code></li><li><code>Channel = <a href="#type-id">id()</a></code></li></ul>
 
 Uninstalls the sink which has the identifier `SinkId` from `Channel`
+
+The default value of the `channel` option is `logi_channel:default_channel()`.
+
+<a name="update_sink-2"></a>
+
+### update_sink/2 ###
+
+<pre><code>
+update_sink(SinkId::<a href="logi_sink.md#type-id">logi_sink:id()</a>, Options) -&gt; {ok, Old} | error
+</code></pre>
+
+<ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {channel, <a href="#type-id">id()</a>} | {layout, <a href="logi_layout.md#type-layout">logi_layout:layout()</a>} | {condition, <a href="logi_sink.md#type-condition">logi_sink:condition()</a>} | {sink, <a href="logi_sink.md#type-sink">logi_sink:sink()</a>}</code></li><li><code>Old = <a href="#type-installed_sink">installed_sink()</a></code></li></ul>
+
+Updates the sink which associated to the identifier `SinkId`
+
+This function returns `{ok, Old}` if such a sink exists, `error` otherwise.
+`Old` is the old contents of the sink.
+
+
+#### <a name="OPTIONS">OPTIONS</a> ####
+
+`channel`:
+- The channel in which `SinkId` is installed
+- default: `logi_channel:default_channel()`
+
+`layout`:
+- A new layout
+- default: The current layout associated to `SinkId`
+
+`condition`:
+- A new condition
+- default: The current condition associated to `SinkId`
+
+`sink`:
+- A new sink instance
+- default: The current sink instance associated to `SinkId`
 
 <a name="which_channels-0"></a>
 
@@ -280,14 +328,28 @@ which_channels() -&gt; [<a href="#type-id">id()</a>]
 
 Returns a list of all existing channels
 
+<a name="which_sinks-0"></a>
+
+### which_sinks/0 ###
+
+<pre><code>
+which_sinks() -&gt; [<a href="logi_sink.md#type-id">logi_sink:id()</a>]
+</code></pre>
+<br />
+
+Equivalent to [`which_sinks([])`](#which_sinks-1).
+
 <a name="which_sinks-1"></a>
 
 ### which_sinks/1 ###
 
 <pre><code>
-which_sinks(Channel::<a href="#type-id">id()</a>) -&gt; [<a href="logi_sink.md#type-id">logi_sink:id()</a>]
+which_sinks(Options) -&gt; [<a href="logi_sink.md#type-id">logi_sink:id()</a>]
 </code></pre>
-<br />
+
+<ul class="definitions"><li><code>Options = [{channel, Channel}]</code></li><li><code>Channel = <a href="#type-id">id()</a></code></li></ul>
 
 Returns a list of installed sinks
+
+The default value of the `channel` option is `logi_channel:default_channel()`.
 
