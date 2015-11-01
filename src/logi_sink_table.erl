@@ -9,7 +9,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 -export([new/1]).
 -export([delete/1]).
--export([register/5]).
+-export([register/6]).
 -export([deregister/3]).
 -export([which_sinks/1]).
 -export([select/4]).
@@ -38,20 +38,20 @@ delete(Table) ->
     ok.
 
 %% @doc Registers an sink
--spec register(table(), logi_sink:id(), logi_sink:sink(), logi_sink:sink() | undefined, logi_layout:layout()) -> ok.
-register(Table, SinkId, New, undefined, Layout) ->
-    register(Table, SinkId, New, logi_sink:new(logi_builtin_sink_null, []), Layout);
-register(Table, SinkId, New, Old, Layout) ->
-    {Added, _, Deleted} = diff(logi_sink:get_normalized_condition(New), logi_sink:get_normalized_condition(Old)),
-    ok = insert_sink(Table, SinkId, New, Layout),
+-spec register(table(), logi_sink:id(), logi_sink:sink(), logi_sink:condition(),
+               logi_sink:condition(), logi_layout:layout()) -> ok.
+register(Table, SinkId, Sink, NewCondition, OldCondition, Layout) ->
+    {Added, _, Deleted} = diff(logi_sink:normalize_condition(NewCondition),
+                               logi_sink:normalize_condition(OldCondition)),
+    ok = insert_sink(Table, SinkId, Sink, Layout),
     ok = index_condition(Table, SinkId, Added),
     ok = deindex_condition(Table, SinkId, Deleted),
     ok.
 
 %% @doc Deregisters an sink
--spec deregister(table(), logi_sink:id(), logi_sink:sink()) -> ok.
-deregister(Table, SinkId, Sink) ->
-    ok = deindex_condition(Table, SinkId, logi_sink:get_normalized_condition(Sink)),
+-spec deregister(table(), logi_sink:id(), logi_sink:condition()) -> ok.
+deregister(Table, SinkId, Condition) ->
+    ok = deindex_condition(Table, SinkId, logi_sink:normalize_condition(Condition)),
     ok = delete_sink(Table, SinkId),
     ok.
 

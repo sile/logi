@@ -146,7 +146,7 @@ NOTE: The modules which does not belong to any application are forbidden.
 
 
 <pre><code>
-map_form() = #{module =&gt; <a href="#type-callback_module">callback_module()</a>, condition =&gt; <a href="#type-condition">condition()</a>, extra_data =&gt; <a href="#type-extra_data">extra_data()</a>}
+map_form() = #{module =&gt; <a href="#type-callback_module">callback_module()</a>, extra_data =&gt; <a href="#type-extra_data">extra_data()</a>}
 </code></pre>
 
  The map representation of a sink
@@ -220,7 +220,7 @@ __abstract datatype__: `sink()`
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#default_layout-1">default_layout/1</a></td><td>Returns the default layout of <code>Sink</code></td></tr><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td>Creates a new sink from <code>Map</code></td></tr><tr><td valign="top"><a href="#get_condition-1">get_condition/1</a></td><td>Gets the condition of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_extra_data-1">get_extra_data/1</a></td><td>Gets the extra data of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_normalized_condition-1">get_normalized_condition/1</a></td><td>Gets the normalized condition of <code>Sink</code></td></tr><tr><td valign="top"><a href="#is_callback_module-1">is_callback_module/1</a></td><td>Returns <code>true</code> if <code>X</code> is a module which implements the <code>sink</code> behaviour, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_condition-1">is_condition/1</a></td><td>Returns <code>true</code> if <code>X</code> is a valid <code>condition()</code> value, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_sink-1">is_sink/1</a></td><td>Returns <code>true</code> if <code>X</code> is a sink, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Equivalent to <a href="#new-2"><tt>new(Module, debug)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Equivalent to <a href="#new-3"><tt>new(Module, Condition, undefined)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td>Creates a new sink.</td></tr><tr><td valign="top"><a href="#to_map-1">to_map/1</a></td><td>Converts <code>Sink</code> into a map form.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#default_layout-1">default_layout/1</a></td><td>Returns the default layout of <code>Sink</code></td></tr><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td>Creates a new sink from <code>Map</code></td></tr><tr><td valign="top"><a href="#get_extra_data-1">get_extra_data/1</a></td><td>Gets the extra data of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Sink</code></td></tr><tr><td valign="top"><a href="#is_callback_module-1">is_callback_module/1</a></td><td>Returns <code>true</code> if <code>X</code> is a module which implements the <code>sink</code> behaviour, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_condition-1">is_condition/1</a></td><td>Returns <code>true</code> if <code>X</code> is a valid <code>condition()</code> value, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_sink-1">is_sink/1</a></td><td>Returns <code>true</code> if <code>X</code> is a sink, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Equivalent to <a href="#new-2"><tt>new(Module, undefined)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new sink.</td></tr><tr><td valign="top"><a href="#normalize_condition-1">normalize_condition/1</a></td><td>Returns a normalized form of <code>Condition</code></td></tr><tr><td valign="top"><a href="#to_map-1">to_map/1</a></td><td>Converts <code>Sink</code> into a map form.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -264,17 +264,6 @@ Default Value:
     module => logi_builtin_sink_null}
 ```
 
-<a name="get_condition-1"></a>
-
-### get_condition/1 ###
-
-<pre><code>
-get_condition(Sink::<a href="#type-sink">sink()</a>) -&gt; <a href="#type-condition">condition()</a>
-</code></pre>
-<br />
-
-Gets the condition of `Sink`
-
 <a name="get_extra_data-1"></a>
 
 ### get_extra_data/1 ###
@@ -296,17 +285,6 @@ get_module(Sink::<a href="#type-sink">sink()</a>) -&gt; <a href="#type-callback_
 <br />
 
 Gets the module of `Sink`
-
-<a name="get_normalized_condition-1"></a>
-
-### get_normalized_condition/1 ###
-
-<pre><code>
-get_normalized_condition(Sink::<a href="#type-sink">sink()</a>) -&gt; <a href="#type-normalized_condition">normalized_condition()</a>
-</code></pre>
-<br />
-
-Gets the normalized condition of `Sink`
 
 <a name="is_callback_module-1"></a>
 
@@ -350,29 +328,29 @@ new(Module::<a href="#type-callback_module">callback_module()</a>) -&gt; <a href
 </code></pre>
 <br />
 
-Equivalent to [`new(Module, debug)`](#new-2).
+Equivalent to [`new(Module, undefined)`](#new-2).
 
 <a name="new-2"></a>
 
 ### new/2 ###
 
 <pre><code>
-new(Module::<a href="#type-callback_module">callback_module()</a>, Condition::<a href="#type-condition">condition()</a>) -&gt; <a href="#type-sink">sink()</a>
-</code></pre>
-<br />
-
-Equivalent to [`new(Module, Condition, undefined)`](#new-3).
-
-<a name="new-3"></a>
-
-### new/3 ###
-
-<pre><code>
-new(Module::<a href="#type-callback_module">callback_module()</a>, Condition::<a href="#type-condition">condition()</a>, ExtraData::<a href="#type-extra_data">extra_data()</a>) -&gt; <a href="#type-sink">sink()</a>
+new(Module::<a href="#type-callback_module">callback_module()</a>, ExtraData::<a href="#type-extra_data">extra_data()</a>) -&gt; <a href="#type-sink">sink()</a>
 </code></pre>
 <br />
 
 Creates a new sink
+
+<a name="normalize_condition-1"></a>
+
+### normalize_condition/1 ###
+
+<pre><code>
+normalize_condition(Condition::<a href="#type-condition">condition()</a>) -&gt; <a href="#type-normalized_condition">normalized_condition()</a>
+</code></pre>
+<br />
+
+Returns a normalized form of `Condition`
 
 <a name="to_map-1"></a>
 

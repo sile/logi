@@ -65,9 +65,8 @@ install(Condition) -> install(Condition, []).
                | {channel, logi_channel:id()}
                | logi_channel:install_sink_option().
 install(Condition, Options) ->
-    Channel = proplists:get_value(channel, Options, logi_channel:default_channel()),
-    Sink = logi_sink:new(?MODULE, Condition),
-    logi_channel:install_sink(Channel, Sink, Options).
+    Sink = logi_sink:new(?MODULE),
+    logi_channel:install_sink(Condition, Sink, Options).
 
 %% @equiv uninstall([])
 -spec uninstall() -> logi_channel:uninstall_sink_result().

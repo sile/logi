@@ -36,19 +36,19 @@ register_test_() ->
      [
       {"Registers a sink",
        fun () ->
-               ?assertEqual(ok, logi_sink_table:register(?CHANNEL, ?NULL_SINK, logi_sink:new(?NULL_SINK), undefined, Layout)),
+               ?assertEqual(ok, logi_sink_table:register(?CHANNEL, ?NULL_SINK, logi_sink:new(?NULL_SINK), debug, [], Layout)),
                ?assertEqual([logi_builtin_sink_null], logi_sink_table:which_sinks(?CHANNEL))
        end},
       {"Deregisters a sink",
        fun () ->
-               ok = logi_sink_table:register(?CHANNEL, hoge, logi_sink:new(?NULL_SINK), undefined, Layout),
-               ok = logi_sink_table:register(?CHANNEL, fuga, logi_sink:new(?NULL_SINK), undefined, Layout),
+               ok = logi_sink_table:register(?CHANNEL, hoge, logi_sink:new(?NULL_SINK), debug, [], Layout),
+               ok = logi_sink_table:register(?CHANNEL, fuga, logi_sink:new(?NULL_SINK), debug, [], Layout),
                ?assertEqual(lists:sort([hoge, fuga]), lists:sort(logi_sink_table:which_sinks(?CHANNEL))),
 
-               ?assertEqual(ok, logi_sink_table:deregister(?CHANNEL, hoge, logi_sink:new(?NULL_SINK))),
+               ?assertEqual(ok, logi_sink_table:deregister(?CHANNEL, hoge, debug)),
                ?assertEqual([fuga], logi_sink_table:which_sinks(?CHANNEL)),
 
-               ?assertEqual(ok, logi_sink_table:deregister(?CHANNEL, fuga, logi_sink:new(?NULL_SINK))),
+               ?assertEqual(ok, logi_sink_table:deregister(?CHANNEL, fuga, debug)),
                ?assertEqual([], logi_sink_table:which_sinks(?CHANNEL))
        end}
      ]}.
@@ -61,14 +61,14 @@ select_test_() ->
      [
       {"Selects sinks that meet the condition",
        fun () ->
-               Sink = fun (Id, Condition) -> {Id, logi_sink:new(?NULL_SINK, Condition, Id)} end,
+               Sink = fun (Id, Condition) -> {Id, Condition, logi_sink:new(?NULL_SINK, Id)} end,
                Sink1 = Sink(s1, debug),
                Sink2 = Sink(s2, {info, alert}),
                Sink3 = Sink(s3, [info]),
                Sink4 = Sink(s4, #{severity => info, application => stdlib}),
                Sink5 = Sink(s5, #{severity => info, module => lists}),
 
-               lists:foreach(fun ({Id, S}) -> logi_sink_table:register(?CHANNEL, Id, S, undefined, Layout) end,
+               lists:foreach(fun ({Id, C, S}) -> logi_sink_table:register(?CHANNEL, Id, S, C, [], Layout) end,
                              [Sink1, Sink2, Sink3, Sink4, Sink5]),
 
                Select =
@@ -106,8 +106,8 @@ select_test_() ->
                                {'DOWN', Monitor, _, _, _} -> Recur(lists:delete(Monitor, List))
                            after 0 ->
                                    Sink = logi_sink:new(?NULL_SINK),
-                                   ok = logi_sink_table:register(?CHANNEL, hoge, Sink, undefined, Layout),
-                                   logi_sink_table:deregister(?CHANNEL, hoge, Sink),
+                                   ok = logi_sink_table:register(?CHANNEL, hoge, Sink, debug, [], Layout),
+                                   logi_sink_table:deregister(?CHANNEL, hoge, debug),
                                    Recur(List)
                            end
                    end,

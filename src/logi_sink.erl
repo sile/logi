@@ -39,10 +39,10 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/1, new/2, new/3]).
+-export([new/1, new/2]).
 -export([is_sink/1]).
--export([get_module/1, get_condition/1, get_extra_data/1]).
--export([get_normalized_condition/1]).
+-export([get_module/1, get_extra_data/1]).
+-export([normalize_condition/1]).
 -export([to_map/1, from_map/1]).
 -export([is_condition/1]).
 -export([is_callback_module/1]).
@@ -66,10 +66,10 @@
 %%----------------------------------------------------------------------------------------------------------------------
 -define(SINK, ?MODULE).
 
+%% TODO: delete mapform(?), more slim replisencation
 -record(?SINK,
         {
           module     :: callback_module(),
-          condition  :: condition(),
           extra_data :: extra_data()
         }).
 
@@ -161,7 +161,6 @@
 -type map_form() ::
         #{
            module     => callback_module(),
-           condition  => condition(),
            extra_data => extra_data()
          }.
 %% The map representation of a sink
@@ -169,20 +168,15 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @equiv new(Module, debug)
+%% @equiv new(Module, undefined)
 -spec new(callback_module()) -> sink().
-new(Module) -> new(Module, debug).
-
-%% @equiv new(Module, Condition, undefined)
--spec new(callback_module(), condition()) -> sink().
-new(Module, Condition) -> new(Module, Condition, undefined).
+new(Module) -> new(Module, undefined).
 
 %% @doc Creates a new sink
--spec new(callback_module(), condition(), extra_data()) -> sink().
-new(Module, Condition, ExtraData) ->
-    _ = is_callback_module(Module) orelse error(badarg, [Module, Condition, ExtraData]),
-    _ = is_condition(Condition) orelse error(badarg, [Module, Condition, ExtraData]),
-    #?SINK{module = Module, condition = Condition, extra_data = ExtraData}.
+-spec new(callback_module(), extra_data()) -> sink().
+new(Module, ExtraData) ->
+    _ = is_callback_module(Module) orelse error(badarg, [Module, ExtraData]),
+    #?SINK{module = Module, extra_data = ExtraData}.
 
 %% @doc Returns `true' if `X' is a sink, otherwise `false'
 -spec is_sink(X :: (sink() | term())) -> boolean().
@@ -205,30 +199,27 @@ is_sink(X) -> is_record(X, ?SINK).
 %% </pre>
 -spec from_map(Map :: map_form()) -> sink().
 from_map(Map = #{module := Module}) ->
-    new(Module, maps:get(condition, Map, debug), maps:get(extra_data, Map, undefined));
+    new(Module, maps:get(extra_data, Map, undefined));
 from_map(Map) ->
     error(badarg, [Map]).
 
 %% @doc Converts `Sink' into a map form
 -spec to_map(Sink :: sink()) -> map_form().
-to_map(#?SINK{module = Module, condition = Condition, extra_data = ExtraData}) ->
-    #{module => Module, condition => Condition, extra_data => ExtraData}.
+to_map(#?SINK{module = Module, extra_data = ExtraData}) ->
+    #{module => Module, extra_data => ExtraData}.
 
 %% @doc Gets the module of `Sink'
 -spec get_module(Sink :: sink()) -> callback_module().
 get_module(#?SINK{module = Module}) -> Module.
 
-%% @doc Gets the condition of `Sink'
--spec get_condition(Sink :: sink()) -> condition().
-get_condition(#?SINK{condition = Condition}) -> Condition.
-
 %% @doc Gets the extra data of `Sink'
 -spec get_extra_data(Sink :: sink()) -> extra_data().
 get_extra_data(#?SINK{extra_data = ExtraData}) -> ExtraData.
 
-%% @doc Gets the normalized condition of `Sink'
--spec get_normalized_condition(Sink :: sink()) -> normalized_condition().
-get_normalized_condition(#?SINK{condition = Condition}) -> normalize_condition(Condition).
+%% @doc Returns a normalized form of `Condition'
+-spec normalize_condition(Condition :: condition()) -> normalized_condition().
+normalize_condition(C) when is_map(C) -> normalize_location_condition(C);
+normalize_condition(C)                -> normalize_severity_condition(C).
 
 %% @doc Returns `true' if `X' is a valid `condition()' value, otherwise `false'
 -spec is_condition(X :: (condition() | term())) -> boolean().
@@ -275,10 +266,6 @@ is_location_condition(_) ->
 -spec is_module(module() | term()) -> boolean().
 is_module(Module) when is_atom(Module) -> logi_location:guess_application(Module) =/= undefined;
 is_module(_)                           -> false.
-
--spec normalize_condition(condition()) -> normalized_condition().
-normalize_condition(C) when is_map(C) -> normalize_location_condition(C);
-normalize_condition(C)                -> normalize_severity_condition(C).
 
 -spec normalize_location_condition(location_condition()) -> normalized_condition().
 normalize_location_condition(C) ->

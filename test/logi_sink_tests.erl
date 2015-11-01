@@ -16,10 +16,9 @@ new_test_() ->
      {"Creates a sink",
       fun () ->
               S0 = logi_sink:new(?NULL_SINK),
-              S1 = logi_sink:new(?NULL_SINK, debug),
-              S2 = logi_sink:new(?NULL_SINK, debug, undefined),
+              S1 = logi_sink:new(?NULL_SINK, undefined),
               ?assert(logi_sink:is_sink(S0)),
-              ?assertMatch(S0 = S1, S2)
+              ?assertEqual(S0, S1)
       end},
      {"[ERROR] a module that does not implement `sink' behaviour was passed",
       fun () ->
@@ -32,7 +31,7 @@ new_test_() ->
               ?assertEqual(S, logi_sink:from_map(#{module => ?NULL_SINK})),
 
               %% to_map/1
-              M = #{module => ?NULL_SINK, condition => debug, extra_data => undefined},
+              M = #{module => ?NULL_SINK, extra_data => undefined},
               ?assertEqual(M, logi_sink:to_map(S)),
 
               %% S = from_map(to_map(S))
@@ -48,9 +47,8 @@ get_test_() ->
     [
      {"Gets the information from a sink",
       fun () ->
-              S = logi_sink:new(?NULL_SINK, info, "EXTRA"),
+              S = logi_sink:new(?NULL_SINK, "EXTRA"),
               ?assertEqual(?NULL_SINK, logi_sink:get_module(S)),
-              ?assertEqual(info,       logi_sink:get_condition(S)),
               ?assertEqual("EXTRA",    logi_sink:get_extra_data(S))
       end}
     ].
@@ -83,8 +81,7 @@ condition_test_() ->
      {"Normalized conditions",
       fun () ->
               N = fun (Condition) ->
-                          Sink = logi_sink:new(?NULL_SINK, Condition),
-                          lists:sort(logi_sink:get_normalized_condition(Sink))
+                          lists:sort(logi_sink:normalize_condition(Condition))
                   end,
 
               ?assertEqual([alert, critical, emergency], N(critical)),

@@ -76,12 +76,10 @@ install(Condition) -> install(Condition, []).
                | {io_device, io:device()}
                | logi_channel:install_sink_option().
 install(Condition, Options) ->
-    Channel = proplists:get_value(channel, Options, logi_channel:default_channel()),
     IoDevice = proplists:get_value(io_device, Options, standard_io),
     _ = is_pid(IoDevice) orelse is_atom(IoDevice) orelse error(badarg, [Condition, Options]),
-
-    Sink = logi_sink:new(?MODULE, Condition, IoDevice),
-    logi_channel:install_sink(Channel, Sink, Options).
+    Sink = logi_sink:new(?MODULE, IoDevice),
+    logi_channel:install_sink(Condition, Sink, Options).
 
 %% @equiv uninstall([])
 -spec uninstall() -> logi_channel:uninstall_sink_result().
