@@ -146,7 +146,7 @@ NOTE: The modules which does not belong to any application are forbidden.
 
 
 <pre><code>
-map_form() = #{id =&gt; <a href="#type-id">id()</a>, module =&gt; <a href="#type-callback_module">callback_module()</a>, condition =&gt; <a href="#type-condition">condition()</a>, extra_data =&gt; <a href="#type-extra_data">extra_data()</a>}
+map_form() = #{module =&gt; <a href="#type-callback_module">callback_module()</a>, condition =&gt; <a href="#type-condition">condition()</a>, extra_data =&gt; <a href="#type-extra_data">extra_data()</a>}
 </code></pre>
 
  The map representation of a sink
@@ -220,7 +220,7 @@ __abstract datatype__: `sink()`
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#default_layout-1">default_layout/1</a></td><td>Returns the default layout of <code>Sink</code></td></tr><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td>Creates a new sink from <code>Map</code></td></tr><tr><td valign="top"><a href="#get_condition-1">get_condition/1</a></td><td>Gets the condition of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_extra_data-1">get_extra_data/1</a></td><td>Gets the extra data of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_id-1">get_id/1</a></td><td>Gets the ID of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_normalized_condition-1">get_normalized_condition/1</a></td><td>Gets the normalized condition of <code>Sink</code></td></tr><tr><td valign="top"><a href="#is_callback_module-1">is_callback_module/1</a></td><td>Returns <code>true</code> if <code>X</code> is a module which implements the <code>sink</code> behaviour, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_condition-1">is_condition/1</a></td><td>Returns <code>true</code> if <code>X</code> is a valid <code>condition()</code> value, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_sink-1">is_sink/1</a></td><td>Returns <code>true</code> if <code>X</code> is a sink, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Equivalent to <a href="#new-2"><tt>new(Module, Module)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Equivalent to <a href="#new-3"><tt>new(Id, Module, debug)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td>Equivalent to <a href="#new-4"><tt>new(Id, Module, Condition, undefined)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-4">new/4</a></td><td>Creates a new sink.</td></tr><tr><td valign="top"><a href="#to_map-1">to_map/1</a></td><td>Converts <code>Sink</code> into a map form.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#default_layout-1">default_layout/1</a></td><td>Returns the default layout of <code>Sink</code></td></tr><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td>Creates a new sink from <code>Map</code></td></tr><tr><td valign="top"><a href="#get_condition-1">get_condition/1</a></td><td>Gets the condition of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_extra_data-1">get_extra_data/1</a></td><td>Gets the extra data of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_normalized_condition-1">get_normalized_condition/1</a></td><td>Gets the normalized condition of <code>Sink</code></td></tr><tr><td valign="top"><a href="#is_callback_module-1">is_callback_module/1</a></td><td>Returns <code>true</code> if <code>X</code> is a module which implements the <code>sink</code> behaviour, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_condition-1">is_condition/1</a></td><td>Returns <code>true</code> if <code>X</code> is a valid <code>condition()</code> value, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_sink-1">is_sink/1</a></td><td>Returns <code>true</code> if <code>X</code> is a sink, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Equivalent to <a href="#new-2"><tt>new(Module, debug)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Equivalent to <a href="#new-3"><tt>new(Module, Condition, undefined)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td>Creates a new sink.</td></tr><tr><td valign="top"><a href="#to_map-1">to_map/1</a></td><td>Converts <code>Sink</code> into a map form.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -286,17 +286,6 @@ get_extra_data(Sink::<a href="#type-sink">sink()</a>) -&gt; <a href="#type-extra
 
 Gets the extra data of `Sink`
 
-<a name="get_id-1"></a>
-
-### get_id/1 ###
-
-<pre><code>
-get_id(Sink::<a href="#type-sink">sink()</a>) -&gt; <a href="#type-id">id()</a>
-</code></pre>
-<br />
-
-Gets the ID of `Sink`
-
 <a name="get_module-1"></a>
 
 ### get_module/1 ###
@@ -361,36 +350,25 @@ new(Module::<a href="#type-callback_module">callback_module()</a>) -&gt; <a href
 </code></pre>
 <br />
 
-Equivalent to [`new(Module, Module)`](#new-2).
+Equivalent to [`new(Module, debug)`](#new-2).
 
 <a name="new-2"></a>
 
 ### new/2 ###
 
 <pre><code>
-new(Id::<a href="#type-id">id()</a>, Module::<a href="#type-callback_module">callback_module()</a>) -&gt; <a href="#type-sink">sink()</a>
+new(Module::<a href="#type-callback_module">callback_module()</a>, Condition::<a href="#type-condition">condition()</a>) -&gt; <a href="#type-sink">sink()</a>
 </code></pre>
 <br />
 
-Equivalent to [`new(Id, Module, debug)`](#new-3).
+Equivalent to [`new(Module, Condition, undefined)`](#new-3).
 
 <a name="new-3"></a>
 
 ### new/3 ###
 
 <pre><code>
-new(Id::<a href="#type-id">id()</a>, Module::<a href="#type-callback_module">callback_module()</a>, Condition::<a href="#type-condition">condition()</a>) -&gt; <a href="#type-sink">sink()</a>
-</code></pre>
-<br />
-
-Equivalent to [`new(Id, Module, Condition, undefined)`](#new-4).
-
-<a name="new-4"></a>
-
-### new/4 ###
-
-<pre><code>
-new(Id::<a href="#type-id">id()</a>, Module::<a href="#type-callback_module">callback_module()</a>, Condition::<a href="#type-condition">condition()</a>, ExtraData::<a href="#type-extra_data">extra_data()</a>) -&gt; <a href="#type-sink">sink()</a>
+new(Module::<a href="#type-callback_module">callback_module()</a>, Condition::<a href="#type-condition">condition()</a>, ExtraData::<a href="#type-extra_data">extra_data()</a>) -&gt; <a href="#type-sink">sink()</a>
 </code></pre>
 <br />
 

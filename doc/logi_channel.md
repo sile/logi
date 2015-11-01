@@ -74,10 +74,14 @@ id() = atom()
 
 
 <pre><code>
-install_sink_option() = {layout, <a href="logi_layout.md#type-layout">logi_layout:layout()</a>} | {lifetime, timeout() | pid()} | {if_exists, error | ignore | supersede}
+install_sink_option() = {id, <a href="logi_sink.md#type-id">logi_sink:id()</a>} | {layout, <a href="logi_layout.md#type-layout">logi_layout:layout()</a>} | {lifetime, timeout() | pid()} | {if_exists, error | ignore | supersede}
 </code></pre>
 
  Let `Sink` be the sink which is subject of the installation.
+
+`id`:
+- The identifier of `Sink`
+- default: `logi_sink:get_module(Sink)`
 
 `layout`:
 - The layout of `Sink`.

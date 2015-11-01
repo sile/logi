@@ -105,10 +105,16 @@
 
 -type install_sink_options() :: [install_sink_option()].
 
--type install_sink_option() :: {layout, logi_layout:layout()}
+%% TODO: Add channel option
+-type install_sink_option() :: {id, logi_sink:id()}
+                             | {layout, logi_layout:layout()}
                              | {lifetime, timeout() | pid()}
                              | {if_exists, error | ignore | supersede}.
 %% Let `Sink' be the sink which is subject of the installation.
+%%
+%% `id':
+%% - The identifier of `Sink'
+%% - default: `logi_sink:get_module(Sink)'
 %%
 %% `layout':
 %% - The layout of `Sink'.
@@ -193,15 +199,17 @@ install_sink(Channel, Sink, Options) ->
     _ = logi_sink:is_sink(Sink) orelse error(badarg, Args),
     _ = is_list(Options) orelse error(badarg, Args),
 
+    Id       = proplists:get_value(id, Options, logi_sink:get_module(Sink)),
     Layout   = proplists:get_value(layout, Options, logi_sink:default_layout(Sink)),
     IfExists = proplists:get_value(if_exists, Options, error),
     Lifetime = proplists:get_value(lifetime, Options, infinity),
+    _ = is_atom(Id) orelse error(badarg, Args),
     _ = logi_layout:is_layout(Layout) orelse error(badarg, Args),
     _ = lists:member(IfExists, [error, ignore, supersede]) orelse error(badarg, Args),
     _ = is_valid_lifetime(Lifetime) orelse error(badarg, Args),
 
     Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, Args),
-    gen_server:call(Pid, {install_sink, {Sink, Layout, Lifetime, IfExists}}).
+    gen_server:call(Pid, {install_sink, {Id, Sink, Layout, Lifetime, IfExists}}).
 
 %% @doc Uninstalls the sink which has the identifier `SinkId' from `Channel'
 -spec uninstall_sink(id(), logi_sink:id()) -> uninstall_sink_result().
@@ -294,12 +302,12 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal Functions
 %%----------------------------------------------------------------------------------------------------------------------
 -spec handle_install_sink(Arg, #?STATE{}) -> {reply, Result, #?STATE{}} when
-      Arg     :: {logi_sink:sink(), logi_layout:layout(), timeout() | pid(), error | if_exists | supersede},
+      Arg     :: {logi_sink:id(), logi_sink:sink(), logi_layout:layout(), timeout() | pid(), error | if_exists | supersede},
       Result  :: {ok, OldSink} | {error, Reason},
       OldSink :: undefined | logi_sink:sink(),
       Reason  :: {already_installed, logi_sink:sink()}.
-handle_install_sink({Sink, Layout, Lifetime, IfExists}, State0) ->
-    {OldSink, OldCancelLifetimeFun, Sinks0} = take_sink(logi_sink:get_id(Sink), State0#?STATE.sinks),
+handle_install_sink({SinkId, Sink, Layout, Lifetime, IfExists}, State0) ->
+    {OldSink, OldCancelLifetimeFun, Sinks0} = take_sink(SinkId, State0#?STATE.sinks),
     case OldSink =:= undefined orelse IfExists =:= supersede of
         false ->
             case IfExists of
@@ -308,9 +316,9 @@ handle_install_sink({Sink, Layout, Lifetime, IfExists}, State0) ->
             end;
         true ->
             _  = OldCancelLifetimeFun(),
-            ok = logi_sink_table:register(State0#?STATE.table, Sink, OldSink, Layout),
+            ok = logi_sink_table:register(State0#?STATE.table, SinkId, Sink, OldSink, Layout),
             {LifetimeRef, CancelLifetimeFun} = set_lifetime(Lifetime),
-            Sinks1 = [{logi_sink:get_id(Sink), Layout, LifetimeRef, CancelLifetimeFun, Sink} | Sinks0],
+            Sinks1 = [{SinkId, Layout, LifetimeRef, CancelLifetimeFun, Sink} | Sinks0],
             State1 = State0#?STATE{sinks = Sinks1},
             {reply, {ok, OldSink}, State1}
     end.
@@ -322,7 +330,7 @@ handle_uninstall_sink(SinkId, State0) ->
         {undefined, _, _}                -> {reply, error, State0};
         {Sink, CancelLifetimeFun, Sinks} ->
             _  = CancelLifetimeFun(),
-            ok = logi_sink_table:deregister(State0#?STATE.table, Sink),
+            ok = logi_sink_table:deregister(State0#?STATE.table, SinkId, Sink),
             State1 = State0#?STATE{sinks = Sinks},
             {reply, {ok, Sink}, State1}
     end.
@@ -341,7 +349,7 @@ handle_set_condition({SinkId, Condition}, State0) ->
         false                                            -> {reply, error, State0};
         {value, Entry = {_, Layout, _, _, Sink0}, Sinks} ->
             Sink1 = logi_sink:from_map(maps:put(condition, Condition, logi_sink:to_map(Sink0))),
-            ok = logi_sink_table:register(State0#?STATE.table, Sink1, Sink0, Layout),
+            ok = logi_sink_table:register(State0#?STATE.table, SinkId, Sink1, Sink0, Layout),
             State1 = State0#?STATE{sinks = [setelement(5, Entry, Sink1) | Sinks]},
             {reply, {ok, logi_sink:get_condition(Sink0)}, State1}
     end.
@@ -349,9 +357,9 @@ handle_set_condition({SinkId, Condition}, State0) ->
 -spec handle_down(reference(), #?STATE{}) -> {noreply, #?STATE{}}.
 handle_down(Ref, State0) ->
     case lists:keytake(Ref, 3, State0#?STATE.sinks) of
-        false                              -> {noreply, State0};
-        {value, {_, _, _, _, Sink}, Sinks} ->
-            ok = logi_sink_table:deregister(State0#?STATE.table, Sink),
+        false                                   -> {noreply, State0};
+        {value, {SinkId, _, _, _, Sink}, Sinks} ->
+            ok = logi_sink_table:deregister(State0#?STATE.table, SinkId, Sink),
             State1 = State0#?STATE{sinks = Sinks},
             {noreply, State1}
     end.

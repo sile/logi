@@ -9,8 +9,8 @@
 %%----------------------------------------------------------------------------------------------------------------------
 -export([new/1]).
 -export([delete/1]).
--export([register/4]).
--export([deregister/2]).
+-export([register/5]).
+-export([deregister/3]).
 -export([which_sinks/1]).
 -export([select/4]).
 
@@ -38,21 +38,21 @@ delete(Table) ->
     ok.
 
 %% @doc Registers an sink
--spec register(table(), logi_sink:sink(), logi_sink:sink() | undefined, logi_layout:layout()) -> ok.
-register(Table, New, undefined, Layout) ->
-    register(Table, New, logi_sink:new(dummy, logi_builtin_sink_null, []), Layout);
-register(Table, New, Old, Layout) ->
+-spec register(table(), logi_sink:id(), logi_sink:sink(), logi_sink:sink() | undefined, logi_layout:layout()) -> ok.
+register(Table, SinkId, New, undefined, Layout) ->
+    register(Table, SinkId, New, logi_sink:new(logi_builtin_sink_null, []), Layout);
+register(Table, SinkId, New, Old, Layout) ->
     {Added, _, Deleted} = diff(logi_sink:get_normalized_condition(New), logi_sink:get_normalized_condition(Old)),
-    ok = insert_sink(Table, New, Layout),
-    ok = index_condition(Table, logi_sink:get_id(New), Added),
-    ok = deindex_condition(Table, logi_sink:get_id(New), Deleted),
+    ok = insert_sink(Table, SinkId, New, Layout),
+    ok = index_condition(Table, SinkId, Added),
+    ok = deindex_condition(Table, SinkId, Deleted),
     ok.
 
 %% @doc Deregisters an sink
--spec deregister(table(), logi_sink:sink()) -> ok.
-deregister(Table, Sink) ->
-    ok = deindex_condition(Table, logi_sink:get_id(Sink), logi_sink:get_normalized_condition(Sink)),
-    ok = delete_sink(Table, Sink),
+-spec deregister(table(), logi_sink:id(), logi_sink:sink()) -> ok.
+deregister(Table, SinkId, Sink) ->
+    ok = deindex_condition(Table, SinkId, logi_sink:get_normalized_condition(Sink)),
+    ok = delete_sink(Table, SinkId),
     ok.
 
 %% @doc Returns a list of existing sinks
@@ -90,15 +90,15 @@ diff(A, B) ->
       ordsets:to_list(ordsets:subtract(Bs, As))
     }.
 
--spec insert_sink(table(), logi_sink:sink(), logi_layout:layout()) -> ok.
-insert_sink(Table, Sink, Layout) ->
-    E = {logi_sink:get_id(Sink), {logi_sink:get_module(Sink), logi_sink:get_extra_data(Sink), Layout}},
+-spec insert_sink(table(), logi_sink:id(), logi_sink:sink(), logi_layout:layout()) -> ok.
+insert_sink(Table, SinkId, Sink, Layout) ->
+    E = {SinkId, {logi_sink:get_module(Sink), logi_sink:get_extra_data(Sink), Layout}},
     _ = ets:insert(Table, E),
     ok.
 
--spec delete_sink(table(), logi_sink:sink()) -> ok.
-delete_sink(Table, Sink) ->
-    _ = ets:delete(Table, logi_sink:get_id(Sink)),
+-spec delete_sink(table(), logi_sink:id()) -> ok.
+delete_sink(Table, SinkId) ->
+    _ = ets:delete(Table, SinkId),
     ok.
 
 -spec index_condition(table(), logi_sink:id(), logi_sink:normalized_condition()) -> ok.

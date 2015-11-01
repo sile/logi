@@ -39,9 +39,9 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/1, new/2, new/3, new/4]).
+-export([new/1, new/2, new/3]).
 -export([is_sink/1]).
--export([get_id/1, get_module/1, get_condition/1, get_extra_data/1]).
+-export([get_module/1, get_condition/1, get_extra_data/1]).
 -export([get_normalized_condition/1]).
 -export([to_map/1, from_map/1]).
 -export([is_condition/1]).
@@ -68,7 +68,6 @@
 
 -record(?SINK,
         {
-          id         :: id(),
           module     :: callback_module(),
           condition  :: condition(),
           extra_data :: extra_data()
@@ -161,7 +160,6 @@
 
 -type map_form() ::
         #{
-           id         => id(),
            module     => callback_module(),
            condition  => condition(),
            extra_data => extra_data()
@@ -171,25 +169,20 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @equiv new(Module, Module)
+%% @equiv new(Module, debug)
 -spec new(callback_module()) -> sink().
-new(Module) -> new(Module, Module).
+new(Module) -> new(Module, debug).
 
-%% @equiv new(Id, Module, debug)
--spec new(id(), callback_module()) -> sink().
-new(Id, Module) -> new(Id, Module, debug).
-
-%% @equiv new(Id, Module, Condition, undefined)
--spec new(id(), callback_module(), condition()) -> sink().
-new(Id, Module, Condition) -> new(Id, Module, Condition, undefined).
+%% @equiv new(Module, Condition, undefined)
+-spec new(callback_module(), condition()) -> sink().
+new(Module, Condition) -> new(Module, Condition, undefined).
 
 %% @doc Creates a new sink
--spec new(id(), callback_module(), condition(), extra_data()) -> sink().
-new(Id, Module, Condition, ExtraData) ->
-    _ = is_atom(Id) orelse error(badarg, [Id, Module, Condition, ExtraData]),
-    _ = is_callback_module(Module) orelse error(badarg, [Id, Module, Condition, ExtraData]),
-    _ = is_condition(Condition) orelse error(badarg, [Id, Module, Condition, ExtraData]),
-    #?SINK{id = Id, module = Module, condition = Condition, extra_data = ExtraData}.
+-spec new(callback_module(), condition(), extra_data()) -> sink().
+new(Module, Condition, ExtraData) ->
+    _ = is_callback_module(Module) orelse error(badarg, [Module, Condition, ExtraData]),
+    _ = is_condition(Condition) orelse error(badarg, [Module, Condition, ExtraData]),
+    #?SINK{module = Module, condition = Condition, extra_data = ExtraData}.
 
 %% @doc Returns `true' if `X' is a sink, otherwise `false'
 -spec is_sink(X :: (sink() | term())) -> boolean().
@@ -212,18 +205,14 @@ is_sink(X) -> is_record(X, ?SINK).
 %% </pre>
 -spec from_map(Map :: map_form()) -> sink().
 from_map(Map = #{module := Module}) ->
-    new(maps:get(id, Map, Module), Module, maps:get(condition, Map, debug), maps:get(extra_data, Map, undefined));
+    new(Module, maps:get(condition, Map, debug), maps:get(extra_data, Map, undefined));
 from_map(Map) ->
     error(badarg, [Map]).
 
 %% @doc Converts `Sink' into a map form
 -spec to_map(Sink :: sink()) -> map_form().
-to_map(#?SINK{id = Id, module = Module, condition = Condition, extra_data = ExtraData}) ->
-    #{id => Id, module => Module, condition => Condition, extra_data => ExtraData}.
-
-%% @doc Gets the ID of `Sink'
--spec get_id(Sink :: sink()) -> id().
-get_id(#?SINK{id = Id}) -> Id.
+to_map(#?SINK{module = Module, condition = Condition, extra_data = ExtraData}) ->
+    #{module => Module, condition => Condition, extra_data => ExtraData}.
 
 %% @doc Gets the module of `Sink'
 -spec get_module(Sink :: sink()) -> callback_module().

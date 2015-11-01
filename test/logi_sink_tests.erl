@@ -16,11 +16,10 @@ new_test_() ->
      {"Creates a sink",
       fun () ->
               S0 = logi_sink:new(?NULL_SINK),
-              S1 = logi_sink:new(?NULL_SINK, ?NULL_SINK),
-              S2 = logi_sink:new(?NULL_SINK, ?NULL_SINK, debug),
-              S3 = logi_sink:new(?NULL_SINK, ?NULL_SINK, debug, undefined),
+              S1 = logi_sink:new(?NULL_SINK, debug),
+              S2 = logi_sink:new(?NULL_SINK, debug, undefined),
               ?assert(logi_sink:is_sink(S0)),
-              ?assertMatch(S0 = S1 = S2, S3)
+              ?assertMatch(S0 = S1, S2)
       end},
      {"[ERROR] a module that does not implement `sink' behaviour was passed",
       fun () ->
@@ -33,7 +32,7 @@ new_test_() ->
               ?assertEqual(S, logi_sink:from_map(#{module => ?NULL_SINK})),
 
               %% to_map/1
-              M = #{id => ?NULL_SINK, module => ?NULL_SINK, condition => debug, extra_data => undefined},
+              M = #{module => ?NULL_SINK, condition => debug, extra_data => undefined},
               ?assertEqual(M, logi_sink:to_map(S)),
 
               %% S = from_map(to_map(S))
@@ -41,7 +40,7 @@ new_test_() ->
       end},
      {"[ERROR] `module' field is mandatory",
       fun () ->
-              ?assertError(badarg, logi_sink:from_map(#{id => ?NULL_SINK}))
+              ?assertError(badarg, logi_sink:from_map(#{}))
       end}
     ].
 
@@ -49,8 +48,7 @@ get_test_() ->
     [
      {"Gets the information from a sink",
       fun () ->
-              S = logi_sink:new(null, ?NULL_SINK, info, "EXTRA"),
-              ?assertEqual(null,       logi_sink:get_id(S)),
+              S = logi_sink:new(?NULL_SINK, info, "EXTRA"),
               ?assertEqual(?NULL_SINK, logi_sink:get_module(S)),
               ?assertEqual(info,       logi_sink:get_condition(S)),
               ?assertEqual("EXTRA",    logi_sink:get_extra_data(S))
@@ -85,7 +83,7 @@ condition_test_() ->
      {"Normalized conditions",
       fun () ->
               N = fun (Condition) ->
-                          Sink = logi_sink:new(null, ?NULL_SINK, Condition),
+                          Sink = logi_sink:new(?NULL_SINK, Condition),
                           lists:sort(logi_sink:get_normalized_condition(Sink))
                   end,
 

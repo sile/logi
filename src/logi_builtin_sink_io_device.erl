@@ -80,7 +80,7 @@ install(Condition, Options) ->
     IoDevice = proplists:get_value(io_device, Options, standard_io),
     _ = is_pid(IoDevice) orelse is_atom(IoDevice) orelse error(badarg, [Condition, Options]),
 
-    Sink = logi_sink:new(proplists:get_value(id, Options, ?MODULE), ?MODULE, Condition, IoDevice),
+    Sink = logi_sink:new(?MODULE, Condition, IoDevice),
     logi_channel:install_sink(Channel, Sink, Options).
 
 %% @equiv uninstall([])

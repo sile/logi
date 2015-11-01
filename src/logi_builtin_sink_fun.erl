@@ -64,7 +64,7 @@ install(Condition, Fun) -> install(Condition, Fun, []).
 install(Condition, Fun, Options) ->
     _ = erlang:is_function(Fun, 4) orelse error(badarg, [Condition, Fun, Options]),
     Channel = proplists:get_value(channel, Options, logi_channel:default_channel()),
-    Sink = logi_sink:new(proplists:get_value(id, Options, ?MODULE), ?MODULE, Condition, Fun),
+    Sink = logi_sink:new(?MODULE, Condition, Fun),
     logi_channel:install_sink(Channel, Sink, Options).
 
 %% @equiv uninstall([])
