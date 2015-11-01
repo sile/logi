@@ -43,7 +43,6 @@
 -export([is_sink/1]).
 -export([get_module/1, get_extra_data/1]).
 -export([normalize_condition/1]).
--export([to_map/1, from_map/1]).
 -export([is_condition/1]).
 -export([is_callback_module/1]).
 -export([default_layout/1]).
@@ -53,7 +52,6 @@
 -export_type([callback_module/0]).
 -export_type([condition/0, severity_condition/0, location_condition/0, normalized_condition/0]).
 -export_type([extra_data/0]).
--export_type([map_form/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Behaviour Callbacks
@@ -62,18 +60,9 @@
 -callback default_layout(extra_data()) -> logi_layout:layout().
 
 %%----------------------------------------------------------------------------------------------------------------------
-%% Macros & Records & Types
+%% Types
 %%----------------------------------------------------------------------------------------------------------------------
--define(SINK, ?MODULE).
-
-%% TODO: delete mapform(?), more slim replisencation
--record(?SINK,
-        {
-          module     :: callback_module(),
-          extra_data :: extra_data()
-        }).
-
--opaque sink() :: #?SINK{}.
+-opaque sink() :: {callback_module(), extra_data()}.
 %% A sink.
 
 -type id() :: atom().
@@ -158,13 +147,6 @@
 %% [{info,kernel},{info,logi,logi},{info,stdlib,lists}]
 %% </pre>
 
--type map_form() ::
-        #{
-           module     => callback_module(),
-           extra_data => extra_data()
-         }.
-%% The map representation of a sink
-
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
@@ -176,45 +158,20 @@ new(Module) -> new(Module, undefined).
 -spec new(callback_module(), extra_data()) -> sink().
 new(Module, ExtraData) ->
     _ = is_callback_module(Module) orelse error(badarg, [Module, ExtraData]),
-    #?SINK{module = Module, extra_data = ExtraData}.
+    {Module, ExtraData}.
 
 %% @doc Returns `true' if `X' is a sink, otherwise `false'
 -spec is_sink(X :: (sink() | term())) -> boolean().
-is_sink(X) -> is_record(X, ?SINK).
-
-%% @doc Creates a new sink from `Map'
-%%
-%% Default Value:
-%% - id: the value of `module'
-%% - module: none (mandatory)
-%% - condition: `debug'
-%% - extra_data: `undefined'
-%%
-%% <pre lang="erlang">
-%% > logi_sink:to_map(logi_sink:from_map(#{module => logi_builtin_sink_null})).
-%% #{condition => debug,
-%%   extra_data => undefined,
-%%   id => logi_builtin_sink_null,
-%%   module => logi_builtin_sink_null}
-%% </pre>
--spec from_map(Map :: map_form()) -> sink().
-from_map(Map = #{module := Module}) ->
-    new(Module, maps:get(extra_data, Map, undefined));
-from_map(Map) ->
-    error(badarg, [Map]).
-
-%% @doc Converts `Sink' into a map form
--spec to_map(Sink :: sink()) -> map_form().
-to_map(#?SINK{module = Module, extra_data = ExtraData}) ->
-    #{module => Module, extra_data => ExtraData}.
+is_sink({Module, _}) -> is_callback_module(Module);
+is_sink(_)           -> false.
 
 %% @doc Gets the module of `Sink'
 -spec get_module(Sink :: sink()) -> callback_module().
-get_module(#?SINK{module = Module}) -> Module.
+get_module({Module, _}) -> Module.
 
 %% @doc Gets the extra data of `Sink'
 -spec get_extra_data(Sink :: sink()) -> extra_data().
-get_extra_data(#?SINK{extra_data = ExtraData}) -> ExtraData.
+get_extra_data({_, ExtraData}) -> ExtraData.
 
 %% @doc Returns a normalized form of `Condition'
 -spec normalize_condition(Condition :: condition()) -> normalized_condition().
@@ -233,7 +190,7 @@ is_callback_module(X) ->
 
 %% @doc Returns the default layout of `Sink'
 -spec default_layout(Sink :: sink()) -> logi_layout:layout().
-default_layout(#?SINK{module = Module, extra_data = ExtraData}) -> Module:default_layout(ExtraData).
+default_layout({Module, ExtraData}) -> Module:default_layout(ExtraData).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions

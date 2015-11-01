@@ -23,23 +23,6 @@ new_test_() ->
      {"[ERROR] a module that does not implement `sink' behaviour was passed",
       fun () ->
               ?assertError(badarg, logi_sink:new(lists))
-      end},
-     {"Converts to/from a map",
-      fun () ->
-              %% from_map/1
-              S = logi_sink:new(?NULL_SINK),
-              ?assertEqual(S, logi_sink:from_map(#{module => ?NULL_SINK})),
-
-              %% to_map/1
-              M = #{module => ?NULL_SINK, extra_data => undefined},
-              ?assertEqual(M, logi_sink:to_map(S)),
-
-              %% S = from_map(to_map(S))
-              ?assertEqual(S, logi_sink:from_map(logi_sink:to_map(S)))
-      end},
-     {"[ERROR] `module' field is mandatory",
-      fun () ->
-              ?assertError(badarg, logi_sink:from_map(#{}))
       end}
     ].
 
