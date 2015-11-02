@@ -86,7 +86,7 @@ to_string(V) when is_pid(V)       -> erlang:pid_to_list(V);
 to_string(V) when is_port(V)      -> erlang:port_to_list(V);
 to_string(V) when is_reference(V) -> erlang:ref_to_list(V);
 to_string(V) when is_list(V)      ->
-    IsChar = fun (C) -> 0 =< C andalso C =< 16#10ffff end,
+    IsChar = fun (C) -> is_integer(C) andalso 0 =< C andalso C =< 16#10ffff end,
     case lists:all(IsChar, V) of
         true  -> V;
         false -> io_lib:format("~1000000p", [V])
