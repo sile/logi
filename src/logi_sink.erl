@@ -39,7 +39,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/1, new/2]).
+-export([new/1, new/2, unsafe_new/2]).
 -export([is_sink/1]).
 -export([get_module/1, get_extra_data/1]).
 -export([normalize_condition/1]).
@@ -154,11 +154,15 @@
 -spec new(callback_module()) -> sink().
 new(Module) -> new(Module, undefined).
 
-%% @doc Creates a new sink
+%% @doc Creates a new sink instance
 -spec new(callback_module(), extra_data()) -> sink().
 new(Module, ExtraData) ->
     _ = is_callback_module(Module) orelse error(badarg, [Module, ExtraData]),
-    {Module, ExtraData}.
+    unsafe_new(Module, ExtraData).
+
+%% @doc Creates a new sink instance without validating the arguments
+-spec unsafe_new(callback_module(), extra_data()) -> sink().
+unsafe_new(Module, ExtraData) -> {Module, ExtraData}.
 
 %% @doc Returns `true' if `X' is a sink, otherwise `false'
 -spec is_sink(X :: (sink() | term())) -> boolean().

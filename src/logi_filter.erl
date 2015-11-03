@@ -42,7 +42,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/1, new/2]).
+-export([new/1, new/2, unsafe_new/2]).
 -export([is_filter/1]).
 -export([get_module/1, get_state/1]).
 -export([apply/2]).
@@ -70,7 +70,7 @@
 %% A module that implements the `logi_filter' behaviour.
 
 -type state() :: term().
-%% The value of the third arguemnt of the `filter/3' callback function.
+%% The value of the second arguemnt of the `filter/2' callback function.
 %%
 %% If the `filter()' does not have an explicit `state()', `undefined' will be passed instead.
 
@@ -86,6 +86,11 @@ new(Module) -> new(Module, undefined).
 new(Module, State) ->
     _ = is_filter(Module) orelse error(badarg, [Module, State]),
     unsafe_new(Module, State).
+
+%% @doc Creates a new filter instance without validating the arguments
+-spec unsafe_new(callback_module(), state()) -> filter().
+unsafe_new(Module, undefined) -> Module;
+unsafe_new(Module, State)     -> {Module, State}.
 
 %% @doc Returns `true' if `X' is a filter, `false' otherwise
 -spec is_filter(X :: (filter() | term())) -> boolean().
@@ -115,10 +120,3 @@ apply(Context, Filter) ->
         {Bool, State1} -> {Bool, unsafe_new(Module, State1)};
         Bool           -> Bool
     end.
-
-%%----------------------------------------------------------------------------------------------------------------------
-%% Internal Functions
-%%----------------------------------------------------------------------------------------------------------------------
--spec unsafe_new(callback_module(), state()) -> filter().
-unsafe_new(Module, undefined) -> Module;
-unsafe_new(Module, State)     -> {Module, State}.

@@ -100,7 +100,7 @@ layout() = <a href="#type-layout">layout</a>(<a href="#type-extra_data">extra_da
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#format-4">format/4</a></td><td>Returns an <code>iodata()</code> which represents <code>Data</code> formatted by <code>Layout</code> in accordance with <code>Format</code> and <code>Context</code></td></tr><tr><td valign="top"><a href="#get_extra_data-1">get_extra_data/1</a></td><td>Gets the extra data of <code>Layout</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Layout</code></td></tr><tr><td valign="top"><a href="#is_layout-1">is_layout/1</a></td><td>Returns <code>true</code> if <code>X</code> is a layout, <code>false</code> otherwise.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Equivalent to <a href="#new-2"><tt>new(Module, undefined)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new layout instance.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#format-4">format/4</a></td><td>Returns an <code>iodata()</code> which represents <code>Data</code> formatted by <code>Layout</code> in accordance with <code>Format</code> and <code>Context</code></td></tr><tr><td valign="top"><a href="#get_extra_data-1">get_extra_data/1</a></td><td>Gets the extra data of <code>Layout</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Layout</code></td></tr><tr><td valign="top"><a href="#is_layout-1">is_layout/1</a></td><td>Returns <code>true</code> if <code>X</code> is a layout, <code>false</code> otherwise.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Equivalent to <a href="#new-2"><tt>new(Module, undefined)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new layout instance.</td></tr><tr><td valign="top"><a href="#unsafe_new-2">unsafe_new/2</a></td><td>Creates a layout sink instance without validating the arguments.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -173,4 +173,16 @@ new(Module::<a href="#type-callback_module">callback_module()</a>, ExtraData) -&
 <ul class="definitions"><li><code>ExtraData = <a href="#type-extra_data">extra_data()</a></code></li></ul>
 
 Creates a new layout instance
+
+<a name="unsafe_new-2"></a>
+
+### unsafe_new/2 ###
+
+<pre><code>
+unsafe_new(Module::<a href="#type-callback_module">callback_module()</a>, ExtraData) -&gt; <a href="#type-layout">layout</a>(ExtraData)
+</code></pre>
+
+<ul class="definitions"><li><code>ExtraData = <a href="#type-extra_data">extra_data()</a></code></li></ul>
+
+Creates a layout sink instance without validating the arguments
 

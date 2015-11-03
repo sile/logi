@@ -18,7 +18,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/1, new/2]).
+-export([new/1, new/2, unsafe_new/2]).
 -export([is_layout/1]).
 -export([get_module/1, get_extra_data/1]).
 -export([format/4]).
@@ -68,10 +68,12 @@ new(Module) -> new(Module, undefined).
 -spec new(callback_module(), ExtraData) -> layout(ExtraData) when ExtraData :: extra_data().
 new(Module, ExtraData) ->
     _ = is_layout(Module) orelse error(badarg, [Module, ExtraData]),
-    case ExtraData of
-        undefined -> Module;
-        _         -> {Module, ExtraData}
-    end.
+    unsafe_new(Module, ExtraData).
+
+%% @doc Creates a layout sink instance without validating the arguments
+-spec unsafe_new(callback_module(), ExtraData) -> layout(ExtraData) when ExtraData :: extra_data().
+unsafe_new(Module, undefined) -> Module;
+unsafe_new(Module, ExtraData) -> {Module, ExtraData}.
 
 %% @doc Returns `true' if `X' is a layout, `false' otherwise
 -spec is_layout(X :: (layout() | term())) -> boolean().

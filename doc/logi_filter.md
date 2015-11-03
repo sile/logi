@@ -103,7 +103,7 @@ filter() = <a href="#type-filter">filter</a>(<a href="#type-state">state()</a>)
 state() = term()
 </code></pre>
 
- The value of the third arguemnt of the `filter/3` callback function.
+ The value of the second arguemnt of the `filter/2` callback function.
 
 If the `filter()` does not have an explicit `state()`, `undefined` will be passed instead.
 
@@ -112,7 +112,7 @@ If the `filter()` does not have an explicit `state()`, `undefined` will be passe
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#apply-2">apply/2</a></td><td>Applies <code>Filter</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Filter</code></td></tr><tr><td valign="top"><a href="#get_state-1">get_state/1</a></td><td>Gets the state of <code>Filter</code></td></tr><tr><td valign="top"><a href="#is_filter-1">is_filter/1</a></td><td>Returns <code>true</code> if <code>X</code> is a filter, <code>false</code> otherwise.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Equivalent to <a href="#new-2"><tt>new(Module, undefined)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new filter instance.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#apply-2">apply/2</a></td><td>Applies <code>Filter</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Filter</code></td></tr><tr><td valign="top"><a href="#get_state-1">get_state/1</a></td><td>Gets the state of <code>Filter</code></td></tr><tr><td valign="top"><a href="#is_filter-1">is_filter/1</a></td><td>Returns <code>true</code> if <code>X</code> is a filter, <code>false</code> otherwise.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Equivalent to <a href="#new-2"><tt>new(Module, undefined)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new filter instance.</td></tr><tr><td valign="top"><a href="#unsafe_new-2">unsafe_new/2</a></td><td>Creates a new filter instance without validating the arguments.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -188,4 +188,15 @@ new(Module::<a href="#type-callback_module">callback_module()</a>, State) -&gt; 
 <ul class="definitions"><li><code>State = <a href="#type-state">state()</a></code></li></ul>
 
 Creates a new filter instance
+
+<a name="unsafe_new-2"></a>
+
+### unsafe_new/2 ###
+
+<pre><code>
+unsafe_new(Module::<a href="#type-callback_module">callback_module()</a>, State::<a href="#type-state">state()</a>) -&gt; <a href="#type-filter">filter()</a>
+</code></pre>
+<br />
+
+Creates a new filter instance without validating the arguments
 
