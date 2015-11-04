@@ -13,7 +13,7 @@ severity_test_() ->
     [
      {"Available severities",
       fun () ->
-              ?assertEqual([emergency, alert, critical, error, warning, notice, info, verbose, debug], logi:severities()),
+              ?assertEqual([emergency, alert, critical, error, warning, notice, info, debug], logi:severities()),
               ?assert(lists:all(fun logi:is_severity/1, logi:severities())),
               ?assertNot(logi:is_severity(trace))
       end},

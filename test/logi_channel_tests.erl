@@ -181,59 +181,59 @@ select_test_() ->
        [
         {"simple (level)",
          fun () ->
-                 ok = Install(aaa, info),
+                 ok = Install(aaa, notice),
                  ok = Install(bbb, debug),
 
-                 ?assertEqual([bbb],      Select(debug,   stdlib, lists)),
-                 ?assertEqual([bbb],      Select(verbose, stdlib, lists)),
-                 ?assertEqual([aaa, bbb], Select(info,    stdlib, lists)),
-                 ?assertEqual([aaa, bbb], Select(alert,   stdlib, lists))
+                 ?assertEqual([bbb],      Select(debug,  stdlib, lists)),
+                 ?assertEqual([bbb],      Select(info,   stdlib, lists)),
+                 ?assertEqual([aaa, bbb], Select(notice, stdlib, lists)),
+                 ?assertEqual([aaa, bbb], Select(alert,  stdlib, lists))
          end},
         {"range",
          fun () ->
-                 ok = Install(aaa, {debug, info}),
-                 ok = Install(bbb, {verbose, critical}),
+                 ok = Install(aaa, {debug, notice}),
+                 ok = Install(bbb, {info, critical}),
 
                  ?assertEqual([aaa],      Select(debug,   stdlib, lists)),
-                 ?assertEqual([aaa, bbb], Select(verbose, stdlib, lists)),
                  ?assertEqual([aaa, bbb], Select(info,    stdlib, lists)),
-                 ?assertEqual([bbb],      Select(notice,  stdlib, lists)),
+                 ?assertEqual([aaa, bbb], Select(notice,  stdlib, lists)),
+                 ?assertEqual([bbb],      Select(warning, stdlib, lists)),
                  ?assertEqual([],         Select(alert,   stdlib, lists))
          end},
         {"list",
          fun () ->
                  ok = Install(aaa, [debug, info, notice]),
-                 ok = Install(bbb, [verbose, notice, critical]),
+                 ok = Install(bbb, [notice, critical]),
                  ok = Install(ccc, [info]),
 
-                 ?assertEqual([aaa],      Select(debug,   stdlib, lists)),
-                 ?assertEqual([bbb],      Select(verbose, stdlib, lists)),
-                 ?assertEqual([aaa, ccc], Select(info,    stdlib, lists)),
-                 ?assertEqual([aaa, bbb], Select(notice,  stdlib, lists)),
-                 ?assertEqual([],         Select(alert,   stdlib, lists))
+                 ?assertEqual([aaa],      Select(debug,    stdlib, lists)),
+                 ?assertEqual([aaa, ccc], Select(info,     stdlib, lists)),
+                 ?assertEqual([aaa, bbb], Select(notice,   stdlib, lists)),
+                 ?assertEqual([],         Select(alert,    stdlib, lists)),
+                 ?assertEqual([bbb],      Select(critical, stdlib, lists))
          end},
         {"severity + application",
          fun () ->
-                 ok = Install(aaa, #{severity => debug,          application => stdlib}),
-                 ok = Install(bbb, #{severity => [info, notice], application => [stdlib, kernel]}),
-                 ok = Install(ccc, #{severity => verbose,        application => kernel}),
+                 ok = Install(aaa, #{severity => debug,             application => stdlib}),
+                 ok = Install(bbb, #{severity => [notice, warning], application => [stdlib, kernel]}),
+                 ok = Install(ccc, #{severity => info,              application => kernel}),
 
                  ?assertEqual([aaa],      Select(debug,   stdlib, lists)),
-                 ?assertEqual([aaa],      Select(verbose, stdlib, lists)),
-                 ?assertEqual([aaa, bbb], Select(info,    stdlib, lists)),
+                 ?assertEqual([aaa],      Select(info,    stdlib, lists)),
                  ?assertEqual([aaa, bbb], Select(notice,  stdlib, lists)),
+                 ?assertEqual([aaa, bbb], Select(warning, stdlib, lists)),
                  ?assertEqual([aaa],      Select(alert,   stdlib, lists))
          end},
         {"severity + application + module",
          fun () ->
-                 ok = Install(aaa, #{severity => debug,          application => kernel, module => [lists, dict]}),
-                 ok = Install(bbb, #{severity => [info, notice], application => stdlib, module => net_kernel}),
-                 ok = Install(ccc, #{severity => verbose,        application => kernel, module => net_kernel}),
+                 ok = Install(aaa, #{severity => debug,             application => kernel, module => [lists, dict]}),
+                 ok = Install(bbb, #{severity => [notice, warning], application => stdlib, module => net_kernel}),
+                 ok = Install(ccc, #{severity => info,              application => kernel, module => net_kernel}),
 
                  ?assertEqual([aaa],      Select(debug,   stdlib, lists)),
-                 ?assertEqual([aaa],      Select(verbose, stdlib, lists)),
-                 ?assertEqual([aaa, bbb], Select(info,    stdlib, lists)),
+                 ?assertEqual([aaa],      Select(info,    stdlib, lists)),
                  ?assertEqual([aaa, bbb], Select(notice,  stdlib, lists)),
+                 ?assertEqual([aaa, bbb], Select(warning, stdlib, lists)),
                  ?assertEqual([aaa],      Select(alert,   stdlib, lists))
          end},
         {"change condition",
@@ -255,15 +255,15 @@ select_test_() ->
                    end,
                    lists:seq(1, 100)),
 
-                 ok = SetCond(aaa, #{severity => debug,          module => [lists, dict]}),
-                 ok = SetCond(bbb, #{severity => [info, notice], application => stdlib, module => net_kernel}),
-                 ok = SetCond(ccc, #{severity => verbose,        application => kernel, module => net_kernel}),
+                 ok = SetCond(aaa, #{severity => debug,             module => [lists, dict]}),
+                 ok = SetCond(bbb, #{severity => [notice, warning], application => stdlib, module => net_kernel}),
+                 ok = SetCond(ccc, #{severity => info,              application => kernel, module => net_kernel}),
                  ok = SetCond(ddd, emergency),
 
                  ?assertEqual([aaa],      Select(debug,   stdlib, lists)),
-                 ?assertEqual([aaa],      Select(verbose, stdlib, lists)),
-                 ?assertEqual([aaa, bbb], Select(info,    stdlib, lists)),
+                 ?assertEqual([aaa],      Select(info,    stdlib, lists)),
                  ?assertEqual([aaa, bbb], Select(notice,  stdlib, lists)),
+                 ?assertEqual([aaa, bbb], Select(warning, stdlib, lists)),
                  ?assertEqual([aaa],      Select(alert,   stdlib, lists))
          end}
        ]}

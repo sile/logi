@@ -48,7 +48,6 @@
 %%----------------------------------------------------------
 -export([log/4]).
 -export([debug/1, debug/2, debug/3]).
--export([verbose/1, verbose/2, verbose/3]).
 -export([info/1, info/2, info/3]).
 -export([notice/1, notice/2, notice/3]).
 -export([warning/1, warning/2, warning/3]).
@@ -76,7 +75,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
--type severity()  :: debug | verbose | info | notice | warning | error | critical | alert | emergency.
+-type severity()  :: debug | info | notice | warning | error | critical | alert | emergency.
 %% Severity of a log message
 
 -type logger() :: logger_id() | logger_instance().
@@ -194,12 +193,12 @@ default_logger() -> logi_default_log.
 %%
 %% The list are ordered by the their severity level (see: {@link severity_level/1}).
 -spec severities() -> [severity()].
-severities() -> [emergency, alert, critical, error, warning, notice, info, verbose, debug].
+severities() -> [emergency, alert, critical, error, warning, notice, info, debug].
 
 %% @doc Returns the level of `Severity'
 %%
 %% The higher the severity is, the lower the level is.
--spec severity_level(Severity :: severity()) -> 1..9.
+-spec severity_level(Severity :: severity()) -> 1..8.
 severity_level(emergency) -> 1;
 severity_level(alert)     -> 2;
 severity_level(critical)  -> 3;
@@ -207,8 +206,7 @@ severity_level(error)     -> 4;
 severity_level(warning)   -> 5;
 severity_level(notice)    -> 6;
 severity_level(info)      -> 7;
-severity_level(verbose)   -> 8;
-severity_level(debug)     -> 9;
+severity_level(debug)     -> 8;
 severity_level(Severity)  -> erlang:error(badarg, [Severity]).
 
 %% @doc Returns `true' if `X' is a severity, otherwise `false'
@@ -591,18 +589,6 @@ debug(Format, Data) -> debug(Format, Data, []).
 %% @equiv log(debug, Format, Data, Options)
 -spec debug(io:format(), [term()], log_options()) -> logger_instance().
 debug(Format, Data, Options) -> log(debug, Format, Data, Options).
-
-%% @equiv verbose(Format, [])
--spec verbose(io:format()) -> logger_instance().
-verbose(Format) -> verbose(Format, []).
-
-%% @equiv verbose(Format, Data, [])
--spec verbose(io:format(), [term()]) -> logger_instance().
-verbose(Format, Data) -> verbose(Format, Data, []).
-
-%% @equiv log(verbose, Format, Data, Options)
--spec verbose(io:format(), [term()], log_options()) -> logger_instance().
-verbose(Format, Data, Options) -> log(verbose, Format, Data, Options).
 
 %% @equiv info(Format, [])
 -spec info(io:format()) -> logger_instance().
