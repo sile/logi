@@ -39,6 +39,7 @@
 
 -export([save_as_default/1, save/2]).
 -export([load_default/0, load/1]).
+-export([ensure_to_be_instance/1]).
 -export([erase/0, erase/1]).
 -export([which_loggers/0]).
 
@@ -365,6 +366,11 @@ load(LoggerId) ->
         undefined -> error;
         Logger    -> {ok, Logger}
     end.
+
+%% @doc Returns the logger instance associated to `Logger'
+-spec ensure_to_be_instance(logger()) -> logger_instance().
+ensure_to_be_instance(Logger) when is_atom(Logger) -> load_or_new(Logger);
+ensure_to_be_instance(Logger)                      -> Logger.
 
 %% @doc Returns the saved loggers and deletes them from the process dictionary.
 -spec erase() -> [{logger_id(), logger_instance()}].
