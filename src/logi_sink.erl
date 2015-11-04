@@ -45,7 +45,9 @@
 -export([normalize_condition/1]).
 -export([is_condition/1]).
 -export([is_callback_module/1]).
+
 -export([default_layout/1]).
+-export([write/5]).
 
 -export_type([sink/0]).
 -export_type([id/0]).
@@ -195,6 +197,11 @@ is_callback_module(X) ->
 %% @doc Returns the default layout of `Sink'
 -spec default_layout(Sink :: sink()) -> logi_layout:layout().
 default_layout({Module, ExtraData}) -> Module:default_layout(ExtraData).
+
+%% @doc Writes a log message
+-spec write(logi_context:context(), logi_layout:layout(), io:format(), logi_layout:data(), sink()) -> any().
+write(Context, Layout, Format, Data, {Module, ExtraData}) ->
+    Module:write(Context, Layout, Format, Data, ExtraData).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
