@@ -29,7 +29,7 @@ start_link() ->
 -spec start_child(logi_channel:id()) -> {ok, pid()} | {error, Reason} when
       Reason :: {already_started, pid()} | term().
 start_child(Channel) ->
-    Child = {Channel, {logi_channel, start_link, [Channel]}, permanent, 5000, worker, [logi_channel]},
+    Child = #{id => Channel, start => {logi_channel, start_link, [Channel]}},
     supervisor:start_child(?MODULE, Child).
 
 %% @doc Stops a channel process which name is `Channel'
@@ -49,4 +49,4 @@ which_children() ->
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
 init([]) ->
-    {ok, {{one_for_one, 1, 5}, []}}.
+    {ok, {#{}, []}}.

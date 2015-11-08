@@ -29,8 +29,5 @@ start_link() ->
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
 init([]) ->
-    Children =
-        [
-         {logi_channel_sup, {logi_channel_sup, start_link, []}, permanent, infinity, supervisor, [logi_channel_sup]}
-        ],
-    {ok, {{one_for_one, 1, 5}, Children}}.
+    Child = #{id => logi_channel_sup, start => {logi_channel_sup, start_link, []}, type => supervisor},
+    {ok, {#{}, [Child]}}.

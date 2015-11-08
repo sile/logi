@@ -1,4 +1,4 @@
-%%%  vim: set ft=erlang : -*- erlang -*-
+%% vim: set ft=erlang : -*- erlang -*-
 {application, logi,
  [
   {description, "A Logger Interface Library"},
