@@ -20,12 +20,14 @@ A logger has own headers, metadata, filter and can issue log messages to a desti
 
 ### <a name="EXAMPLE">EXAMPLE</a> ###
 
+Basic Usage:
 
 ```erlang
 
-  > logi_builtin_sink_io_device:install(info). % Installs a sink to the default channel
-  > logi:log(info, "hello world", [], []). % The log message is (logically) sent to the channel and consumed by the sink
-  2015-10-22 13:16:37.003 [info] nonode@nohost <0.91.0> erl_eval:do_apply:673 [] hello world
+  > error_logger:tty(false). % Suppresses annoying warnings for the sake of brevity
+  > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_io_device:new()). % Installs a sink to the default channel
+  > logi:info("hello world").
+  2015-11-09 08:18:34.954 [info] nonode@nohost <0.91.0> erl_eval:do_apply:673 [] hello world
 ```
 
 <a name="types"></a>
@@ -201,6 +203,8 @@ severity() = debug | info | notice | warning | error | critical | alert | emerge
 
  Severity of a log message
 
+It follwed the severities which are described in [RFC 5424](https://tools.ietf.org/html/rfc5424#section-6.2.1).
+
 <a name="index"></a>
 
 ## Function Index ##
@@ -358,6 +362,13 @@ If the logger has nested loggers, the function is applied to them recursively.
 - The logger to which the operation applies.
 - Default: `logi:default_logger()`.
 
+```erlang
+
+  > Logger = logi:new([{headers, #{a => 1, b => 2}}]).
+  > logi:to_map(logi:delete_headers([a], [{logger, Logger}])).
+  #{channel => logi_default_log,headers => #{b => 2},metadata => #{}}
+```
+
 <a name="delete_metadata-1"></a>
 
 ### delete_metadata/1 ###
@@ -389,6 +400,13 @@ If the logger has nested loggers, the function is applied to them recursively.
 [logger]
 - The logger to which the operation applies.
 - Default: `logi:default_logger()`.
+
+```erlang
+
+  > Logger = logi:new([{metadata, #{a => 1, b => 2}}]).
+  > logi:to_map(logi:delete_metadata([a], [{logger, Logger}])).
+  #{channel => logi_default_log,headers => #{},metadata => #{b => 2}}
+```
 
 <a name="emergency-1"></a>
 
@@ -434,6 +452,17 @@ ensure_to_be_instance(Logger::<a href="#type-logger">logger()</a>) -&gt; <a href
 
 Returns the logger instance associated to `Logger`
 
+```erlang
+
+  > logi:ensure_to_be_instance(unsaved).
+  {logi_logger,unsaved,#{},#{},undefined,undefined}
+  > logi:save(saved, logi:new([{channel, saved}])).
+  > logi:ensure_to_be_instance(saved).
+  {logi_logger,saved,#{},#{},undefined,undefined}
+  > logi:ensure_to_be_instance(logi:new([{channel, instance}])).
+  {logi_logger,instance,#{},#{},undefined,undefined}
+```
+
 <a name="erase-0"></a>
 
 ### erase/0 ###
@@ -444,6 +473,15 @@ erase() -&gt; [{<a href="#type-logger_id">logger_id()</a>, <a href="#type-logger
 <br />
 
 Returns the saved loggers and deletes them from the process dictionary.
+
+```erlang
+
+  > logi:save(hoge, logi:new()).
+  > logi:erase().
+  [{hoge,{logi_logger,logi_default_log,#{},#{},undefined,undefined}}]
+  > logi:erase().
+  []
+```
 
 <a name="erase-1"></a>
 
@@ -457,6 +495,15 @@ erase(LoggerId::<a href="#type-logger_id">logger_id()</a>) -&gt; <a href="#type-
 Returns the logger associated with `LoggerId` and deletes it from the process dictionary.
 
 Returns `undefined` if no logger is associated with `LoggerId`.
+
+```erlang
+
+  > logi:save(hoge, logi:new()).
+  > logi:erase(hoge).
+  {logi_logger,logi_default_log,#{},#{},undefined,undefined}
+  > logi:erase(hoge).
+  undefined
+```
 
 <a name="error-1"></a>
 
@@ -643,7 +690,7 @@ But the sinks which does not satisfy specified condition (i.e. `logi_sink:condit
 
 ```erlang
 
-  > logi_builtin_sink_io_device:install(info). % Installs to the default channel
+  > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_io_device:new()). % Installs a sink to the default channel
   > logi:log(debug, "hello world", [], []). % There are no applicable sinks (the severity is too low)
   > logi:log(info, "hello world", [], []). % The log message is consumed by the above sink
   2015-10-22 13:16:37.003 [info] nonode@nohost <0.91.0> erl_eval:do_apply:673 [] hello world
@@ -653,7 +700,7 @@ If the logger has nested loggers, the function is applied to them recursively.
 
 ```erlang
 
-  > logi_builtin_sink_io_device:install(info). % Installs to the default channel
+  > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_io_device:new()). % Installs a sink to the default channel
   > Logger = logi:from_list([logi:new([{headers, #{id => hoge}}]), logi:new([{headers, #{id => fuga}}])]).
   > logi:log(info, "hello world", [], [{logger, Logger}]).
   2015-10-22 13:28:10.332 [info] nonode@nohost <0.91.0> erl_eval:do_apply:673 [id=hoge] hello world
@@ -999,4 +1046,11 @@ which_loggers() -&gt; [<a href="#type-logger_id">logger_id()</a>]
 <br />
 
 Returns the ID list of the saved loggers
+
+```erlang
+
+  > logi:save(hoge, logi:new()).
+  > logi:which_loggers().
+  [hoge]
+```
 

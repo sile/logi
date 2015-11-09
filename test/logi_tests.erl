@@ -96,7 +96,8 @@ process_dictionary_test_() ->
                Logger = logi:new(),
                ?assertEqual(undefined,               logi:save_as_default(Logger)),
                ?assertEqual([logi:default_logger()], logi:which_loggers()),
-               ?assertEqual({ok, Logger},            logi:load(logi:default_logger()))
+               ?assertEqual({ok, Logger},            logi:load(logi:default_logger())),
+               ?assertEqual({ok, Logger},            logi:load_default())
        end},
       {"Saves another saved logger by a different name",
        fun () ->
@@ -134,6 +135,15 @@ process_dictionary_test_() ->
                ?assertEqual(error, logi:load(unsaved)),
                ?assertEqual(logi:to_map(logi:new([{channel, unsaved}])), logi:to_map(unsaved)),
                ?assertEqual([hoge], logi:which_loggers())
+       end},
+      {"logi:ensure_to_be_instance/1",
+       fun () ->
+               ?assertEqual(logi:new([{channel, unsaved}]), logi:ensure_to_be_instance(unsaved)),
+
+               logi:save(saved, logi:new([{channel, hoge}])),
+               ?assertEqual(logi:new([{channel, hoge}]), logi:ensure_to_be_instance(saved)),
+
+               ?assertEqual(logi:new([{channel, fuga}]), logi:ensure_to_be_instance(logi:new([{channel, fuga}])))
        end}
      ]}.
 
@@ -204,7 +214,13 @@ headers_test_() ->
 
               Logger1 = logi:delete_headers(["x"], [{logger, Logger0}]),
               ?assertEqual(#{a => b}, maps:get(headers, logi:to_map(Logger1))),
-              ?assertEqual(#{1 => 2}, maps:get(headers, logi:to_map(maps:get(next, logi:to_map(Logger1)))))
+              ?assertEqual(#{1 => 2}, maps:get(headers, logi:to_map(maps:get(next, logi:to_map(Logger1))))),
+
+              %% saved
+              logi:save_as_default(Logger0),
+              logi:delete_headers(["x"]),
+              ?assertEqual(#{a => b}, maps:get(headers, logi:to_map(logi:default_logger()))),
+              ?assertEqual(#{1 => 2}, maps:get(headers, logi:to_map(maps:get(next, logi:to_map(logi:default_logger())))))
       end}
     ].
 
@@ -275,7 +291,13 @@ metadata_test_() ->
 
               Logger1 = logi:delete_metadata(["x"], [{logger, Logger0}]),
               ?assertEqual(#{a => b}, maps:get(metadata, logi:to_map(Logger1))),
-              ?assertEqual(#{1 => 2}, maps:get(metadata, logi:to_map(maps:get(next, logi:to_map(Logger1)))))
+              ?assertEqual(#{1 => 2}, maps:get(metadata, logi:to_map(maps:get(next, logi:to_map(Logger1))))),
+
+              %% saved
+              logi:save_as_default(Logger0),
+              logi:delete_metadata(["x"]),
+              ?assertEqual(#{a => b}, maps:get(metadata, logi:to_map(logi:default_logger()))),
+              ?assertEqual(#{1 => 2}, maps:get(metadata, logi:to_map(maps:get(next, logi:to_map(logi:default_logger())))))
       end}
     ].
 
@@ -457,5 +479,29 @@ log_test_() ->
                logi:info("hello world"),
                ?assertLog("hello world", [], fun (C) -> ?assertEqual(#{id => a}, logi_context:get_headers(C)) end),
                ?assertLog("hello world", [], fun (C) -> ?assertEqual(#{id => b}, logi_context:get_headers(C)) end)
+       end},
+      {"[ERROR] An empty list is passed to 'logi:fromt_list/1'",
+       fun () ->
+               ?assertError(badarg, logi:from_list([]))
+       end},
+      {"logi:to_list/1",
+       fun () ->
+               Logger0 = logi:new([{headers, #{id => a}}]),
+               Logger1 = logi:new([{headers, #{id => b}}]),
+               Logger2 = logi:from_list([Logger0 ,Logger1]),
+               ?assertEqual([Logger0, Logger1], logi:to_list(Logger2))
+       end},
+      {"Applies nested logi:from_list/2",
+       fun () ->
+               Logger0 = logi:new([{headers, #{id => a}}]),
+               Logger1 = logi:new([{headers, #{id => b}}]),
+               Logger2 = logi:new([{headers, #{id => c}}]),
+               Logger3 = logi:new([{headers, #{id => d}}]),
+               Logger4 = logi:from_list(
+                           [
+                            logi:from_list([Logger0, Logger1]),
+                            logi:from_list([Logger2, Logger3])
+                           ]),
+               ?assertEqual([Logger0, Logger1, Logger2, Logger3], logi:to_list(Logger4))
        end}
      ]}.

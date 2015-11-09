@@ -6,10 +6,12 @@
 %% A logger has own headers, metadata, filter and can issue log messages to a destination channel.
 %%
 %% == EXAMPLE ==
+%% Basic Usage:
 %% <pre lang="erlang">
-%% > logi_builtin_sink_io_device:install(info). % Installs a sink to the default channel
-%% > logi:log(info, "hello world", [], []). % The log message is (logically) sent to the channel and consumed by the sink
-%% 2015-10-22 13:16:37.003 [info] nonode@nohost &lt;0.91.0&gt; erl_eval:do_apply:673 [] hello world
+%% > error_logger:tty(false). % Suppresses annoying warnings for the sake of brevity
+%% > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_io_device:new()). % Installs a sink to the default channel
+%% > logi:info("hello world").
+%% 2015-11-09 08:18:34.954 [info] nonode@nohost &lt;0.91.0&gt; erl_eval:do_apply:673 [] hello world
 %% </pre>
 -module(logi).
 
@@ -77,6 +79,8 @@
 %%----------------------------------------------------------------------------------------------------------------------
 -type severity()  :: debug | info | notice | warning | error | critical | alert | emergency.
 %% Severity of a log message
+%%
+%% It follwed the severities which are described in [RFC 5424](https://tools.ietf.org/html/rfc5424#section-6.2.1).
 
 -type logger() :: logger_id() | logger_instance().
 %% A logger
@@ -366,27 +370,61 @@ load(LoggerId) ->
     end.
 
 %% @doc Returns the logger instance associated to `Logger'
+%%
+%% <pre lang="erlang">
+%% > logi:ensure_to_be_instance(unsaved).
+%% {logi_logger,unsaved,#{},#{},undefined,undefined}
+%%
+%% > logi:save(saved, logi:new([{channel, hoge}])).
+%% > logi:ensure_to_be_instance(hoge).
+%% {logi_logger,hoge,#{},#{},undefined,undefined}
+%%
+%% > logi:ensure_to_be_instance(logi:new([{channel, instance}])).
+%% {logi_logger,instance,#{},#{},undefined,undefined}
+%% </pre>
 -spec ensure_to_be_instance(logger()) -> logger_instance().
 ensure_to_be_instance(Logger) when is_atom(Logger) -> load_or_new(Logger);
 ensure_to_be_instance(Logger)                      -> Logger.
 
 %% @doc Returns the saved loggers and deletes them from the process dictionary.
+%%
+%% <pre lang="erlang">
+%% > logi:save(hoge, logi:new()).
+%% > logi:erase().
+%% [{hoge,{logi_logger,logi_default_log,#{},#{},undefined,undefined}}]
+%%
+%% > logi:erase().
+%% []
+%% </pre>
 -spec erase() -> [{logger_id(), logger_instance()}].
-erase() ->
-    [{Id, logi:erase(Id)} || Id <- which_loggers()].
+erase() -> [{Id, logi:erase(Id)} || Id <- which_loggers()].
 
 %% @doc Returns the logger associated with `LoggerId' and deletes it from the process dictionary.
 %%
 %% Returns `undefined' if no logger is associated with `LoggerId'.
+%%
+%% <pre lang="erlang">
+%% > logi:save(hoge, logi:new()).
+%% > logi:erase(hoge).
+%% {logi_logger,logi_default_log,#{},#{},undefined,undefined}
+%%
+%% > logi:erase(hoge).
+%% undefined
+%% </pre>
 -spec erase(logger_id()) -> logger_instance() | undefined.
 erase(LoggerId) ->
     _ = is_atom(LoggerId) orelse erlang:error(badarg, [LoggerId]),
     erlang:erase(?PD_LOGGER_KEY(LoggerId)).
 
 %% @doc Returns the ID list of the saved loggers
+%%
+%% <pre lang="erlang">
+%% > logi:save(hoge, logi:new()).
+%% > logi:which_loggers().
+%% [hoge]
+%% </pre>
 -spec which_loggers() -> [logger_id()].
-which_loggers() ->
-    [LoggerId || {?PD_LOGGER_KEY(LoggerId), _} <- get()].
+which_loggers() -> [LoggerId || {?PD_LOGGER_KEY(LoggerId), _} <- get()].
 
 %% @equiv set_headers(Headers, [])
 -spec set_headers(headers()) -> logger_instance().
@@ -482,6 +520,12 @@ delete_headers(Keys) -> delete_headers(Keys, []).
 %% [logger]
 %% - The logger to which the operation applies.
 %% - Default: `logi:default_logger()'.
+%%
+%% <pre lang="erlang">
+%% > Logger = logi:new([{headers, #{a => 1, b => 2}}]).
+%% > logi:to_map(logi:delete_headers([a], [{logger, Logger}])).
+%% #{channel => logi_default_log,headers => #{b => 2},metadata => #{}}
+%% </pre>
 -spec delete_headers([term()], Options) -> logger_instance() when
       Options :: [Option],
       Option  :: {logger, logger()}.
@@ -503,6 +547,12 @@ delete_metadata(Keys) -> delete_metadata(Keys, []).
 %% [logger]
 %% - The logger to which the operation applies.
 %% - Default: `logi:default_logger()'.
+%%
+%% <pre lang="erlang">
+%% > Logger = logi:new([{metadata, #{a => 1, b => 2}}]).
+%% > logi:to_map(logi:delete_metadata([a], [{logger, Logger}])).
+%% #{channel => logi_default_log,headers => #{},metadata => #{b => 2}}
+%% </pre>
 -spec delete_metadata([term()], Options) -> logger_instance() when
       Options :: [Option],
       Option  :: {logger, logger()}.
@@ -524,7 +574,7 @@ delete_metadata(Keys, Options) ->
 %% But the sinks which does not satisfy specified condition (i.e. `logi_sink:condition/0') are ignored.
 %%
 %% <pre lang="erlang">
-%% > logi_builtin_sink_io_device:install(info). % Installs to the default channel
+%% > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_io_device:new()). % Installs a sink to the default channel
 %% > logi:log(debug, "hello world", [], []). % There are no applicable sinks (the severity is too low)
 %% > logi:log(info, "hello world", [], []). % The log message is consumed by the above sink
 %% 2015-10-22 13:16:37.003 [info] nonode@nohost &lt;0.91.0&gt; erl_eval:do_apply:673 [] hello world
@@ -533,7 +583,7 @@ delete_metadata(Keys, Options) ->
 %% If the logger has nested loggers, the function is applied to them recursively.
 %%
 %% <pre lang="erlang">
-%% > logi_builtin_sink_io_device:install(info). % Installs to the default channel
+%% > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_io_device:new()). % Installs a sink to the default channel
 %% > Logger = logi:from_list([logi:new([{headers, #{id => hoge}}]), logi:new([{headers, #{id => fuga}}])]).
 %% > logi:log(info, "hello world", [], [{logger, Logger}]).
 %% 2015-10-22 13:28:10.332 [info] nonode@nohost &lt;0.91.0&gt; erl_eval:do_apply:673 [id=hoge] hello world
