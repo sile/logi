@@ -4,32 +4,42 @@
 %%
 %% A sink will consume the log messages sent to the channel which the sink have been installed.
 %%
+%% The main purpose of sinks is to write messages to some output devices (e.g. tty, file, socket).
+%%
 %% == EXAMPLE ==
 %% <pre lang="erlang">
-%% > ok = logi_channel:create(sample_log).
-%% > WriteFun = fun (_, Format, Data) -> io:format("[my_sink] " ++ Format ++ "\n", Data) end.
-%% > Sink = logi_sink:new(my_sink, logi_builtin_sink_fun, info, WriteFun).
-%% > {ok, _} = logi_channel:install_sink(sample_log, Sink).
-%% > logi:info("Hello World", [], [{logger, sample_log}]).
-%% [my_sink] Hello World  % 'logi_builtin_sink_fun:write/4' was invoked
-%% </pre>
+%% > error_logger:tty(false). % Suppresses annoying warning outputs for brevity
 %%
-%% Conventionally, sink implementation modules provide `install' function to install the sink.
-%% <pre lang="erlang">
 %% > ok = logi_channel:create(sample_log).
 %% > WriteFun = fun (_, _, Format, Data) -> io:format("[my_sink] " ++ Format ++ "\n", Data) end.
-%% > {ok, _} = logi_builtin_sink_fun:install(info, WriteFun, [{channel, sample_log}]).
+%% > Sink = logi_builtin_sink_fun:new(WriteFun).
+%% > {ok, _} = logi_channel:install_sink(info, Sink, [{id, my_sink}, {channel, sample_log}]).
 %% > logi:info("Hello World", [], [{logger, sample_log}]).
 %% [my_sink] Hello World  % 'logi_builtin_sink_fun:write/4' was invoked
 %% </pre>
 %%
-%% A channel can have multiple sinks.
+%% Sinks have an associated layout:
+%% <pre lang="erlang">
+%% > WriteFun = fun (Context, Layout, Format, Data) -> io:format(logi_layout:format(Context, Format, Data, Layout)) end.
+%% > Sink = logi_builtin_sink_fun:new(WriteFun).
+%% > Layout = logi_builtin_layout_fun:new(fun (_, Format, Data) -> io_lib:format("[EXAMPLE] " ++ Format ++"\n", Data) end).
+%% > {ok, _} = logi_channel:install_sink(info, Sink, [{layout, Layout}]). % Installs `Sink' to the default channel
+%% > logi:info("hello world").
+%% [EXAMPLE]hello world
+%%
+%% %% If 'layout' option is not specified, the result of `logi_sink:default_layout(Sink)' will be used instead.
+%% > {ok, _} = logi_channel:install_sink(info, Sink, [{if_exists, supersede}]).
+%% > logi:info("hello world").
+%% 2015-11-09 22:18:33.934 [info] nonode@nohost &lt;0.91.0&gt; erl_eval:do_apply:673 [] hello world
+%% </pre>
+%%
+%% A channel can have multiple sinks:
 %% <pre lang="erlang">
 %% > ok = logi_channel:create(sample_log).
 %% > WriteFun_0 = fun (_, _, Format, Data) -> io:format("[sink_0] " ++ Format ++ "\n", Data) end.
 %% > WriteFun_1 = fun (_, _, Format, Data) -> io:format("[sink_1] " ++ Format ++ "\n", Data) end.
-%% > {ok, _} = logi_builtin_sink_fun:install(info, WriteFun_0, [{id, sink_0}, {channel, sample_log}]).
-%% > {ok, _} = logi_builtin_sink_fun:install(info, WriteFun_1, [{id, sink_1}, {channel, sample_log}]).
+%% > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_fun:new(WriteFun_0), [{id, sink_0}, {channel, sample_log}]).
+%% > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_fun:new(WriteFun_1), [{id, sink_1}, {channel, sample_log}]).
 %% > logi:info("Hello World", [], [{logger, sample_log}]).
 %% [sink_0] Hello World
 %% [sink_1] Hello World
@@ -65,7 +75,7 @@
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
 -opaque sink() :: {callback_module(), extra_data()}.
-%% A sink.
+%% A sink instance.
 
 -type id() :: atom().
 %% The identifier of a sink.
@@ -98,9 +108,9 @@
 %%
 %% === EXAMPLE ===
 %% <pre lang="erlang">
-%% > logi_sink:new(Id, Module, info).          % level
-%% > logi_sink:new(Id, Module, {info, alert}). % range
-%% > logi_sink:new(Id, Module, [info, alert]). % list
+%% > [emergency,alert]     = logi_sink:normalized_condition(alert).               % level
+%% > [warning,notice,info] = logi_sink:normalize_condition({info, warning}).      % range
+%% > [alert,debug,info]    = logi_sink:normalize_condition([debug, info, alert]). % list
 %% </pre>
 
 -type location_condition() ::
@@ -117,12 +127,12 @@
 %%
 %% === EXAMPLE ===
 %% <pre lang="erlang">
-%% > logi_sink:new(Id, Module, #{application => stdlib}).                          % application
-%% > logi_sink:new(Id, Module, #{application => [stdlib, kernel]}).                % applications
-%% > logi_sink:new(Id, Module, #{module => lists}).                                % module
-%% > logi_sink:new(Id, Module, #{module => [lists, dict]}).                        % modules
-%% > logi_sink:new(Id, Module, #{application => kernel, module => [lists, dict]}). % application and modules
-%% > logi_sink:new(Id, Module, #{severity => [info, alert], module => lists}).     % severity and module
+%% > logi_sink:is_condition(#{application => stdlib}).                          % application
+%% > logi_sink:is_condition(#{application => [stdlib, kernel]}).                % applications
+%% > logi_sink:is_condition(#{module => lists}).                                % module
+%% > logi_sink:is_condition(#{module => [lists, dict]}).                        % modules
+%% > logi_sink:is_condition(#{application => kernel, module => [lists, dict]}). % application and modules
+%% > logi_sink:is_condition(#{severity => [info, alert], module => lists}).     % severity and module
 %% </pre>
 
 -type normalized_condition() :: [logi:severity() |
@@ -131,7 +141,7 @@
 %% The normalized form of a `condition/0'.
 %%
 %% <pre lang="erlang">
-%% > Normalize = fun (C) -> lists:sort(logi_sink:get_normalized_condition(logi_sink:new(null, logi_builtin_sink_null, C))) end.
+%% > Normalize = fun (C) -> lists:sort(logi_sink:normalize_condition(C)) end.
 %%
 %% > Normalize(info).
 %% [alert,critical,emergency,error,info,notice,warning]
