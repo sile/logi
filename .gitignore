@@ -3,6 +3,7 @@
 /.*/
 /doc/*
 !/doc/*.md
+!/doc/overview.edoc
 /ebin/
 .dialyzer.plt
 deps/
