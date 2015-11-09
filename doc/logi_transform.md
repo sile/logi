@@ -10,21 +10,24 @@ A parse_transform module for logi.
 
 Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
+__See also:__ [logi:log/4](logi.md#log-4), [logi_location:guess_location/0](logi_location.md#guess_location-0).
+
 <a name="description"></a>
 
 ## Description ##
 
-This module is used to provide following information automatically to log messages (e.g. the messages produced by [`logi:info/2`](logi.md#info-2)): <br />
+This module is used to provide following information automatically to log messages (e.g. the messages produced by [`logi:info/2`](logi.md#info-2)):
 - Application Name
 - Module Name
 - Function Name
 - Line Number
 
-The above functionality will be enabled, if the option `{parse_transform, logi_transform}` is passed to the compiler.
+The above functionality will be enabled if the option `{parse_transform, logi_transform}` is passed to the compiler.
 
-Reference documentations for parse_transform: <br />
+Reference documentations for parse_transform:
 - http://www.erlang.org/doc/man/erl_id_trans.html
 - http://www.erlang.org/doc/apps/erts/absform.html
+
 <a name="types"></a>
 
 ## Data Types ##

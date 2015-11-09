@@ -2,17 +2,20 @@
 %%
 %% @doc A parse_transform module for logi
 %%
-%% This module is used to provide following information automatically to log messages (e.g. the messages produced by {@link logi:info/2}): <br />
+%% This module is used to provide following information automatically to log messages (e.g. the messages produced by {@link logi:info/2}):
 %% - Application Name
 %% - Module Name
 %% - Function Name
 %% - Line Number
 %%
-%% The above functionality will be enabled, if the option `{parse_transform, logi_transform}' is passed to the compiler.
+%% The above functionality will be enabled if the option `{parse_transform, logi_transform}' is passed to the compiler.
 %%
-%% Reference documentations for parse_transform: <br />
+%% Reference documentations for parse_transform:
 %% - http://www.erlang.org/doc/man/erl_id_trans.html
 %% - http://www.erlang.org/doc/apps/erts/absform.html
+%%
+%% @see logi:log/4
+%% @see logi_location:guess_location/0
 -module(logi_transform).
 
 %%----------------------------------------------------------------------------------------------------------------------
