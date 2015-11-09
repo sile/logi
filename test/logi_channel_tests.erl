@@ -80,6 +80,13 @@ sink_test_() ->
                  ?assertEqual({ok, {debug, logi_sink:default_layout(NullSink), NullSink}},
                               logi_channel:find_sink(SinkId, [{channel, Channel}]))
          end},
+        {"Finds a sink: Uses the default channel",
+         fun () ->
+                 ?assertEqual(error, logi_channel:find_sink(SinkId)),
+                 {ok, undefined} = logi_channel:install_sink(debug, NullSink),
+                 ?assertEqual({ok, {debug, logi_sink:default_layout(NullSink), NullSink}}, logi_channel:find_sink(SinkId)),
+                 {ok, _} = logi_channel:uninstall_sink(SinkId)
+         end},
         {"Uninstalls a sink",
          fun () ->
                  {ok, undefined} = logi_channel:install_sink(debug, NullSink, [{channel, Channel}]),
@@ -88,6 +95,14 @@ sink_test_() ->
                  ?assertEqual(error, logi_channel:uninstall_sink(SinkId, [{channel, Channel}])),
                  ?assertEqual(error, logi_channel:find_sink(SinkId, [{channel, Channel}])),
                  ?assertEqual([], logi_channel:select_sink(Channel, info, hoge, fuga))
+         end},
+        {"Uninstalls a sink: Uses the default channel",
+         fun () ->
+                 {ok, undefined} = logi_channel:install_sink(debug, NullSink),
+                 ?assertEqual({ok, {debug, logi_sink:default_layout(NullSink), NullSink}}, logi_channel:uninstall_sink(SinkId)),
+                 ?assertEqual(error, logi_channel:uninstall_sink(SinkId)),
+                 ?assertEqual(error, logi_channel:find_sink(SinkId)),
+                 ?assertEqual([], logi_channel:select_sink(logi_channel:default_channel(), info, hoge, fuga))
          end},
         {"INSTALL: `if_exists` option",
          fun () ->

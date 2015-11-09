@@ -21,7 +21,9 @@
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
 -type table() :: ets:tab().
+
 -type select_result() :: [{logi_sink:callback_module(), logi_sink:extra_data(), logi_layout:layout()}].
+%% A result of {@link select/4} function
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions

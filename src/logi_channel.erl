@@ -2,11 +2,13 @@
 %%
 %% @doc Log Message Channels
 %%
-%% A channel manages conditional sinks.
+%% A channel (logically) receives log messages from loggers
+%% and delivers the messages to installed sinks.
 %%
 %% == EXAMPLE ==
+%% Basic usage:
 %% <pre lang="erlang">
-%% > application:set_env(logi, warn_no_parse_transform, false). % Suppresses noisy warnings
+%% > error_logger:tty(false). % Suppresses annoying warning outputs for brevity
 %%
 %% %%
 %% %% CREATE CHANNEL
@@ -18,11 +20,11 @@
 %% %%
 %% %% INSTALL SINK
 %% %%
-%% > WriteFun = fun (_, Format, Data) -> io:format("[my_sink] " ++ Format ++ "\n", Data) end.
-%% > Sink = logi_sink:new(my_sink, logi_builtin_sink_fun, info, WriteFun). % Installs the sink with `info' level
-%% > {ok, _} = logi_channel:install_sink(sample_log, Sink).
-%% > logi_channel:which_sinks(sample_log).
-%% [my_sink]
+%% > WriteFun = fun (_, _, Format, Data) -> io:format("[my_sink] " ++ Format ++ "\n", Data) end.
+%% > Sink = logi_builtin_sink_fun:new(WriteFun).
+%% > {ok, _} = logi_channel:install_sink(info, Sink, [{channel, sample_log}]). % Installs `Sink' with `info' level
+%% > logi_channel:which_sinks([{channel, sample_log}]).
+%% [logi_builtin_sink_fun]
 %%
 %% %%
 %% %% OUTPUT LOG MESSAGE
