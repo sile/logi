@@ -5,13 +5,28 @@
 %% This module defines the standard interface to format log messages issued by `logi' functions
 %% (e.g. {@link logi:info/3}, {@link logi:warning/3}, etc).
 %%
+%% A layout instance will be installed into a channel along with an associated sink.
+%% (See the description of the `layout' option of {@link logi_channel:install_sink/2})
+%%
 %% == EXAMPLE ==
+%% Usage example of a layout instance:
 %% <pre lang="erlang">
+%% > error_logger:tty(false). % Suppresses annoying warning outputs for brevity
+%%
 %% > Context = logi_context:new(sample_log, info).
 %% > FormatFun = fun (_, Format, Data) -> lists:flatten(io_lib:format("EXAMPLE: " ++ Format, Data)) end.
 %% > Layout = logi_builtin_layout_fun:new(FormatFun).
 %% > logi_layout:format(Context, "Hello ~s", ["World"], Layout).
 %% "EXAMPLE: Hello World"
+%% </pre>
+%%
+%% A more realistic example:
+%% <pre lang="erlang">
+%% > FormatFun = fun (_, Format, Data) -> lists:flatten(io_lib:format("EXAMPLE: " ++ Format ++ "\n", Data)) end.
+%% > Layout = logi_builtin_layout_fun:new(FormatFun).
+%% > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_io_device:new(), [{layout, Layout}]).
+%% > logi:info("hello world").
+%% EXAMPLE: hello world
 %% </pre>
 -module(logi_layout).
 
