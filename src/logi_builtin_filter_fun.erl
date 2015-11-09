@@ -10,15 +10,16 @@
 %%
 %% == EXAMPLE ==
 %% <pre lang="erlang">
-%% > application:set_env(logi, warn_no_parse_transform, false). % Suppresses noisy warnings
+%% > error_logger:tty(false). % Suppresses annoying warning outputs for brevity
 %%
-%% > {ok, _} = logi_builtin_sink_fun:install(info, fun (_, Format, Data) -> io:format(Format ++ "\n", Data) end).
+%% > Sink = logi_builtin_sink_fun:new(fun (_, _, Format, Data) -> io:format(Format ++ "\n", Data) end).
+%% > {ok, _} = logi_channel:install_sink(info, Sink).
 %%
 %% > FilterFun = fun (C) -> not maps:get(discard, logi_context:get_metadata(C), false) end.
 %% > Logger = logi:new([{filter, logi_builtin_filter_fun:new(FilterFun)}]).
 %% > logi:save_as_default(Logger).
 %%
-%% > logi:info("hello world", [], [{messages, #{discard => false}}). % passed
+%% > logi:info("hello world", [], [{messages, #{discard => false}}]). % passed
 %% hello world
 %%
 %% > logi:info("hello world", [], [{metadata, #{discard => true}}]). % discarded

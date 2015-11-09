@@ -14,3 +14,21 @@ new_test_() ->
               ?assert(logi_sink:is_sink(Sink))
       end}
     ].
+
+write_test_() ->
+    {foreach,
+     fun () -> {ok, Apps} = application:ensure_all_started(logi), Apps end,
+     fun (Apps) -> lists:foreach(fun application:stop/1, Apps) end,
+     [
+      {"Writes a log message",
+       fun () ->
+               {ok, Fd} = file:open("test.log", [write]),
+               Sink = logi_builtin_sink_io_device:new(Fd),
+               Layout = logi_builtin_layout_fun:new(fun (_, Format, Data) -> io_lib:format(Format, Data) end),
+               {ok, _} = logi_channel:install_sink(info, Sink, [{layout, Layout}]),
+               logi:info("hello world"),
+               ok = file:close(Fd),
+               ?assertEqual({ok, <<"hello world">>}, file:read_file("test.log")),
+               ok = file:delete("test.log")
+       end}
+     ]}.

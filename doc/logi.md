@@ -456,9 +456,9 @@ Returns the logger instance associated to `Logger`
 
   > logi:ensure_to_be_instance(unsaved).
   {logi_logger,unsaved,#{},#{},undefined,undefined}
-  > logi:save(saved, logi:new([{channel, saved}])).
-  > logi:ensure_to_be_instance(saved).
-  {logi_logger,saved,#{},#{},undefined,undefined}
+  > logi:save(saved, logi:new([{channel, hoge}])).
+  > logi:ensure_to_be_instance(hoge).
+  {logi_logger,hoge,#{},#{},undefined,undefined}
   > logi:ensure_to_be_instance(logi:new([{channel, instance}])).
   {logi_logger,instance,#{},#{},undefined,undefined}
 ```

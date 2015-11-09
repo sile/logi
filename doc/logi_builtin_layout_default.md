@@ -1,11 +1,11 @@
 
 
-# Module logi_builtin_layout_simple #
+# Module logi_builtin_layout_default #
 * [Description](#description)
 * [Function Index](#index)
 * [Function Details](#functions)
 
-A simple built-in layout.
+A default layout for built-in sinks.
 
 Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
@@ -17,7 +17,7 @@ __Behaviours:__ [`logi_layout`](logi_layout.md).
 This module layouts a log message by the following format:
 
 ```
-  {yyyy}-{MM}-{dd} {HH}:{mm}:{ss}.{SSS} [{SEVERITY}] {NODE} {PID} {MODULE}:{FUNCTION}:{LINE} [{HEADER(KEY=VALUE)}*] {MESSAGE}
+  {yyyy}-{MM}-{dd} {HH}:{mm}:{ss}.{SSS} [{SEVERITY}] {NODE} {PID} {MODULE}:{FUNCTION}:{LINE} [{HEADER(KEY=VALUE)}*] {MESSAGE}\n
 ```
 
 
@@ -33,8 +33,9 @@ And no overload protection exists (e.g. if log message is too large, the caller 
 
 ```erlang
 
-  > Layout = logi_builtin_layout_simple:new().
-  > logi_builtin_sink_io_device:install(info, [{layout, Layout}]).
+  > error_logger:tty(false). % Suppresses annoying warning outputs for brevity
+  > Layout = logi_builtin_layout_default:new().
+  > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_io_device:new(), [{layout, Layout}]).
   > logi:info("hello world").
   2015-10-21 15:06:42.842 [info] nonode@nohost <0.91.0> erl_eval:do_apply:673 [] hello world
 ```

@@ -34,6 +34,7 @@ all log issuers which use the channel will have to pay a non negligible cost to 
 
 ```erlang
 
+  > error_logger:tty(false). % Suppresses annoying warning outputs for brevity
   > Context = logi_context:new(sample_log, info).
   > FormatFun = fun (_, Format, Data) -> io_lib:format("EXAMPLE: " ++ Format, Data) end.
   > Layout = logi_builtin_layout_fun:new(FormatFun).
@@ -41,16 +42,16 @@ all log issuers which use the channel will have to pay a non negligible cost to 
   "EXAMPLE: Hello World"
 ```
 
-A layout can be passed to the sink `logi_builtin_sink_io_device` (for example):
+A layout used by a sink can be specified at the time of installing the sink:
 
 ```erlang
 
   > Layout0 = logi_builtin_layout_fun:new(fun (_, Format, Data) -> io_lib:format("[LAYOUT_0] " ++ Format ++ "\n", Data) end).
-  > logi_builtin_sink_io_device:install(info, [{id, sink_0}, {layout, Layout0}]).
+  > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_io_device:new(), [{id, sink_0}, {layout, Layout0}]).
   > logi:info("hello world").
   [LAYOUT_0] hello world
   > Layout1 = logi_builtin_layout_fun:new(fun (_, Format, Data) -> io_lib:format("[LAYOUT_1] " ++ Format ++ "\n", Data) end).
-  > logi_builtin_sink_io_device:install(info, [{id, sink_1}, {layout, Layout1}]).
+  > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_io_device:new(), [{id, sink_1}, {layout, Layout1}]).
   > logi:info("hello world").
   [LAYOUT_0] hello world
   [LAYOUT_1] hello world

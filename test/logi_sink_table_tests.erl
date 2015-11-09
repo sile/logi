@@ -29,7 +29,7 @@ new_test_() ->
     ].
 
 register_test_() ->
-    Layout = logi_builtin_layout_simple:new(),
+    Layout = logi_builtin_layout_default:new(),
     {foreach, local,
      fun ()  -> logi_sink_table:new(?CHANNEL) end,
      fun (T) -> ok = logi_sink_table:delete(T) end,
@@ -54,7 +54,7 @@ register_test_() ->
      ]}.
 
 select_test_() ->
-    Layout = logi_builtin_layout_simple:new(),
+    Layout = logi_builtin_layout_default:new(),
     {foreach, local,
      fun ()  -> logi_sink_table:new(?CHANNEL) end,
      fun (T) -> ok = logi_sink_table:delete(T) end,

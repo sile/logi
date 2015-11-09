@@ -2,7 +2,7 @@
 %%
 %% @doc A built-in sink which consumes log messages by an arbitrary user defined function
 %%
-%% The default layout is `logi_builtin_layout_simple:new()'.
+%% The default layout is `logi_builtin_layout_default:new()'.
 %%
 %% == NOTE ==
 %% This module is provided for debuging/testing purposes only.
@@ -16,8 +16,10 @@
 %%
 %% == EXAMPLE ==
 %% <pre lang="erlang">
+%% > error_logger:tty(false). % Suppresses annoying warning outputs for brevity
+%%
 %% > WriteFun = fun (_, _, Format, Data) -> io:format("[CONSUMED] " ++ Format ++ "\n", Data) end.
-%% > {ok, _} = logi_builtin_sink_fun:install(info, WriteFun).
+%% > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_fun:new(WriteFun)).
 %% > logi:info("hello world").
 %% [CONSUMED] hello world
 %% </pre>
@@ -47,6 +49,8 @@
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @doc Creats a new sink instance
+%%
+%% The default layout is `logi_builtin_layout_default:new()'.
 -spec new(write_fun()) -> logi_sink:sink().
 new(Fun) ->
     _ = erlang:is_function(Fun, 4) orelse error(badarg, [Fun]),
@@ -61,4 +65,4 @@ write(Context, Layout, Format, Data, Fun) ->
 
 %% @private
 default_layout(_Extra) ->
-    logi_builtin_layout_simple:new().
+    logi_builtin_layout_default:new().
