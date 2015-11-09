@@ -2,7 +2,7 @@
 %%
 %% @doc Log Message Filter Behaviour
 %%
-%% A filter decides whether to allow or deny a message which send to the target channel.
+%% A filter decides whether to allow a message be sent to the target channel.
 %%
 %% == NOTE ==
 %% A filter should not raise exceptions when it's `filter/2' is called.
@@ -12,6 +12,8 @@
 %%
 %% == EXAMPLE ==
 %% <pre lang="erlang">
+%% > error_logger:tty(false). % Suppresses annoying warning outputs for brevity
+%%
 %% > Context0 = logi_context:new(sample_log, info).
 %% > FilterFun = fun (C) -> not maps:get(discard, logi_context:get_metadata(C), false) end.
 %% > Filter = logi_builtin_filter_fun:new(FilterFun).
@@ -24,8 +26,8 @@
 %%
 %% A more realistic example:
 %% <pre lang="erlang">
-%% > application:set_env(logi, warn_no_parse_transform, false).
-%% > {ok, _} = logi_builtin_sink_fun:install(info, fun (_, Format, Data) -> io:format(Format ++ "\n", Data) end).
+%% > WriteFun = fun (_, _, Format, Data) -> io:format(Format ++ "\n", Data) end.
+%% > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_fun:new(WriteFun)).
 %%
 %% > FilterFun = fun (C) -> not maps:get(discard, logi_context:get_metadata(C), false) end.
 %% > Logger = logi:new([{filter, logi_builtin_filter_fun:new(FilterFun)}]).
