@@ -16,12 +16,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
 start(_StartType, _StartArgs) ->
-    Result = logi_sup:start_link(),
-    ok = case Result of
-             {ok, _} -> logi_channel:create(logi_channel:default_channel());
-             _       -> ok
-         end,
-    Result.
+    logi_sup:start_link().
 
 %% @private
 stop(_State) ->

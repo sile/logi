@@ -49,4 +49,6 @@ which_children() ->
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
 init([]) ->
-    {ok, {#{}, []}}.
+    Default = logi_channel:default_channel(),
+    Child = #{id => Default, start => {logi_channel, start_link, [Default]}},
+    {ok, {#{}, [Child]}}.
