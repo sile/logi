@@ -108,7 +108,7 @@
 %%
 %% === EXAMPLE ===
 %% <pre lang="erlang">
-%% > [emergency,alert]     = logi_sink:normalized_condition(alert).               % level
+%% > [emergency,alert]     = logi_sink:normalize_condition(alert).               % level
 %% > [warning,notice,info] = logi_sink:normalize_condition({info, warning}).      % range
 %% > [alert,debug,info]    = logi_sink:normalize_condition([debug, info, alert]). % list
 %% </pre>
