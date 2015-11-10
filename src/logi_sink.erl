@@ -209,6 +209,8 @@ is_callback_module(X) ->
 default_layout({Module, ExtraData}) -> Module:default_layout(ExtraData).
 
 %% @doc Writes a log message
+%%
+%% If it fails to write, an exception will be raised.
 -spec write(logi_context:context(), logi_layout:layout(), io:format(), logi_layout:data(), sink()) -> any().
 write(Context, Layout, Format, Data, {Module, ExtraData}) ->
     Module:write(Context, Layout, Format, Data, ExtraData).

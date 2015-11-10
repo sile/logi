@@ -345,3 +345,5 @@ write(Context::<a href="logi_context.md#type-context">logi_context:context()</a>
 
 Writes a log message
 
+If it fails to write, an exception will be raised.
+
