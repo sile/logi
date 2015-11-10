@@ -10,7 +10,7 @@ Sinks.
 
 Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
-__This module defines the `logi_sink` behaviour.__<br /> Required callback functions: `write/5`, `default_layout/1`.
+__This module defines the `logi_sink` behaviour.__<br /> Required callback functions: `write/3`.
 
 <a name="description"></a>
 
@@ -217,23 +217,12 @@ __abstract datatype__: `sink()`
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#default_layout-1">default_layout/1</a></td><td>Returns the default layout of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_extra_data-1">get_extra_data/1</a></td><td>Gets the extra data of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Sink</code></td></tr><tr><td valign="top"><a href="#is_callback_module-1">is_callback_module/1</a></td><td>Returns <code>true</code> if <code>X</code> is a module which implements the <code>sink</code> behaviour, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_condition-1">is_condition/1</a></td><td>Returns <code>true</code> if <code>X</code> is a valid <code>condition()</code> value, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_sink-1">is_sink/1</a></td><td>Returns <code>true</code> if <code>X</code> is a sink, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Equivalent to <a href="#new-2"><tt>new(Module, undefined)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new sink instance.</td></tr><tr><td valign="top"><a href="#normalize_condition-1">normalize_condition/1</a></td><td>Returns a normalized form of <code>Condition</code></td></tr><tr><td valign="top"><a href="#unsafe_new-2">unsafe_new/2</a></td><td>Creates a new sink instance without validating the arguments.</td></tr><tr><td valign="top"><a href="#write-5">write/5</a></td><td>Writes a log message.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_extra_data-1">get_extra_data/1</a></td><td>Gets the extra data of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_layout-1">get_layout/1</a></td><td>Gets the layout of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Sink</code></td></tr><tr><td valign="top"><a href="#is_callback_module-1">is_callback_module/1</a></td><td>Returns <code>true</code> if <code>X</code> is a module which implements the <code>sink</code> behaviour, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_condition-1">is_condition/1</a></td><td>Returns <code>true</code> if <code>X</code> is a valid <code>condition()</code> value, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_sink-1">is_sink/1</a></td><td>Returns <code>true</code> if <code>X</code> is a sink, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Equivalent to <a href="#new-3"><tt>new(Module, Layout, undefined)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td>Creates a new sink instance.</td></tr><tr><td valign="top"><a href="#normalize_condition-1">normalize_condition/1</a></td><td>Returns a normalized form of <code>Condition</code></td></tr><tr><td valign="top"><a href="#write-4">write/4</a></td><td>Writes a log message.</td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
-
-<a name="default_layout-1"></a>
-
-### default_layout/1 ###
-
-<pre><code>
-default_layout(Sink::<a href="#type-sink">sink()</a>) -&gt; <a href="logi_layout.md#type-layout">logi_layout:layout()</a>
-</code></pre>
-<br />
-
-Returns the default layout of `Sink`
 
 <a name="get_extra_data-1"></a>
 
@@ -245,6 +234,17 @@ get_extra_data(Sink::<a href="#type-sink">sink()</a>) -&gt; <a href="#type-extra
 <br />
 
 Gets the extra data of `Sink`
+
+<a name="get_layout-1"></a>
+
+### get_layout/1 ###
+
+<pre><code>
+get_layout(Sink::<a href="#type-sink">sink()</a>) -&gt; <a href="logi_layout.md#type-layout">logi_layout:layout()</a>
+</code></pre>
+<br />
+
+Gets the layout of `Sink`
 
 <a name="get_module-1"></a>
 
@@ -290,23 +290,23 @@ is_sink(X::<a href="#type-sink">sink()</a> | term()) -&gt; boolean()
 
 Returns `true` if `X` is a sink, otherwise `false`
 
-<a name="new-1"></a>
-
-### new/1 ###
-
-<pre><code>
-new(Module::<a href="#type-callback_module">callback_module()</a>) -&gt; <a href="#type-sink">sink()</a>
-</code></pre>
-<br />
-
-Equivalent to [`new(Module, undefined)`](#new-2).
-
 <a name="new-2"></a>
 
 ### new/2 ###
 
 <pre><code>
-new(Module::<a href="#type-callback_module">callback_module()</a>, ExtraData::<a href="#type-extra_data">extra_data()</a>) -&gt; <a href="#type-sink">sink()</a>
+new(Module::<a href="#type-callback_module">callback_module()</a>, Layout::<a href="logi_layout.md#type-layout">logi_layout:layout()</a>) -&gt; <a href="#type-sink">sink()</a>
+</code></pre>
+<br />
+
+Equivalent to [`new(Module, Layout, undefined)`](#new-3).
+
+<a name="new-3"></a>
+
+### new/3 ###
+
+<pre><code>
+new(Module::<a href="#type-callback_module">callback_module()</a>, Layout::<a href="logi_layout.md#type-layout">logi_layout:layout()</a>, ExtraData::<a href="#type-extra_data">extra_data()</a>) -&gt; <a href="#type-sink">sink()</a>
 </code></pre>
 <br />
 
@@ -323,23 +323,12 @@ normalize_condition(Condition::<a href="#type-condition">condition()</a>) -&gt; 
 
 Returns a normalized form of `Condition`
 
-<a name="unsafe_new-2"></a>
+<a name="write-4"></a>
 
-### unsafe_new/2 ###
-
-<pre><code>
-unsafe_new(Module::<a href="#type-callback_module">callback_module()</a>, ExtraData::<a href="#type-extra_data">extra_data()</a>) -&gt; <a href="#type-sink">sink()</a>
-</code></pre>
-<br />
-
-Creates a new sink instance without validating the arguments
-
-<a name="write-5"></a>
-
-### write/5 ###
+### write/4 ###
 
 <pre><code>
-write(Context::<a href="logi_context.md#type-context">logi_context:context()</a>, Layout::<a href="logi_layout.md#type-layout">logi_layout:layout()</a>, Format::<a href="io.md#type-format">io:format()</a>, Data::<a href="logi_layout.md#type-data">logi_layout:data()</a>, X5::<a href="#type-sink">sink()</a>) -&gt; any()
+write(Context::<a href="logi_context.md#type-context">logi_context:context()</a>, Format::<a href="io.md#type-format">io:format()</a>, Data::<a href="logi_layout.md#type-data">logi_layout:data()</a>, X4::<a href="#type-sink">sink()</a>) -&gt; any()
 </code></pre>
 <br />
 

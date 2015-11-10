@@ -79,19 +79,7 @@ callback_module() = module()
 ### <a name="type-filter">filter()</a> ###
 
 
-__abstract datatype__: `filter(State)`
-
- A specialized type of `filter/0`.
-This may be useful for modules which want to annotate their own `State` type.
-
-
-
-### <a name="type-filter">filter()</a> ###
-
-
-<pre><code>
-filter() = <a href="#type-filter">filter</a>(<a href="#type-state">state()</a>)
-</code></pre>
+__abstract datatype__: `filter()`
 
  An instance of `logi_filter` behaviour implementation module.
 
@@ -113,7 +101,7 @@ If the `filter()` does not have an explicit `state()`, `undefined` will be passe
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#apply-2">apply/2</a></td><td>Applies <code>Filter</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Filter</code></td></tr><tr><td valign="top"><a href="#get_state-1">get_state/1</a></td><td>Gets the state of <code>Filter</code></td></tr><tr><td valign="top"><a href="#is_filter-1">is_filter/1</a></td><td>Returns <code>true</code> if <code>X</code> is a filter, <code>false</code> otherwise.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Equivalent to <a href="#new-2"><tt>new(Module, undefined)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new filter instance.</td></tr><tr><td valign="top"><a href="#unsafe_new-2">unsafe_new/2</a></td><td>Creates a new filter instance without validating the arguments.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#apply-2">apply/2</a></td><td>Applies <code>Filter</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Filter</code></td></tr><tr><td valign="top"><a href="#get_state-1">get_state/1</a></td><td>Gets the state of <code>Filter</code></td></tr><tr><td valign="top"><a href="#is_filter-1">is_filter/1</a></td><td>Returns <code>true</code> if <code>X</code> is a filter, <code>false</code> otherwise.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Equivalent to <a href="#new-2"><tt>new(Module, undefined)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new filter instance.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -183,21 +171,9 @@ Equivalent to [`new(Module, undefined)`](#new-2).
 ### new/2 ###
 
 <pre><code>
-new(Module::<a href="#type-callback_module">callback_module()</a>, State) -&gt; <a href="#type-filter">filter</a>(State)
-</code></pre>
-
-<ul class="definitions"><li><code>State = <a href="#type-state">state()</a></code></li></ul>
-
-Creates a new filter instance
-
-<a name="unsafe_new-2"></a>
-
-### unsafe_new/2 ###
-
-<pre><code>
-unsafe_new(Module::<a href="#type-callback_module">callback_module()</a>, State::<a href="#type-state">state()</a>) -&gt; <a href="#type-filter">filter()</a>
+new(Module::<a href="#type-callback_module">callback_module()</a>, State::<a href="#type-state">state()</a>) -&gt; <a href="#type-filter">filter()</a>
 </code></pre>
 <br />
 
-Creates a new filter instance without validating the arguments
+Creates a new filter instance
 

@@ -8,6 +8,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 -define(CHANNEL, logi_test_log).
 -define(TEST_SINK, logi_builtin_sink_fun).
+-define(LAYOUT, logi_builtin_layout_pass_through:new()).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Unit Tests
@@ -29,20 +30,19 @@ new_test_() ->
     ].
 
 register_test_() ->
-    Layout = logi_builtin_layout_default:new(),
     {foreach, local,
      fun ()  -> logi_sink_table:new(?CHANNEL) end,
      fun (T) -> ok = logi_sink_table:delete(T) end,
      [
       {"Registers a sink",
        fun () ->
-               ?assertEqual(ok, logi_sink_table:register(?CHANNEL, ?TEST_SINK, logi_sink:new(?TEST_SINK), debug, [], Layout)),
+               ?assertEqual(ok, logi_sink_table:register(?CHANNEL, ?TEST_SINK, logi_sink:new(?TEST_SINK, ?LAYOUT), debug, [])),
                ?assertEqual([?TEST_SINK], logi_sink_table:which_sinks(?CHANNEL))
        end},
       {"Deregisters a sink",
        fun () ->
-               ok = logi_sink_table:register(?CHANNEL, hoge, logi_sink:new(?TEST_SINK), debug, [], Layout),
-               ok = logi_sink_table:register(?CHANNEL, fuga, logi_sink:new(?TEST_SINK), debug, [], Layout),
+               ok = logi_sink_table:register(?CHANNEL, hoge, logi_sink:new(?TEST_SINK, ?LAYOUT), debug, []),
+               ok = logi_sink_table:register(?CHANNEL, fuga, logi_sink:new(?TEST_SINK, ?LAYOUT), debug, []),
                ?assertEqual(lists:sort([hoge, fuga]), lists:sort(logi_sink_table:which_sinks(?CHANNEL))),
 
                ?assertEqual(ok, logi_sink_table:deregister(?CHANNEL, hoge, debug)),
@@ -54,26 +54,25 @@ register_test_() ->
      ]}.
 
 select_test_() ->
-    Layout = logi_builtin_layout_default:new(),
     {foreach, local,
      fun ()  -> logi_sink_table:new(?CHANNEL) end,
      fun (T) -> ok = logi_sink_table:delete(T) end,
      [
       {"Selects sinks that meet the condition",
        fun () ->
-               Sink = fun (Id, Condition) -> {Id, Condition, logi_sink:new(?TEST_SINK, Id)} end,
+               Sink = fun (Id, Condition) -> {Id, Condition, logi_sink:new(?TEST_SINK, ?LAYOUT, Id)} end,
                Sink1 = Sink(s1, debug),
                Sink2 = Sink(s2, {info, alert}),
                Sink3 = Sink(s3, [info]),
                Sink4 = Sink(s4, #{severity => info, application => stdlib}),
                Sink5 = Sink(s5, #{severity => info, module => lists}),
 
-               lists:foreach(fun ({Id, C, S}) -> logi_sink_table:register(?CHANNEL, Id, S, C, [], Layout) end,
+               lists:foreach(fun ({Id, C, S}) -> logi_sink_table:register(?CHANNEL, Id, S, C, []) end,
                              [Sink1, Sink2, Sink3, Sink4, Sink5]),
 
                Select =
                    fun (Severity, Application, Module) ->
-                           lists:sort([Id || {_, Id, _} <- logi_sink_table:select(?CHANNEL, Severity, Application, Module)])
+                           lists:sort([Id || {_, _, Id} <- logi_sink_table:select(?CHANNEL, Severity, Application, Module)])
                    end,
 
                ?assertEqual([s1],                 Select(debug, stdlib, lists)),
@@ -105,8 +104,8 @@ select_test_() ->
                            receive
                                {'DOWN', Monitor, _, _, _} -> Recur(lists:delete(Monitor, List))
                            after 0 ->
-                                   Sink = logi_sink:new(?TEST_SINK),
-                                   ok = logi_sink_table:register(?CHANNEL, hoge, Sink, debug, [], Layout),
+                                   Sink = logi_sink:new(?TEST_SINK, ?LAYOUT),
+                                   ok = logi_sink_table:register(?CHANNEL, hoge, Sink, debug, []),
                                    logi_sink_table:deregister(?CHANNEL, hoge, debug),
                                    Recur(List)
                            end

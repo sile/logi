@@ -23,8 +23,8 @@ write_test_() ->
       {"Writes a log message",
        fun () ->
                {ok, Fd} = file:open("test.log", [write]),
-               Sink = logi_builtin_sink_io_device:new(Fd),
                Layout = logi_builtin_layout_fun:new(fun (_, Format, Data) -> io_lib:format(Format, Data) end),
+               Sink = logi_builtin_sink_io_device:new([{io_device, Fd}, {layout, Layout}]),
                {ok, _} = logi_channel:install_sink(info, Sink, [{layout, Layout}]),
                logi:info("hello world"),
                ok = file:close(Fd),

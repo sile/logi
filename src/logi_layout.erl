@@ -33,31 +33,30 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/1, new/2, unsafe_new/2]).
+-export([new/1, new/2]).
 -export([is_layout/1]).
 -export([get_module/1, get_extra_data/1]).
 -export([format/4]).
 
 -export_type([layout/0, layout/1]).
--export_type([data/0]).
+-export_type([data/0, formatted_data/0]).
 -export_type([callback_module/0]).
 -export_type([extra_data/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Behaviour Callbacks
 %%----------------------------------------------------------------------------------------------------------------------
--callback format(logi_context:context(), io:format(), data(), extra_data()) -> iodata().
+-callback format(logi_context:context(), io:format(), data(), extra_data()) -> formatted_data().
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
--type layout() :: layout(extra_data()).
-%% An instance of `logi_layout' behaviour implementation module.
+-type layout() :: layout(formatted_data()).
+%% TODO: doc
 
--opaque layout(ExtraData) :: {callback_module(), ExtraData}
-                           | callback_module().
-%% A specialized type of `layout/0'.
-%% This may be useful for modules which want to annotate their own `ExtraData' type.
+-opaque layout(_FormattedData) :: {callback_module(), extra_data()}
+                                | callback_module().
+%% An instance of `logi_layout' behaviour implementation module.
 
 -type callback_module() :: module().
 %% A module that implements the `logi_layout' behaviour.
@@ -72,6 +71,9 @@
 %%
 %% This type is an alias of the type of second arguemnt of the {@link io_lib:format/2}
 
+-type formatted_data() :: term().
+%% TODO: doc
+
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
@@ -80,15 +82,13 @@
 new(Module) -> new(Module, undefined).
 
 %% @doc Creates a new layout instance
--spec new(callback_module(), ExtraData) -> layout(ExtraData) when ExtraData :: extra_data().
+-spec new(callback_module(), extra_data()) -> layout().
 new(Module, ExtraData) ->
     _ = is_layout(Module) orelse error(badarg, [Module, ExtraData]),
-    unsafe_new(Module, ExtraData).
-
-%% @doc Creates a layout sink instance without validating the arguments
--spec unsafe_new(callback_module(), ExtraData) -> layout(ExtraData) when ExtraData :: extra_data().
-unsafe_new(Module, undefined) -> Module;
-unsafe_new(Module, ExtraData) -> {Module, ExtraData}.
+    case ExtraData of
+        undefined -> Module;
+        _         -> {Module, ExtraData}
+    end.
 
 %% @doc Returns `true' if `X' is a layout, `false' otherwise
 -spec is_layout(X :: (layout() | term())) -> boolean().
@@ -106,6 +106,8 @@ get_extra_data(Module) when is_atom(Module) -> undefined;
 get_extra_data({_, ExtraData})              -> ExtraData.
 
 %% @doc Returns an `iodata()' which represents `Data' formatted by `Layout' in accordance with `Format' and `Context'
--spec format(logi_context:context(), io:format(), data(), Layout :: layout()) -> iodata().
+-spec format(logi_context:context(), io:format(), data(), Layout) -> FormattedData when
+      Layout        :: layout(FormattedData),
+      FormattedData :: formatted_data().
 format(Context, Format, Data, {Module, Extra}) -> Module:format(Context, Format, Data, Extra);
 format(Context, Format, Data, Module)          -> Module:format(Context, Format, Data, undefined).

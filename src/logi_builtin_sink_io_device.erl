@@ -47,37 +47,35 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback API
 %%----------------------------------------------------------------------------------------------------------------------
--export([write/5, default_layout/1]).
-
-%%----------------------------------------------------------------------------------------------------------------------
-%% Types
-%%----------------------------------------------------------------------------------------------------------------------
--type extra_data() :: io:device().
+-export([write/3]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @equiv new(standard_io)
+%% @equiv new([])
 -spec new() -> logi_sink:sink().
-new() -> new(standard_io).
+new() -> new([]).
 
 %% @doc Creates a new sink instance
 %%
-%% The default layout is `logi_builtin_layout_default:new()'.
--spec new(io:device()) -> logi_sink:sink().
-new(IoDevice) ->
-    _ = is_pid(IoDevice) orelse is_atom(IoDevice) orelse error(badarg, [IoDevice]),
-    logi_sink:new(?MODULE, IoDevice).
+%% TODO: default value
+-spec new(Options) -> logi_sink:sink() when
+      Options :: [Option],
+      Option  :: {io_device, io:device()}
+               | {layout, logi_layout:layout()}.
+new(Options) ->
+    _ = is_list(Options) orelse error(badarg, [Options]),
+
+    IoDevice = proplists:get_value(io_device, Options, standard_io),
+    Layout = proplists:get_value(layout, Options, logi_builtin_layout_default:new()),
+    _ = is_pid(IoDevice) orelse is_atom(IoDevice) orelse error(badarg, [Options]),
+    _ = logi_layout:is_layout(Layout) orelse error(badarg, [Options]),
+
+    logi_sink:new(?MODULE, Layout, IoDevice).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
--spec write(logi_context:context(), logi_layout:layout(), io:format(), logi_layout:data(), extra_data()) -> any().
-write(Context, Layout, Format, Data, IoDevice) ->
-    FormattedData = logi_layout:format(Context, Format, Data, Layout),
+write(_Context, FormattedData, IoDevice) ->
     io:put_chars(IoDevice, FormattedData).
-
-%% @private
-default_layout(_Extra) ->
-    logi_builtin_layout_default:new().

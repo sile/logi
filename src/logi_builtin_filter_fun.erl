@@ -51,7 +51,7 @@
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @doc Creates a filter which filters log messages by `FilterFun'
--spec new(FilterFun) -> logi_filter:filter(FilterFun) when FilterFun :: filter_fun().
+-spec new(filter_fun()) -> logi_filter:filter().
 new(FilterFun) ->
     _ = erlang:is_function(FilterFun, 1) orelse error(badarg, [FilterFun]),
     logi_filter:new(?MODULE, FilterFun).

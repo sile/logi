@@ -10,7 +10,7 @@ new_test_() ->
     [
      {"Creats a new sink instance",
       fun () ->
-              WriteFun = fun (_, _, Format, Data) ->  io_lib:format(Format, Data) end,
+              WriteFun = fun (_, Format, Data) ->  io_lib:format(Format, Data) end,
               Sink = logi_builtin_sink_fun:new(WriteFun),
               ?assert(logi_sink:is_sink(Sink))
       end},
@@ -29,7 +29,7 @@ write_test_() ->
       {"Writes a log message",
        fun () ->
                Issuer = self(),
-               WriteFun = fun (_, _, Format, Data) -> Issuer ! {write, Format, Data} end,
+               WriteFun = fun (_, Format, Data) -> Issuer ! {write, Format, Data} end,
                {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_fun:new(WriteFun)),
                logi:info("hello world"),
                receive

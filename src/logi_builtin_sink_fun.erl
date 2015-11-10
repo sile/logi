@@ -37,12 +37,12 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback API
 %%----------------------------------------------------------------------------------------------------------------------
--export([write/5, default_layout/1]).
+-export([write/3]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
--type write_fun() :: fun ((logi_context:context(), logi_layout:layout(), io:format(), logi_layout:data()) -> any()).
+-type write_fun() :: fun ((logi_context:context(), io:format(), logi_layout:data()) -> any()).
 %% A function which is used to consume log messages issued by `logi'
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -53,16 +53,12 @@
 %% The default layout is `logi_builtin_layout_default:new()'.
 -spec new(write_fun()) -> logi_sink:sink().
 new(Fun) ->
-    _ = erlang:is_function(Fun, 4) orelse error(badarg, [Fun]),
-    logi_sink:new(?MODULE, Fun).
+    _ = erlang:is_function(Fun, 3) orelse error(badarg, [Fun]),
+    logi_sink:new(?MODULE, logi_builtin_layout_pass_through:new(), Fun).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-write(Context, Layout, Format, Data, Fun) ->
-    Fun(Context, Layout, Format, Data).
-
-%% @private
-default_layout(_Extra) ->
-    logi_builtin_layout_default:new().
+write(Context, {Format, Data}, Fun) ->
+    Fun(Context, Format, Data).

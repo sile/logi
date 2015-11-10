@@ -68,7 +68,7 @@ A layout used by a sink can be specified at the time of installing the sink:
 
 
 <pre><code>
-format_fun() = fun((<a href="logi_context.md#type-context">logi_context:context()</a>, <a href="io.md#type-format">io:format()</a>, <a href="logi_layout.md#type-data">logi_layout:data()</a>) -&gt; iodata())
+format_fun() = fun((<a href="logi_context.md#type-context">logi_context:context()</a>, <a href="io.md#type-format">io:format()</a>, <a href="logi_layout.md#type-data">logi_layout:data()</a>) -&gt; <a href="logi_layout.md#type-formatted_data">logi_layout:formatted_data()</a>)
 </code></pre>
 
  A log message formatting function
@@ -90,10 +90,9 @@ format_fun() = fun((<a href="logi_context.md#type-context">logi_context:context(
 ### new/1 ###
 
 <pre><code>
-new(FormatFun) -&gt; <a href="logi_layout.md#type-layout">logi_layout:layout</a>(FormatFun)
+new(FormatFun::<a href="#type-format_fun">format_fun()</a>) -&gt; <a href="logi_layout.md#type-layout">logi_layout:layout()</a>
 </code></pre>
-
-<ul class="definitions"><li><code>FormatFun = <a href="#type-format_fun">format_fun()</a></code></li></ul>
+<br />
 
 Creates a layout which formats log messages by `FormatFun`
 

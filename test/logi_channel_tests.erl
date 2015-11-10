@@ -54,7 +54,7 @@ channel_test_() ->
 
 sink_test_() ->
     Channel = test_channel,
-    NullSink = logi_builtin_sink_fun:new(fun (_, _, _, _) -> ok end),
+    NullSink = logi_builtin_sink_fun:new(fun (_, _, _) -> ok end),
     SinkId = logi_builtin_sink_fun,
     {setup,
      fun () -> ok = application:start(logi) end,
@@ -77,21 +77,19 @@ sink_test_() ->
          fun () ->
                  ?assertEqual(error, logi_channel:find_sink(SinkId, [{channel, Channel}])),
                  {ok, undefined} = logi_channel:install_sink(debug, NullSink, [{channel, Channel}]),
-                 ?assertEqual({ok, {debug, logi_sink:default_layout(NullSink), NullSink}},
-                              logi_channel:find_sink(SinkId, [{channel, Channel}]))
+                 ?assertEqual({ok, {debug, NullSink}}, logi_channel:find_sink(SinkId, [{channel, Channel}]))
          end},
         {"Finds a sink: Uses the default channel",
          fun () ->
                  ?assertEqual(error, logi_channel:find_sink(SinkId)),
                  {ok, undefined} = logi_channel:install_sink(debug, NullSink),
-                 ?assertEqual({ok, {debug, logi_sink:default_layout(NullSink), NullSink}}, logi_channel:find_sink(SinkId)),
+                 ?assertEqual({ok, {debug, NullSink}}, logi_channel:find_sink(SinkId)),
                  {ok, _} = logi_channel:uninstall_sink(SinkId)
          end},
         {"Uninstalls a sink",
          fun () ->
                  {ok, undefined} = logi_channel:install_sink(debug, NullSink, [{channel, Channel}]),
-                 ?assertEqual({ok, {debug, logi_sink:default_layout(NullSink), NullSink}},
-                              logi_channel:uninstall_sink(SinkId, [{channel, Channel}])),
+                 ?assertEqual({ok, {debug, NullSink}}, logi_channel:uninstall_sink(SinkId, [{channel, Channel}])),
                  ?assertEqual(error, logi_channel:uninstall_sink(SinkId, [{channel, Channel}])),
                  ?assertEqual(error, logi_channel:find_sink(SinkId, [{channel, Channel}])),
                  ?assertEqual([], logi_channel:select_sink(Channel, info, hoge, fuga))
@@ -99,7 +97,7 @@ sink_test_() ->
         {"Uninstalls a sink: Uses the default channel",
          fun () ->
                  {ok, undefined} = logi_channel:install_sink(debug, NullSink),
-                 ?assertEqual({ok, {debug, logi_sink:default_layout(NullSink), NullSink}}, logi_channel:uninstall_sink(SinkId)),
+                 ?assertEqual({ok, {debug, NullSink}}, logi_channel:uninstall_sink(SinkId)),
                  ?assertEqual(error, logi_channel:uninstall_sink(SinkId)),
                  ?assertEqual(error, logi_channel:find_sink(SinkId)),
                  ?assertEqual([], logi_channel:select_sink(logi_channel:default_channel(), info, hoge, fuga))
@@ -109,20 +107,19 @@ sink_test_() ->
                  {ok, undefined} = logi_channel:install_sink(debug, NullSink, [{channel, Channel}]),
 
                  %% if_exists == error
-                 ?assertEqual({error, {already_installed, {debug, logi_sink:default_layout(NullSink), NullSink}}},
+                 ?assertEqual({error, {already_installed, {debug, NullSink}}},
                               logi_channel:install_sink(debug, NullSink, [{channel, Channel}, {if_exists, error}])),
 
                  %% if_exists == ignore
-                 ?assertEqual({ok, {debug, logi_sink:default_layout(NullSink), NullSink}},
+                 ?assertEqual({ok, {debug, NullSink}},
                               logi_channel:install_sink(info, NullSink, [{channel, Channel}, {if_exists, ignore}])),
 
                  %% if_exists == supersede
-                 AnotherSink = logi_sink:new(SinkId, extra),
-                 ?assertEqual({ok, {debug, logi_sink:default_layout(NullSink), NullSink}},
+                 AnotherSink = logi_builtin_sink_fun:new(fun (_, _, _) -> another end),
+                 ?assertEqual({ok, {debug, NullSink}},
                               logi_channel:install_sink(info, AnotherSink, [{channel, Channel}, {if_exists, supersede}])),
                  ?assertNotEqual(NullSink, AnotherSink),
-                 ?assertEqual({ok, {info, logi_sink:default_layout(NullSink), AnotherSink}},
-                              logi_channel:find_sink(SinkId, [{channel, Channel}])),
+                 ?assertEqual({ok, {info, AnotherSink}}, logi_channel:find_sink(SinkId, [{channel, Channel}])),
 
                  %% invalid value
                  ?assertError(badarg, logi_channel:install_sink(debug, NullSink, [{channel, Channel}, {if_exists, undefined}]))
@@ -152,19 +149,15 @@ sink_test_() ->
                  Update = fun (Options) -> logi_channel:update_sink(SinkId, [{channel, Channel} | Options]) end,
                  ?assertEqual(error, Update([])),
 
-                 Layout0 = logi_builtin_layout_fun:new(fun (_, _, _) -> "0" end),
-                 Layout1 = logi_builtin_layout_fun:new(fun (_, _, _) -> "1" end),
                  Condition0 = debug,
                  Condition1 = info,
-                 Sink0 = logi_builtin_sink_fun:new(fun (_, _, _, _) -> 0 end),
-                 Sink1 = logi_builtin_sink_fun:new(fun (_, _, _, _) -> 1 end),
+                 Sink0 = logi_builtin_sink_fun:new(fun (_, _, _) -> 0 end),
+                 Sink1 = logi_builtin_sink_fun:new(fun (_, _, _) -> 1 end),
 
-                 {ok, undefined} = logi_channel:install_sink(
-                                     Condition0, Sink0, [{id, SinkId}, {channel, Channel}, {layout, Layout0}]),
-                 ?assertEqual({ok, {Condition0, Layout0, Sink0}}, Update([{condition, Condition1}])),
-                 ?assertEqual({ok, {Condition1, Layout0, Sink0}}, Update([{layout, Layout1}])),
-                 ?assertEqual({ok, {Condition1, Layout1, Sink0}}, Update([{sink, Sink1}])),
-                 ?assertEqual({ok, {Condition1, Layout1, Sink1}}, Update([]))
+                 {ok, undefined} = logi_channel:install_sink(Condition0, Sink0, [{id, SinkId}, {channel, Channel}]),
+                 ?assertEqual({ok, {Condition0, Sink0}}, Update([{condition, Condition1}])),
+                 ?assertEqual({ok, {Condition1, Sink0}}, Update([{sink, Sink1}])),
+                 ?assertEqual({ok, {Condition1, Sink1}}, Update([]))
          end}
        ]}
      ]}.
@@ -173,7 +166,8 @@ select_test_() ->
     Channel = test_channel,
     Install =
         fun (Id, Condition) ->
-                Sink = logi_sink:new(logi_builtin_sink_fun, Id),
+                Layout = logi_builtin_layout_pass_through:new(),
+                Sink = logi_sink:new(logi_builtin_sink_fun, Layout, Id),
                 {ok, _} = logi_channel:install_sink(Condition, Sink, [{channel, Channel}, {id, Id}]),
                 ok
         end,
@@ -184,7 +178,7 @@ select_test_() ->
         end,
     Select =
         fun (Severity, Application, Module) ->
-                lists:sort([Id || {_, Id, _} <- logi_channel:select_sink(Channel, Severity, Application, Module)])
+                lists:sort([Id || {_, _, Id} <- logi_channel:select_sink(Channel, Severity, Application, Module)])
         end,
     {setup,
      fun () -> ok = application:start(logi) end,

@@ -44,12 +44,12 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/1, new/2, unsafe_new/2]).
+-export([new/1, new/2]).
 -export([is_filter/1]).
 -export([get_module/1, get_state/1]).
 -export([apply/2]).
 
--export_type([filter/0, filter/1]).
+-export_type([filter/0]).
 -export_type([callback_module/0, state/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -60,13 +60,9 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
--type filter() :: filter(state()).
+-opaque filter() :: {callback_module(), state()}
+                  | callback_module().
 %% An instance of `logi_filter' behaviour implementation module.
-
--opaque filter(State) :: {callback_module(), State}
-                       | callback_module().
-%% A specialized type of `filter/0'.
-%% This may be useful for modules which want to annotate their own `State' type.
 
 -type callback_module() :: module().
 %% A module that implements the `logi_filter' behaviour.
@@ -84,15 +80,10 @@
 new(Module) -> new(Module, undefined).
 
 %% @doc Creates a new filter instance
--spec new(callback_module(), State) -> filter(State) when State :: state().
+-spec new(callback_module(), state()) -> filter().
 new(Module, State) ->
     _ = is_filter(Module) orelse error(badarg, [Module, State]),
     unsafe_new(Module, State).
-
-%% @doc Creates a new filter instance without validating the arguments
--spec unsafe_new(callback_module(), state()) -> filter().
-unsafe_new(Module, undefined) -> Module;
-unsafe_new(Module, State)     -> {Module, State}.
 
 %% @doc Returns `true' if `X' is a filter, `false' otherwise
 -spec is_filter(X :: (filter() | term())) -> boolean().
@@ -122,3 +113,11 @@ apply(Context, Filter) ->
         {Bool, State1} -> {Bool, unsafe_new(Module, State1)};
         Bool           -> Bool
     end.
+
+%%----------------------------------------------------------------------------------------------------------------------
+%% Internal Functions
+%%----------------------------------------------------------------------------------------------------------------------
+%% @doc Creates a new filter instance without validating the arguments
+-spec unsafe_new(callback_module(), state()) -> filter().
+unsafe_new(Module, undefined) -> Module;
+unsafe_new(Module, State)     -> {Module, State}.

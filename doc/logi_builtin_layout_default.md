@@ -56,7 +56,7 @@ And no overload protection exists (e.g. if log message is too large, the caller 
 ### new/0 ###
 
 <pre><code>
-new() -&gt; <a href="logi_layout.md#type-layout">logi_layout:layout()</a>
+new() -&gt; <a href="logi_layout.md#type-layout">logi_layout:layout</a>(<a href="io_lib.md#type-chars">io_lib:chars()</a>)
 </code></pre>
 <br />
 

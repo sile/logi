@@ -75,10 +75,9 @@ filter_fun() = fun((<a href="logi_context.md#type-context">logi_context:context(
 ### new/1 ###
 
 <pre><code>
-new(FilterFun) -&gt; <a href="logi_filter.md#type-filter">logi_filter:filter</a>(FilterFun)
+new(FilterFun::<a href="#type-filter_fun">filter_fun()</a>) -&gt; <a href="logi_filter.md#type-filter">logi_filter:filter()</a>
 </code></pre>
-
-<ul class="definitions"><li><code>FilterFun = <a href="#type-filter_fun">filter_fun()</a></code></li></ul>
+<br />
 
 Creates a filter which filters log messages by `FilterFun`
 

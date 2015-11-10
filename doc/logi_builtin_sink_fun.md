@@ -54,7 +54,7 @@ And there is no overload protection.
 
 
 <pre><code>
-write_fun() = fun((<a href="logi_context.md#type-context">logi_context:context()</a>, <a href="logi_layout.md#type-layout">logi_layout:layout()</a>, <a href="io.md#type-format">io:format()</a>, <a href="logi_layout.md#type-data">logi_layout:data()</a>) -&gt; any())
+write_fun() = fun((<a href="logi_context.md#type-context">logi_context:context()</a>, <a href="io.md#type-format">io:format()</a>, <a href="logi_layout.md#type-data">logi_layout:data()</a>) -&gt; any())
 </code></pre>
 
  A function which is used to consume log messages issued by `logi`

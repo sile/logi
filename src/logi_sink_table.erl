@@ -9,7 +9,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 -export([new/1]).
 -export([delete/1]).
--export([register/6]).
+-export([register/5]).
 -export([deregister/3]).
 -export([which_sinks/1]).
 -export([select/4]).
@@ -22,7 +22,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 -type table() :: ets:tab().
 
--type select_result() :: [{logi_sink:callback_module(), logi_sink:extra_data(), logi_layout:layout()}].
+-type select_result() :: [logi_sink:sink()].
 %% A result of {@link select/4} function
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -40,12 +40,11 @@ delete(Table) ->
     ok.
 
 %% @doc Registers an sink
--spec register(table(), logi_sink:id(), logi_sink:sink(), logi_sink:condition(),
-               logi_sink:condition(), logi_layout:layout()) -> ok.
-register(Table, SinkId, Sink, NewCondition, OldCondition, Layout) ->
+-spec register(table(), logi_sink:id(), logi_sink:sink(), logi_sink:condition(), logi_sink:condition()) -> ok.
+register(Table, SinkId, Sink, NewCondition, OldCondition) ->
     {Added, _, Deleted} = diff(logi_sink:normalize_condition(NewCondition),
                                logi_sink:normalize_condition(OldCondition)),
-    ok = insert_sink(Table, SinkId, Sink, Layout),
+    ok = insert_sink(Table, SinkId, Sink),
     ok = index_condition(Table, SinkId, Added),
     ok = deindex_condition(Table, SinkId, Deleted),
     ok.
@@ -92,9 +91,9 @@ diff(A, B) ->
       ordsets:to_list(ordsets:subtract(Bs, As))
     }.
 
--spec insert_sink(table(), logi_sink:id(), logi_sink:sink(), logi_layout:layout()) -> ok.
-insert_sink(Table, SinkId, Sink, Layout) ->
-    E = {SinkId, {logi_sink:get_module(Sink), logi_sink:get_extra_data(Sink), Layout}},
+-spec insert_sink(table(), logi_sink:id(), logi_sink:sink()) -> ok.
+insert_sink(Table, SinkId, Sink) ->
+    E = {SinkId, Sink},
     _ = ets:insert(Table, E),
     ok.
 

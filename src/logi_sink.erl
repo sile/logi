@@ -49,15 +49,14 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/1, new/2, unsafe_new/2]).
+-export([new/2, new/3]).
 -export([is_sink/1]).
--export([get_module/1, get_extra_data/1]).
+-export([get_module/1, get_layout/1, get_extra_data/1]).
 -export([normalize_condition/1]).
 -export([is_condition/1]).
 -export([is_callback_module/1]).
 
--export([default_layout/1]).
--export([write/5]).
+-export([write/4]).
 
 -export_type([sink/0]).
 -export_type([id/0]).
@@ -68,13 +67,12 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Behaviour Callbacks
 %%----------------------------------------------------------------------------------------------------------------------
--callback write(logi_context:context(), logi_layout:layout(), io:format(), logi_layout:data(), extra_data()) -> any().
--callback default_layout(extra_data()) -> logi_layout:layout().
+-callback write(logi_context:context(), logi_layout:formatted_data(), extra_data()) -> any().
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
--opaque sink() :: {callback_module(), extra_data()}.
+-opaque sink() :: {callback_module(), logi_layout:layout(), extra_data()}.
 %% A sink instance.
 
 -type id() :: atom().
@@ -162,32 +160,33 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @equiv new(Module, undefined)
--spec new(callback_module()) -> sink().
-new(Module) -> new(Module, undefined).
+%% @equiv new(Module, Layout, undefined)
+-spec new(callback_module(), logi_layout:layout()) -> sink().
+new(Module, Layout) -> new(Module, Layout, undefined).
 
 %% @doc Creates a new sink instance
--spec new(callback_module(), extra_data()) -> sink().
-new(Module, ExtraData) ->
-    _ = is_callback_module(Module) orelse error(badarg, [Module, ExtraData]),
-    unsafe_new(Module, ExtraData).
-
-%% @doc Creates a new sink instance without validating the arguments
--spec unsafe_new(callback_module(), extra_data()) -> sink().
-unsafe_new(Module, ExtraData) -> {Module, ExtraData}.
+-spec new(callback_module(), logi_layout:layout(), extra_data()) -> sink().
+new(Module, Layout, ExtraData) ->
+    _ = is_callback_module(Module) orelse error(badarg, [Module, Layout, ExtraData]),
+    _ = logi_layout:is_layout(Layout) orelse error(badarg, [Module, Layout, ExtraData]),
+    {Module, Layout, ExtraData}.
 
 %% @doc Returns `true' if `X' is a sink, otherwise `false'
 -spec is_sink(X :: (sink() | term())) -> boolean().
-is_sink({Module, _}) -> is_callback_module(Module);
-is_sink(_)           -> false.
+is_sink({Module, _, _}) -> is_callback_module(Module);
+is_sink(_)              -> false.
 
 %% @doc Gets the module of `Sink'
 -spec get_module(Sink :: sink()) -> callback_module().
-get_module({Module, _}) -> Module.
+get_module({Module, _, _}) -> Module.
+
+%% @doc Gets the layout of `Sink'
+-spec get_layout(Sink :: sink()) -> logi_layout:layout().
+get_layout({_, Layout, _}) -> Layout.
 
 %% @doc Gets the extra data of `Sink'
 -spec get_extra_data(Sink :: sink()) -> extra_data().
-get_extra_data({_, ExtraData}) -> ExtraData.
+get_extra_data({_, _, ExtraData}) -> ExtraData.
 
 %% @doc Returns a normalized form of `Condition'
 -spec normalize_condition(Condition :: condition()) -> normalized_condition().
@@ -201,19 +200,15 @@ is_condition(X)                -> is_severity_condition(X).
 
 %% @doc Returns `true' if `X' is a module which implements the `sink' behaviour, otherwise `false'
 -spec is_callback_module(X :: (callback_module() | term())) -> boolean().
-is_callback_module(X) ->
-    logi_utils:function_exported(X, default_layout, 1) andalso logi_utils:function_exported(X, write, 5).
-
-%% @doc Returns the default layout of `Sink'
--spec default_layout(Sink :: sink()) -> logi_layout:layout().
-default_layout({Module, ExtraData}) -> Module:default_layout(ExtraData).
+is_callback_module(X) -> logi_utils:function_exported(X, write, 3).
 
 %% @doc Writes a log message
 %%
 %% If it fails to write, an exception will be raised.
--spec write(logi_context:context(), logi_layout:layout(), io:format(), logi_layout:data(), sink()) -> any().
-write(Context, Layout, Format, Data, {Module, ExtraData}) ->
-    Module:write(Context, Layout, Format, Data, ExtraData).
+-spec write(logi_context:context(), io:format(), logi_layout:data(), sink()) -> any().
+write(Context, Format, Data, {Module, Layout, ExtraData}) ->
+    FormattedData = logi_layout:format(Context, Format, Data, Layout),
+    Module:write(Context, FormattedData, ExtraData).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions

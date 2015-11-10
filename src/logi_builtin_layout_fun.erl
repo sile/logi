@@ -55,14 +55,14 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
--type format_fun() :: fun ((logi_context:context(), io:format(), logi_layout:data()) -> iodata()).
+-type format_fun() :: fun ((logi_context:context(), io:format(), logi_layout:data()) -> logi_layout:formatted_data()).
 %% A log message formatting function
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @doc Creates a layout which formats log messages by `FormatFun'
--spec new(FormatFun) -> logi_layout:layout(FormatFun) when FormatFun :: format_fun().
+-spec new(format_fun()) -> logi_layout:layout().
 new(FormatFun) ->
     _ = erlang:is_function(FormatFun, 3) orelse error(badarg, [FormatFun]),
     logi_layout:new(?MODULE, FormatFun).
@@ -71,5 +71,5 @@ new(FormatFun) ->
 %% 'logi_layout' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
--spec format(logi_context:context(), io:format(), logi_layout:data(), format_fun()) -> iodata().
+-spec format(logi_context:context(), io:format(), logi_layout:data(), format_fun()) -> logi_layout:formatted_data().
 format(Context, Format, Data, Fun) -> Fun(Context, Format, Data).

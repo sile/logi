@@ -166,17 +166,17 @@ ready(Logger, Severity, DefaultLocation, Options) ->
 
 %% @doc Writes a log message through the selected sinks
 -spec write(logi_sink_table:select_result(), logi_context:context(), io:format(), [term()]) -> ok.
-write([],                                   _Context,_Format,_Data) -> ok;
-write([{Module, ExtraData, Layout} | Sinks], Context, Format, Data) ->
+write([],                           _Context,_Format,_Data) -> ok;
+write([Sink | Sinks], Context, Format, Data) ->
     %% An error of a sink does not affect to other sinks. Instead, an error report is emitted.
     try
-        Module:write(Context, Layout, Format, Data, ExtraData)
+        logi_sink:write(Context, Format, Data, Sink)
     catch
         Class:Reason ->
             error_logger:error_report(
               [{pid, self()}, {module, ?MODULE}, {line, ?LINE},
-               {msg, atom_to_list(Module) ++ ":write/5 was aborted"},
-               {mfargs, {Module, write, [Context, Layout, Format, Data, ExtraData]}},
+               {msg, "logi_sink:write/4 was aborted"},
+               {mfargs, {logi_sink, write, [Context, Format, Data, Sink]}},
                {exception, {Class, Reason, erlang:get_stacktrace()}}])
     end,
     write(Sinks, Context, Format, Data).

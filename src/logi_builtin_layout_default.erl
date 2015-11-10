@@ -39,14 +39,14 @@
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @doc Creates a layout
--spec new() -> logi_layout:layout().
+-spec new() -> logi_layout:layout(io_lib:chars()).
 new() -> logi_layout:new(?MODULE).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_layout' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
--spec format(logi_context:context(), io:format(), logi_layout:data(), undefined) -> iodata().
+-spec format(logi_context:context(), io:format(), logi_layout:data(), undefined) -> io_lib:chars().
 format(Context, Format, Data, _) ->
     Location = logi_context:get_location(Context),
     io_lib:format(

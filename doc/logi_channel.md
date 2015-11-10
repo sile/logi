@@ -76,7 +76,7 @@ id() = atom()
 
 
 <pre><code>
-install_sink_option() = {id, <a href="logi_sink.md#type-id">logi_sink:id()</a>} | {channel, <a href="#type-id">id()</a>} | {layout, <a href="logi_layout.md#type-layout">logi_layout:layout()</a>} | {lifetime, timeout() | pid()} | {if_exists, error | ignore | supersede}
+install_sink_option() = {id, <a href="logi_sink.md#type-id">logi_sink:id()</a>} | {channel, <a href="#type-id">id()</a>} | {lifetime, timeout() | pid()} | {if_exists, error | ignore | supersede}
 </code></pre>
 
  Let `Sink` be the sink which is subject of the installation.
@@ -88,11 +88,6 @@ install_sink_option() = {id, <a href="logi_sink.md#type-id">logi_sink:id()</a>} 
 `channel`:
 - The channel in which `Sink` will be installed
 - default: `logi_channel:default_channel()`
-
-`layout`:
-- The layout of `Sink`.
-- This layout will be passed as the second argument of the `SinkModule:write/5` function.
-- default: `logi_sink:default_layout(Sink)`
 
 `lifetime`:
 - The lifetime of `Sink`.
@@ -140,7 +135,7 @@ Otherwise the result value depends on the value of the `if_exists` option
 
 
 <pre><code>
-installed_sink() = {<a href="logi_sink.md#type-condition">logi_sink:condition()</a>, <a href="logi_layout.md#type-layout">logi_layout:layout()</a>, <a href="logi_sink.md#type-sink">logi_sink:sink()</a>}
+installed_sink() = {<a href="logi_sink.md#type-condition">logi_sink:condition()</a>, <a href="logi_sink.md#type-sink">logi_sink:sink()</a>}
 </code></pre>
 
  The information of an installed sink
@@ -293,7 +288,7 @@ The default value of the `channel` option is `logi_channel:default_channel()`.
 update_sink(SinkId::<a href="logi_sink.md#type-id">logi_sink:id()</a>, Options) -&gt; {ok, Old} | error
 </code></pre>
 
-<ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {channel, <a href="#type-id">id()</a>} | {layout, <a href="logi_layout.md#type-layout">logi_layout:layout()</a>} | {condition, <a href="logi_sink.md#type-condition">logi_sink:condition()</a>} | {sink, <a href="logi_sink.md#type-sink">logi_sink:sink()</a>}</code></li><li><code>Old = <a href="#type-installed_sink">installed_sink()</a></code></li></ul>
+<ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {channel, <a href="#type-id">id()</a>} | {condition, <a href="logi_sink.md#type-condition">logi_sink:condition()</a>} | {sink, <a href="logi_sink.md#type-sink">logi_sink:sink()</a>}</code></li><li><code>Old = <a href="#type-installed_sink">installed_sink()</a></code></li></ul>
 
 Updates the sink which associated to the identifier `SinkId`
 
@@ -306,10 +301,6 @@ This function returns `{ok, Old}` if such a sink exists, `error` otherwise.
 `channel`:
 - The channel in which `SinkId` is installed
 - default: `logi_channel:default_channel()`
-
-`layout`:
-- A new layout
-- default: The current layout associated to `SinkId`
 
 `condition`:
 - A new condition
