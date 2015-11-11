@@ -56,7 +56,7 @@
 
 -export([install_sink/2, install_sink/3]).
 -export([uninstall_sink/1, uninstall_sink/2]).
--export([update_sink/2]).
+-export([update_sink/2]). % TODO: update_condition/2 (?)
 -export([find_sink/1,  find_sink/2]).
 -export([which_sinks/0, which_sinks/1]).
 

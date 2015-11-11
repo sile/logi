@@ -49,9 +49,9 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/2, new/3]).
+-export([new/2, new/3, new/4]).
 -export([is_sink/1]).
--export([get_module/1, get_layout/1, get_extra_data/1]).
+-export([get_module/1, get_layout/1, get_extra_data/1, get_agent_spec/1]).
 -export([normalize_condition/1]).
 -export([is_condition/1]).
 -export([is_callback_module/1]).
@@ -64,15 +64,21 @@
 -export_type([condition/0, severity_condition/0, location_condition/0, normalized_condition/0]).
 -export_type([extra_data/0]).
 
+-export_type([agent_spec/0]).
+-export_type([agent_start_result/0]).
+-export_type([agent_status/0]).
+-export_type([mfargs/0]).
+
 %%----------------------------------------------------------------------------------------------------------------------
 %% Behaviour Callbacks
 %%----------------------------------------------------------------------------------------------------------------------
 -callback write(logi_context:context(), logi_layout:formatted_data(), extra_data()) -> any().
+%% TODO: whereis_agent() -> pid() | undefined.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
--opaque sink() :: {callback_module(), logi_layout:layout(), extra_data()}.
+-opaque sink() :: {callback_module(), logi_layout:layout(), extra_data(), agent_spec()}. % TODO: fix
 %% A sink instance.
 
 -type id() :: atom().
@@ -88,6 +94,22 @@
 %% NOTE:
 %% This value will be loaded from ETS every time the `write/4' is called.
 %% Therefore, very huge data can cause a performance issue.
+
+-type agent_spec() ::
+        #{
+           start => mfargs() | {external, proc_ref()} | {external, proc_ref(), extra_data()} | ignore | {ignore, extra_data()},
+           restart => logi_restart_strategy:strategy(),
+           shutdown => timeout() | brutal_kill
+         }.
+%% TODO: doc
+-type proc_ref() :: pid() | port() | atom() | {global, term()} | {via, module(), term()}.
+
+-type mfargs() :: {Module::module(), Function::atom(), Args::[term()]}.
+
+-type agent_status() :: starting | running | stopping | stopped | not_exist.
+-type agent_start_result() :: {ok, pid()}
+                            | {ok, pid(), extra_data()}
+                            | {error, term()}.
 
 -type condition() :: severity_condition() | location_condition().
 %% The condition to determine which messages to be consumed by a sink.
@@ -167,26 +189,36 @@ new(Module, Layout) -> new(Module, Layout, undefined).
 %% @doc Creates a new sink instance
 -spec new(callback_module(), logi_layout:layout(), extra_data()) -> sink().
 new(Module, Layout, ExtraData) ->
+    new(Module, Layout, ExtraData, #{}).
+
+%% TODO:
+-spec new(callback_module(), logi_layout:layout(), extra_data(), agent_spec()) -> sink().
+new(Module, Layout, ExtraData, AgentSpec) ->
+    %% TODO: validate AgentSpec
     _ = is_callback_module(Module) orelse error(badarg, [Module, Layout, ExtraData]),
     _ = logi_layout:is_layout(Layout) orelse error(badarg, [Module, Layout, ExtraData]),
-    {Module, Layout, ExtraData}.
+    {Module, Layout, ExtraData, AgentSpec}.
 
 %% @doc Returns `true' if `X' is a sink, otherwise `false'
 -spec is_sink(X :: (sink() | term())) -> boolean().
-is_sink({Module, _, _}) -> is_callback_module(Module);
-is_sink(_)              -> false.
+is_sink({Module, _, _, _}) -> is_callback_module(Module);
+is_sink(_)                 -> false.
 
 %% @doc Gets the module of `Sink'
 -spec get_module(Sink :: sink()) -> callback_module().
-get_module({Module, _, _}) -> Module.
+get_module({Module, _, _, _}) -> Module.
 
 %% @doc Gets the layout of `Sink'
 -spec get_layout(Sink :: sink()) -> logi_layout:layout().
-get_layout({_, Layout, _}) -> Layout.
+get_layout({_, Layout, _, _}) -> Layout.
 
 %% @doc Gets the extra data of `Sink'
 -spec get_extra_data(Sink :: sink()) -> extra_data().
-get_extra_data({_, _, ExtraData}) -> ExtraData.
+get_extra_data({_, _, ExtraData, _}) -> ExtraData.
+
+%% TODO:
+-spec get_agent_spec(Sink :: sink()) -> agent_spec().
+get_agent_spec({_, _, _, AgentSpec}) -> AgentSpec.
 
 %% @doc Returns a normalized form of `Condition'
 -spec normalize_condition(Condition :: condition()) -> normalized_condition().
@@ -200,13 +232,13 @@ is_condition(X)                -> is_severity_condition(X).
 
 %% @doc Returns `true' if `X' is a module which implements the `sink' behaviour, otherwise `false'
 -spec is_callback_module(X :: (callback_module() | term())) -> boolean().
-is_callback_module(X) -> logi_utils:function_exported(X, write, 3).
+is_callback_module(X) -> is_atom(X) andalso logi_utils:function_exported(X, write, 3).
 
 %% @doc Writes a log message
 %%
 %% If it fails to write, an exception will be raised.
 -spec write(logi_context:context(), io:format(), logi_layout:data(), sink()) -> any().
-write(Context, Format, Data, {Module, Layout, ExtraData}) ->
+write(Context, Format, Data, {Module, Layout, ExtraData, _}) ->
     FormattedData = logi_layout:format(Context, Format, Data, Layout),
     Module:write(Context, FormattedData, ExtraData).
 

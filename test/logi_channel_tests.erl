@@ -178,7 +178,7 @@ select_test_() ->
         end,
     Select =
         fun (Severity, Application, Module) ->
-                lists:sort([Id || {_, _, Id} <- logi_channel:select_sink(Channel, Severity, Application, Module)])
+                lists:sort([Id || {_, _, Id, _} <- logi_channel:select_sink(Channel, Severity, Application, Module)])
         end,
     {setup,
      fun () -> ok = application:start(logi) end,

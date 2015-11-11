@@ -72,7 +72,7 @@ select_test_() ->
 
                Select =
                    fun (Severity, Application, Module) ->
-                           lists:sort([Id || {_, _, Id} <- logi_sink_table:select(?CHANNEL, Severity, Application, Module)])
+                           lists:sort([Id || {_, _, Id, _} <- logi_sink_table:select(?CHANNEL, Severity, Application, Module)])
                    end,
 
                ?assertEqual([s1],                 Select(debug, stdlib, lists)),
