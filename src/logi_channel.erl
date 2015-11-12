@@ -69,7 +69,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Application Internal API
 %%----------------------------------------------------------------------------------------------------------------------
--export([start_link/1]).
+-export([start_link/2]).
 -export([select_sink/4]).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -95,14 +95,17 @@
         {
           id         :: id(),
           table      :: logi_sink_table:table(),
+          supervisor :: pid(),
           sinks = [] :: sinks()
         }).
 
 -record(sink,
         {
-          id        :: logi_sink:id(),
-          condition :: logi_sink:condition(),
-          instance  :: logi_sink:sink()
+          id            :: logi_sink:id(),
+          condition     :: logi_sink:condition(),
+          instance      :: logi_sink:sink(),
+          agent_pid     :: pid(),
+          agent_monitor :: reference()
         }).
 
 -type sinks() :: [#sink{}].
@@ -169,7 +172,7 @@ default_channel() -> logi:default_logger().
 %% If there exists a process or a ETS table with the same name as `Channel', the function crashes.
 -spec create(id()) -> ok.
 create(Channel) ->
-    case logi_channel_sup:start_child(Channel) of
+    case logi_channel_root_sup:start_child(Channel) of
         {ok, _} -> ok;
         _       ->
             %% FIXME: The judgement may be inaccurate
@@ -183,12 +186,12 @@ create(Channel) ->
 %%
 %% If the channel does not exists, it is silently ignored.
 -spec delete(id()) -> ok.
-delete(Channel) when is_atom(Channel) -> logi_channel_sup:stop_child(Channel);
+delete(Channel) when is_atom(Channel) -> logi_channel_root_sup:stop_child(Channel);
 delete(Channel)                       -> error(badarg, [Channel]).
 
 %% @doc Returns a list of all existing channels
 -spec which_channels() -> [id()].
-which_channels() -> logi_channel_sup:which_children().
+which_channels() -> logi_channel_root_sup:which_children().
 
 %% @equiv install_sink(Condition, Sink, [])
 -spec install_sink(logi_sink:condition(), logi_sink:sink()) -> install_sink_result().
@@ -308,10 +311,10 @@ which_sinks(Options) ->
 %% @doc Starts a channel process
 %%
 %% @private
--spec start_link(id()) -> {ok, pid()} | {error, Reason} when
+-spec start_link(id(), pid()) -> {ok, pid()} | {error, Reason} when
       Reason :: {already_started, pid()} | term().
-start_link(Channel) ->
-    gen_server:start_link({local, Channel}, ?MODULE, [Channel], []).
+start_link(Channel, SupPid) ->
+    gen_server:start_link({local, Channel}, ?MODULE, [Channel, SupPid], []).
 
 %% @doc Selects sinks that meet the condition
 %%
@@ -326,12 +329,13 @@ select_sink(Channel, Severity, Application, Module) ->
 %% 'gen_server' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-init([Id]) ->
+init([Id, SupPid]) ->
     _ = process_flag(trap_exit, true),
     State =
         #?STATE{
-            id    = Id,
-            table = logi_sink_table:new(Id)
+            id         = Id,
+            table      = logi_sink_table:new(Id),
+            supervisor = SupPid
            },
     {ok, State}.
 
@@ -379,15 +383,21 @@ handle_install_sink({SinkId, Sink, Condition, IfExists}, State0) ->
                 ignore -> {reply, {ok, to_installed_sink(OldSink)}, State0}
             end;
         true ->
-            ok = logi_sink_table:register(State0#?STATE.table, SinkId, Sink, Condition, OldCondition),
-            Entry =
-                #sink{
-                   id        = SinkId,
-                   condition = Condition,
-                   instance  = Sink
-                  },
-            State1 = State0#?STATE{sinks = [Entry | Sinks]},
-            {reply, {ok, to_installed_sink(OldSink)}, State1}
+            case {ok, self(), self()} of %start_agent_if_need(logi_sink:get_agent_spec(Sink)) of
+                %{error, Reason}              -> {reply, {error, {cannot_start_agent, Reason}}, State0}; % TODO: message
+                {ok, AgentPid, AgentMonitor} ->
+                    ok = logi_sink_table:register(State0#?STATE.table, SinkId, Sink, Condition, OldCondition),
+                    Entry =
+                        #sink{
+                           id            = SinkId,
+                           condition     = Condition,
+                           instance      = Sink,
+                           agent_pid     = AgentPid,
+                           agent_monitor = AgentMonitor
+                          },
+                    State1 = State0#?STATE{sinks = [Entry | Sinks]},
+                    {reply, {ok, to_installed_sink(OldSink)}, State1}
+            end
     end.
 
 -spec handle_update_sink(Arg, #?STATE{}) -> {reply, Result, #?STATE{}} when

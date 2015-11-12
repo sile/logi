@@ -104,6 +104,7 @@
 %% TODO: doc
 -type proc_ref() :: pid() | port() | atom() | {global, term()} | {via, module(), term()}.
 
+%% [SupRef::pid() | Args]
 -type mfargs() :: {Module::module(), Function::atom(), Args::[term()]}.
 
 -type agent_status() :: starting | running | stopping | stopped | not_exist.

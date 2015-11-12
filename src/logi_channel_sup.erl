@@ -1,6 +1,6 @@
 %% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc The supervisor for `logi_channel' processes
+%% @doc A supervisor of a `logi_channel' process and a `logi_agent_sup' process
 %% @private
 -module(logi_channel_sup).
 
@@ -9,8 +9,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([start_link/0]).
--export([start_child/1, stop_child/1, which_children/0]).
+-export([start_link/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'supervisor' Callback API
@@ -20,35 +19,19 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @doc Starts the supervisor
--spec start_link() -> {ok, pid()} | {error, Reason::term()}.
-start_link() ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
-
-%% @doc Starts a new channel process
--spec start_child(logi_channel:id()) -> {ok, pid()} | {error, Reason} when
-      Reason :: {already_started, pid()} | term().
-start_child(Channel) ->
-    Child = #{id => Channel, start => {logi_channel, start_link, [Channel]}},
-    supervisor:start_child(?MODULE, Child).
-
-%% @doc Stops a channel process which name is `Channel'
--spec stop_child(logi_channel:id()) -> ok.
-stop_child(Channel) ->
-    _ = supervisor:terminate_child(?MODULE, Channel),
-    _ = supervisor:delete_child(?MODULE, Channel),
-    ok.
-
-%% @doc Returns a channel list
--spec which_children() -> [logi_channel:id()].
-which_children() ->
-    [Id || {Id, _, _, _} <- supervisor:which_children(?MODULE)].
+%% @doc Starts a supervisor for the channel `Channel'
+-spec start_link(logi_channel:id()) -> {ok, pid()} | {error, Reason::term()}.
+start_link(Channel) ->
+    supervisor:start_link(?MODULE, [Channel]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'supervisor' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-init([]) ->
-    Default = logi_channel:default_channel(),
-    Child = #{id => Default, start => {logi_channel, start_link, [Default]}},
-    {ok, {#{}, [Child]}}.
+init([Channel]) ->
+    Children =
+        [
+         #{id => channel, start => {logi_channel, start_link, [Channel, self()]}},
+         #{id => agent_list_sup, start => {logi_agent_list_sup, start_link, []}, type => supervisor}
+        ],
+    {ok, {#{strategy => rest_for_one}, Children}}.
