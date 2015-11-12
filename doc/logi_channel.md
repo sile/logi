@@ -76,7 +76,7 @@ id() = atom()
 
 
 <pre><code>
-install_sink_option() = {id, <a href="logi_sink.md#type-id">logi_sink:id()</a>} | {channel, <a href="#type-id">id()</a>} | {lifetime, timeout() | pid()} | {if_exists, error | ignore | supersede}
+install_sink_option() = {id, <a href="logi_sink.md#type-id">logi_sink:id()</a>} | {channel, <a href="#type-id">id()</a>} | {if_exists, error | ignore | supersede}
 </code></pre>
 
  Let `Sink` be the sink which is subject of the installation.
@@ -88,11 +88,6 @@ install_sink_option() = {id, <a href="logi_sink.md#type-id">logi_sink:id()</a>} 
 `channel`:
 - The channel in which `Sink` will be installed
 - default: `logi_channel:default_channel()`
-
-`lifetime`:
-- The lifetime of `Sink`.
-- When `timeout()` expires or `pid()` exits, the sink will be automatically uninstalled from the channel.
-- default: `infinity`
 
 `if_exists`:
 - The confliction handling policy.

@@ -124,26 +124,6 @@ sink_test_() ->
                  %% invalid value
                  ?assertError(badarg, logi_channel:install_sink(debug, NullSink, [{channel, Channel}, {if_exists, undefined}]))
          end},
-        {"INSTALL: `lifetime` option",
-         fun () ->
-                 %% lifetime == 50
-                 {ok, undefined} = logi_channel:install_sink(debug, NullSink, [{channel, Channel}, {lifetime, 50}]),
-                 ?assertMatch({ok, _}, logi_channel:find_sink(SinkId, [{channel, Channel}])),
-                 timer:sleep(100),
-                 ?assertEqual(error, logi_channel:find_sink(SinkId, [{channel, Channel}])),
-
-                 %% lifetime == pid()
-                 {Pid, Ref} = spawn_monitor(timer, sleep, [infinity]),
-                 {ok, undefined} = logi_channel:install_sink(debug, NullSink, [{channel, Channel}, {lifetime, Pid}]),
-                 ?assertMatch({ok, _}, logi_channel:find_sink(SinkId, [{channel, Channel}])),
-                 exit(Pid, kill),
-                 receive {'DOWN', Ref, _, _, _} -> ok end,
-                 ?assertEqual(error, logi_channel:find_sink(SinkId, [{channel, Channel}])),
-
-                 %% invalid value
-                 ?assertError(badarg, logi_channel:install_sink(debug, NullSink, [{channel, Channel}, {lifetime, -1}])),
-                 ?assertError(badarg, logi_channel:install_sink(debug, NullSink, [{channel, Channel}, {lifetime, undefined}]))
-         end},
         {"update_sink/2",
          fun () ->
                  Update = fun (Options) -> logi_channel:update_sink(SinkId, [{channel, Channel} | Options]) end,

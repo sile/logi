@@ -100,17 +100,12 @@
 
 -record(sink,
         {
-          id                  :: logi_sink:id(),
-          condition           :: logi_sink:condition(),
-          instance            :: logi_sink:sink(),
-          lifetime_ref        :: lifetime_ref(),
-          cancel_lifetime_fun :: cancel_lifetime_fun()
+          id        :: logi_sink:id(),
+          condition :: logi_sink:condition(),
+          instance  :: logi_sink:sink()
         }).
 
 -type sinks() :: [#sink{}].
-
--type lifetime_ref() :: undefined | reference().
--type cancel_lifetime_fun() :: fun (() -> any()).
 
 -type id() :: atom().
 %% The identifier of a channel
@@ -119,7 +114,6 @@
 
 -type install_sink_option() :: {id, logi_sink:id()}
                              | {channel, id()}
-                             | {lifetime, timeout() | pid()}
                              | {if_exists, error | ignore | supersede}.
 %% Let `Sink' be the sink which is subject of the installation.
 %%
@@ -130,11 +124,6 @@
 %% `channel':
 %% - The channel in which `Sink' will be installed
 %% - default: `logi_channel:default_channel()'
-%%
-%% `lifetime':
-%% - The lifetime of `Sink'.
-%% - When `timeout()' expires or `pid()' exits, the sink will be automatically uninstalled from the channel.
-%% - default: `infinity'
 %%
 %% `if_exists':
 %% - The confliction handling policy.
@@ -216,13 +205,11 @@ install_sink(Condition, Sink, Options) ->
     Id       = proplists:get_value(id, Options, logi_sink:get_module(Sink)),
     Channel  = proplists:get_value(channel, Options, default_channel()),
     IfExists = proplists:get_value(if_exists, Options, error),
-    Lifetime = proplists:get_value(lifetime, Options, infinity),
     _ = is_atom(Id) orelse error(badarg, Args),
     _ = lists:member(IfExists, [error, ignore, supersede]) orelse error(badarg, Args),
-    _ = is_valid_lifetime(Lifetime) orelse error(badarg, Args),
 
     Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, Args),
-    gen_server:call(Pid, {install_sink, {Id, Sink, Condition, Lifetime, IfExists}}).
+    gen_server:call(Pid, {install_sink, {Id, Sink, Condition, IfExists}}).
 
 %% @equiv uninstall_sink(SinkId, [])
 -spec uninstall_sink(logi_sink:id()) -> uninstall_sink_result().
@@ -374,16 +361,16 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal Functions
 %%----------------------------------------------------------------------------------------------------------------------
 -spec handle_install_sink(Arg, #?STATE{}) -> {reply, Result, #?STATE{}} when
-      Arg      :: {logi_sink:id(), logi_sink:sink(), logi_sink:condition(), timeout() | pid(), IfExists},
+      Arg      :: {logi_sink:id(), logi_sink:sink(), logi_sink:condition(), IfExists},
       IfExists :: error | if_exists | supersede,
       Result   :: {ok, OldSink} | {error, Reason},
-      OldSink  :: undefined | logi_sink:sink(),
+      OldSink  :: undefined | installed_sink(),
       Reason   :: {already_installed, logi_sink:sink()}.
-handle_install_sink({SinkId, Sink, Condition, Lifetime, IfExists}, State0) ->
-    {OldSink, OldCondition, OldCancelLifetimeFun, Sinks} =
+handle_install_sink({SinkId, Sink, Condition, IfExists}, State0) ->
+    {OldSink, OldCondition, Sinks} =
         case lists:keytake(SinkId, #sink.id, State0#?STATE.sinks) of
-            false                     -> {undefined, [], fun () -> ok end, State0#?STATE.sinks};
-            {value, OldSink0, Sinks0} -> {OldSink0, OldSink0#sink.condition, OldSink0#sink.cancel_lifetime_fun, Sinks0}
+            false                     -> {undefined, [], State0#?STATE.sinks};
+            {value, OldSink0, Sinks0} -> {OldSink0, OldSink0#sink.condition, Sinks0}
         end,
     case OldSink =:= undefined orelse IfExists =:= supersede of
         false ->
@@ -392,16 +379,12 @@ handle_install_sink({SinkId, Sink, Condition, Lifetime, IfExists}, State0) ->
                 ignore -> {reply, {ok, to_installed_sink(OldSink)}, State0}
             end;
         true ->
-            _  = OldCancelLifetimeFun(),
             ok = logi_sink_table:register(State0#?STATE.table, SinkId, Sink, Condition, OldCondition),
-            {LifetimeRef, CancelLifetimeFun} = set_lifetime(Lifetime),
             Entry =
                 #sink{
-                   id                  = SinkId,
-                   condition           = Condition,
-                   instance            = Sink,
-                   lifetime_ref        = LifetimeRef,
-                   cancel_lifetime_fun = CancelLifetimeFun
+                   id        = SinkId,
+                   condition = Condition,
+                   instance  = Sink
                   },
             State1 = State0#?STATE{sinks = [Entry | Sinks]},
             {reply, {ok, to_installed_sink(OldSink)}, State1}
@@ -436,7 +419,6 @@ handle_uninstall_sink(SinkId, State0) ->
     case lists:keytake(SinkId, #sink.id, State0#?STATE.sinks) of
         false                -> {reply, error, State0};
         {value, Sink, Sinks} ->
-            _  = (Sink#sink.cancel_lifetime_fun)(),
             ok = logi_sink_table:deregister(State0#?STATE.table, SinkId, Sink#sink.condition),
             State1 = State0#?STATE{sinks = Sinks},
             {reply, {ok, to_installed_sink(Sink)}, State1}
@@ -450,28 +432,16 @@ handle_find_sink(SinkId, State) ->
     end.
 
 -spec handle_down(reference(), #?STATE{}) -> {noreply, #?STATE{}}.
-handle_down(Ref, State0) ->
-    case lists:keytake(Ref, #sink.lifetime_ref, State0#?STATE.sinks) of
-        false                -> {noreply, State0};
-        {value, Sink, Sinks} ->
-            ok = logi_sink_table:deregister(State0#?STATE.table, Sink#sink.id, Sink#sink.condition),
-            State1 = State0#?STATE{sinks = Sinks},
-            {noreply, State1}
-    end.
-
--spec set_lifetime(timeout() | pid()) -> {lifetime_ref(), cancel_lifetime_fun()}.
-set_lifetime(infinity)             -> {undefined, fun () -> ok end};
-set_lifetime(Pid) when is_pid(Pid) -> {monitor(process, Pid), fun erlang:demonitor/1};
-set_lifetime(Time)                 ->
-    TimeoutRef = make_ref(),
-    TimerRef = erlang:send_after(Time, self(), {'DOWN', TimeoutRef, timeout, undefined, timeout}),
-    {TimeoutRef, fun () -> erlang:cancel_timer(TimerRef, [{async, true}]) end}.
-
--spec is_valid_lifetime(timeout() | pid() | term()) -> boolean().
-is_valid_lifetime(infinity)                                                               -> true;
-is_valid_lifetime(Pid) when is_pid(Pid)                                                   -> true;
-is_valid_lifetime(Timeout) when is_integer(Timeout), Timeout >= 0, Timeout < 16#100000000 -> true;
-is_valid_lifetime(_)                                                                      -> false.
+handle_down(_Ref, State) ->
+    {noreply, State}.
+    %% TODO: delete
+    %% case lists:keytake(Ref, #sink.lifetime_ref, State0#?STATE.sinks) of
+    %%     false                -> {noreply, State0};
+    %%     {value, Sink, Sinks} ->
+    %%         ok = logi_sink_table:deregister(State0#?STATE.table, Sink#sink.id, Sink#sink.condition),
+    %%         State1 = State0#?STATE{sinks = Sinks},
+    %%         {noreply, State1}
+    %% end.
 
 -spec to_installed_sink(#sink{} | undefined) -> installed_sink().
 to_installed_sink(undefined) ->
