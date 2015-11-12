@@ -10,6 +10,7 @@
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([start_link/1]).
+-export([get_agent_list_sup/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'supervisor' Callback API
@@ -23,6 +24,13 @@
 -spec start_link(logi_channel:id()) -> {ok, pid()} | {error, Reason::term()}.
 start_link(Channel) ->
     supervisor:start_link(?MODULE, [Channel]).
+
+%% TODO
+get_agent_list_sup(SupPid) ->
+    case [Pid || {agent_list_sup, Pid, _, _} <- supervisor:which_children(SupPid), is_pid(Pid)] of
+        []    -> undefined;
+        [Pid] -> Pid
+    end.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'supervisor' Callback Functions

@@ -52,6 +52,7 @@
 -export([new/2, new/3, new/4]).
 -export([is_sink/1]).
 -export([get_module/1, get_layout/1, get_extra_data/1, get_agent_spec/1]).
+-export([set_extra/2]). % TODO:
 -export([normalize_condition/1]).
 -export([is_condition/1]).
 -export([is_callback_module/1]).
@@ -216,6 +217,9 @@ get_layout({_, Layout, _, _}) -> Layout.
 %% @doc Gets the extra data of `Sink'
 -spec get_extra_data(Sink :: sink()) -> extra_data().
 get_extra_data({_, _, ExtraData, _}) -> ExtraData.
+
+set_extra(Sink, Extra) ->
+    setelement(3, Sink, Extra).
 
 %% TODO:
 -spec get_agent_spec(Sink :: sink()) -> agent_spec().

@@ -104,8 +104,10 @@
           id            :: logi_sink:id(),
           condition     :: logi_sink:condition(),
           instance      :: logi_sink:sink(),
+          agent_sup     :: pid(),
           agent_pid     :: pid(),
-          agent_monitor :: reference()
+          agent_monitor :: reference(),
+          restart       :: logi_restart_strategy:strategy()
         }).
 
 -type sinks() :: [#sink{}].
@@ -303,7 +305,7 @@ which_sinks(Options) ->
 
     Channel = proplists:get_value(channel, Options, default_channel()),
     _ = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, [Options]),
-    logi_sink_table:which_sinks(Channel).
+    logi_sink_table:which_sinks(Channel). % TODO: via channel process
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Application Internal Functions
@@ -351,6 +353,7 @@ handle_cast(_, State) -> {noreply, State}.
 
 %% @private
 handle_info({'DOWN', Ref, _, _, _}, State) -> handle_down(Ref, State);
+handle_info({restart, SinkId},      State) -> handle_restart(SinkId, State);
 handle_info(_,                      State) -> {noreply, State}.
 
 %% @private
@@ -383,22 +386,81 @@ handle_install_sink({SinkId, Sink, Condition, IfExists}, State0) ->
                 ignore -> {reply, {ok, to_installed_sink(OldSink)}, State0}
             end;
         true ->
-            case {ok, self(), self()} of %start_agent_if_need(logi_sink:get_agent_spec(Sink)) of
-                %{error, Reason}              -> {reply, {error, {cannot_start_agent, Reason}}, State0}; % TODO: message
-                {ok, AgentPid, AgentMonitor} ->
-                    ok = logi_sink_table:register(State0#?STATE.table, SinkId, Sink, Condition, OldCondition),
+            case start_agent_if_need(logi_sink:get_agent_spec(Sink), State0) of
+                {error, Reason}                    -> {reply, {error, {cannot_start_agent, Reason}}, State0}; % TODO: msg
+                {ok, AgentSupPid, AgentPid, Extra} ->
+                    Sink1 = logi_sink:set_extra(Sink, Extra),
+                    ok = logi_sink_table:register(State0#?STATE.table, SinkId, Sink1, Condition, OldCondition),
                     Entry =
                         #sink{
                            id            = SinkId,
                            condition     = Condition,
-                           instance      = Sink,
+                           instance      = Sink1,
+                           agent_sup     = AgentSupPid,
                            agent_pid     = AgentPid,
-                           agent_monitor = AgentMonitor
+                           agent_monitor = monitor(process, AgentPid),
+                           restart       = maps:get(restart, logi_sink:get_agent_spec(Sink1))
                           },
                     State1 = State0#?STATE{sinks = [Entry | Sinks]},
                     {reply, {ok, to_installed_sink(OldSink)}, State1}
             end
     end.
+
+%% TODO:
+handle_restart(SinkId, State0) ->
+    %% TODO: cancel_timer when the sink is uninstalled (or generation check)
+    case lists:keytake(SinkId, #sink.id, State0#?STATE.sinks) of
+        false                -> {noreply, State0};
+        {value, Sink, Sinks} ->
+            case start_agent_if_need(logi_sink:get_agent_spec(Sink#sink.instance), State0) of
+                {error, _Reason} ->
+                    handle_restart(Sink#sink.agent_monitor, State0);
+                {ok, AgentSupPid, AgentPid, Extra} ->
+                    %% TODO: Restart = logi_restart_strategy:suceeded(...)
+                    Sink1 = logi_sink:set_extra(Sink#sink.instance, Extra),
+                    ok = logi_sink_table:register(State0#?STATE.table, SinkId, Sink1, Sink#sink.condition, []),
+                    Entry =
+                        Sink#sink{
+                          instance      = Sink1,
+                          agent_sup     = AgentSupPid,
+                          agent_pid     = AgentPid,
+                          agent_monitor = monitor(process, AgentPid)
+                         },
+                    State1 = State0#?STATE{sinks = [Entry | Sinks]},
+                    {reply, State1}
+            end
+    end.
+
+%% TODO: return extra-data
+-spec start_agent_if_need(logi_sink:agent_spec(), #?STATE{}) ->
+                                 {ok, pid(), pid(), logi_sink:extra_data()} | {error, Reason::term()}.
+start_agent_if_need(#{start := ignore}, _) ->
+    {ok, self(), self(), undefined};
+start_agent_if_need(#{start := {ignore, ExtraData}}, _) ->
+    {ok, self(), self(), ExtraData};
+start_agent_if_need(#{start := {external, ProcRef}}, _) ->
+    case where(ProcRef) of
+        undefined -> {error, {not_such_process, ProcRef}};
+        Pid       -> {ok, self(), Pid, undefined}
+    end;
+start_agent_if_need(#{start := {external, ProcRef, ExtraData}}, _) ->
+    case where(ProcRef) of
+        undefined -> {error, {not_such_process, ProcRef}};
+        Pid       -> {ok, self(), Pid, ExtraData}
+    end;
+start_agent_if_need(#{start := Start, shutdown := Shutdown}, #?STATE{supervisor = Sup}) ->
+    %% TODO: try catche(?)
+    case logi_channel_sup:get_agent_list_sup(Sup) of
+        undefined    -> {error, agent_list_sup_restarting};
+        AgentListSup -> logi_agent_list_sup:start_agent(AgentListSup, Start, Shutdown)
+    end.
+
+-spec where(logi_sink:proc_ref()) -> pid() | undefined.
+where(X) when is_pid(X) -> X;
+where(X) when is_port(X) -> X;
+where(X) when is_atom(X) -> whereis(X);
+where({global, X}) -> global:whereis_name(X);
+where({via, M, X}) -> M:whereis_name(X).
 
 -spec handle_update_sink(Arg, #?STATE{}) -> {reply, Result, #?STATE{}} when
       Arg    :: {logi_sink:id(), logi_sink:sink(), logi_sink:condition()},
@@ -430,8 +492,19 @@ handle_uninstall_sink(SinkId, State0) ->
         false                -> {reply, error, State0};
         {value, Sink, Sinks} ->
             ok = logi_sink_table:deregister(State0#?STATE.table, SinkId, Sink#sink.condition),
+            ok = stop_agent_if_need(Sink, State0),
+            _ = demonitor(Sink#sink.agent_monitor, [flush]),
             State1 = State0#?STATE{sinks = Sinks},
             {reply, {ok, to_installed_sink(Sink)}, State1}
+    end.
+
+-spec stop_agent_if_need(#sink{}, #?STATE{}) -> ok.
+stop_agent_if_need(#sink{agent_sup = Pid}, _) when Pid =:= self() ->
+    ok;
+stop_agent_if_need(#sink{agent_sup = AgentSup}, #?STATE{supervisor = SupPid}) ->
+    case logi_channel_sup:get_agent_list_sup(SupPid) of
+        undefined    -> ok;
+        AgentListSup -> logi_agent_list_sup:stop_agent(AgentListSup, AgentSup)
     end.
 
 -spec handle_find_sink(logi_sink:id(), #?STATE{}) -> {reply, {ok, installed_sink()} | error, #?STATE{}}.
@@ -442,16 +515,25 @@ handle_find_sink(SinkId, State) ->
     end.
 
 -spec handle_down(reference(), #?STATE{}) -> {noreply, #?STATE{}}.
-handle_down(_Ref, State) ->
-    {noreply, State}.
-    %% TODO: delete
-    %% case lists:keytake(Ref, #sink.lifetime_ref, State0#?STATE.sinks) of
-    %%     false                -> {noreply, State0};
-    %%     {value, Sink, Sinks} ->
-    %%         ok = logi_sink_table:deregister(State0#?STATE.table, Sink#sink.id, Sink#sink.condition),
-    %%         State1 = State0#?STATE{sinks = Sinks},
-    %%         {noreply, State1}
-    %% end.
+handle_down(Ref, State0) ->
+    case lists:keytake(Ref, #sink.agent_monitor, State0#?STATE.sinks) of
+        false                -> {noreply, State0};
+        {value, Sink, Sinks} ->
+            case logi_restart_strategy:next(Sink#sink.restart) of
+                {uninstall_sink, _Reason} ->
+                    ok = logi_sink_table:deregister(State0#?STATE.table, Sink#sink.id, Sink#sink.condition),
+                    ok = stop_agent_if_need(Sink, State0),
+
+                    State1 = State0#?STATE{sinks = Sinks},
+                    {noreply, State1};
+                {ok, Timeout, Restart} -> % TODO: handle infinity
+                    ok = logi_sink_table:deregister(State0#?STATE.table, Sink#sink.id, Sink#sink.condition),
+                    _ = erlang:send_after(Timeout, self(), {restart, Sink#sink.id}),
+                    Sink1 = Sink#sink{restart = Restart},
+                    State1 = State0#?STATE{sinks = [Sink1 | Sinks]},
+                    {noreply, State1}
+            end
+    end.
 
 -spec to_installed_sink(#sink{} | undefined) -> installed_sink().
 to_installed_sink(undefined) ->
