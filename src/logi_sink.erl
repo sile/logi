@@ -223,7 +223,13 @@ set_extra(Sink, Extra) ->
 
 %% TODO:
 -spec get_agent_spec(Sink :: sink()) -> agent_spec().
-get_agent_spec({_, _, _, AgentSpec}) -> AgentSpec.
+get_agent_spec({_, _, Extra, AgentSpec}) ->
+    Default = #{
+      start => {ignore, Extra},
+      restart => logi_builtin_restart_strategy_constant:new(10 * 1000),
+      shutdown => 1000
+     },
+    maps:merge(Default, AgentSpec).
 
 %% @doc Returns a normalized form of `Condition'
 -spec normalize_condition(Condition :: condition()) -> normalized_condition().
