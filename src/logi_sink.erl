@@ -49,37 +49,45 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/2, new/3, new/4]).
--export([is_sink/1]).
+-export([new/3]).
+-export([instantiate/2]).
+-export([is_sink/1, is_spec/1]).
 -export([get_module/1, get_layout/1, get_extra_data/1, get_agent_spec/1]).
--export([set_extra/2]). % TODO:
 -export([normalize_condition/1]).
 -export([is_condition/1]).
 -export([is_callback_module/1]).
 
 -export([write/4]).
 
--export_type([sink/0]).
 -export_type([id/0]).
+-export_type([sink/0]).
+-export_type([spec/0]).
 -export_type([callback_module/0]).
 -export_type([condition/0, severity_condition/0, location_condition/0, normalized_condition/0]).
 -export_type([extra_data/0]).
-
--export_type([agent_spec/0]).
--export_type([agent_start_result/0]).
--export_type([agent_status/0]).
--export_type([mfargs/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Behaviour Callbacks
 %%----------------------------------------------------------------------------------------------------------------------
 -callback write(logi_context:context(), logi_layout:formatted_data(), extra_data()) -> any().
-%% TODO: whereis_agent() -> pid() | undefined.
+-callback whereis_agent(extra_data()) -> pid() | undefined.
 
 %%----------------------------------------------------------------------------------------------------------------------
-%% Types
+%% Macros & Records & Types
 %%----------------------------------------------------------------------------------------------------------------------
--opaque sink() :: {callback_module(), logi_layout:layout(), extra_data(), agent_spec()}. % TODO: fix
+-define(SPEC, logi_sink_spec).
+
+-record(?SPEC,
+        {
+          module     :: callback_module(),
+          layout     :: logi_layout:layout(),
+          agent_spec :: logi_agent:spec()
+        }).
+
+-opaque spec() :: #?SPEC{}.
+%% A sink specification
+
+-opaque sink() :: {callback_module(), logi_layout:layout(), extra_data()}.
 %% A sink instance.
 
 -type id() :: atom().
@@ -95,23 +103,6 @@
 %% NOTE:
 %% This value will be loaded from ETS every time the `write/4' is called.
 %% Therefore, very huge data can cause a performance issue.
-
--type agent_spec() ::
-        #{
-           start => mfargs() | {external, proc_ref()} | {external, proc_ref(), extra_data()} | ignore | {ignore, extra_data()},
-           restart => logi_restart_strategy:strategy(),
-           shutdown => timeout() | brutal_kill
-         }.
-%% TODO: doc
--type proc_ref() :: pid() | port() | atom() | {global, term()} | {via, module(), term()}.
-
-%% [SupRef::pid() | Args]
--type mfargs() :: {Module::module(), Function::atom(), Args::[term()]}.
-
--type agent_status() :: starting | running | stopping | stopped | not_exist.
--type agent_start_result() :: {ok, pid()}
-                            | {ok, pid(), extra_data()}
-                            | {error, term()}.
 
 -type condition() :: severity_condition() | location_condition().
 %% The condition to determine which messages to be consumed by a sink.
@@ -184,52 +175,52 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @equiv new(Module, Layout, undefined)
--spec new(callback_module(), logi_layout:layout()) -> sink().
-new(Module, Layout) -> new(Module, Layout, undefined).
+%% @doc TODO:
+-spec new(callback_module(), logi_layout:layout(), logi_agent:spec()) -> spec().
+new(Module, Layout, AgentSpec) ->
+    _ = is_callback_module(Module) orelse error(badarg, [Module, Layout, AgentSpec]),
+    _ = logi_layout:is_layout(Layout) orelse error(badarg, [Module, Layout, AgentSpec]),
+    _ = logi_agent:is_spec(AgentSpec) orelse error(badarg, [Module, Layout, AgentSpec]),
+    #?SPEC{module = Module, layout = Layout, agent_spec = AgentSpec}.
 
-%% @doc Creates a new sink instance
--spec new(callback_module(), logi_layout:layout(), extra_data()) -> sink().
-new(Module, Layout, ExtraData) ->
-    new(Module, Layout, ExtraData, #{}).
+%% @doc TODO
+-spec instantiate(spec(), pid()) -> {ok, sink(), logi_agent:agent()} | {error, Reason::term()}.
+instantiate(Spec, ParentSup) ->
+    _ = is_spec(Spec) orelse error(badarg, [Spec, ParentSup]),
+    _ = is_pid(ParentSup) orelse error(badarg, [Spec, ParentSup]),
+    case logi_agent:start_agent_if_need(Spec#?SPEC.agent_spec, ParentSup) of
+        {error, Reason}        -> {error, Reason};
+        {ok, Agent, ExtraData} ->
+            Sink = {Spec#?SPEC.module, Spec#?SPEC.layout, ExtraData},
+            {ok, Sink, Agent}
+    end.
 
-%% TODO:
--spec new(callback_module(), logi_layout:layout(), extra_data(), agent_spec()) -> sink().
-new(Module, Layout, ExtraData, AgentSpec) ->
-    %% TODO: validate AgentSpec
-    _ = is_callback_module(Module) orelse error(badarg, [Module, Layout, ExtraData]),
-    _ = logi_layout:is_layout(Layout) orelse error(badarg, [Module, Layout, ExtraData]),
-    {Module, Layout, ExtraData, AgentSpec}.
+%% @doc Records `true' if `X' is a sink specification, otherwise `false'
+-spec is_spec(X :: (spec() | term())) -> boolean().
+is_spec(X) -> is_record(X, ?SPEC).
 
-%% @doc Returns `true' if `X' is a sink, otherwise `false'
+%% @doc Returns `true' if `X' is a sink instance, otherwise `false'
 -spec is_sink(X :: (sink() | term())) -> boolean().
-is_sink({Module, _, _, _}) -> is_callback_module(Module);
-is_sink(_)                 -> false.
+is_sink({Module, Layout, _}) -> is_callback_module(Module) andalso logi_layout:is_layout(Layout);
+is_sink(_)                   -> false.
 
 %% @doc Gets the module of `Sink'
--spec get_module(Sink :: sink()) -> callback_module().
-get_module({Module, _, _, _}) -> Module.
+-spec get_module(Sink :: (sink() | spec())) -> callback_module().
+get_module(#?SPEC{module = Module}) -> Module;
+get_module({Module, _, _})          -> Module.
 
 %% @doc Gets the layout of `Sink'
--spec get_layout(Sink :: sink()) -> logi_layout:layout().
-get_layout({_, Layout, _, _}) -> Layout.
+-spec get_layout(Sink :: (sink() | spec())) -> logi_layout:layout().
+get_layout(#?SPEC{layout = Layout}) -> Layout;
+get_layout({_, Layout, _})          -> Layout.
+
+%% @doc Gets the agent spec of `Sink'
+-spec get_agent_spec(Sink :: spec()) -> logi_agent:spec().
+get_agent_spec(#?SPEC{agent_spec = AgentSpec}) -> AgentSpec.
 
 %% @doc Gets the extra data of `Sink'
 -spec get_extra_data(Sink :: sink()) -> extra_data().
-get_extra_data({_, _, ExtraData, _}) -> ExtraData.
-
-set_extra(Sink, Extra) ->
-    setelement(3, Sink, Extra).
-
-%% TODO:
--spec get_agent_spec(Sink :: sink()) -> agent_spec().
-get_agent_spec({_, _, Extra, AgentSpec}) ->
-    Default = #{
-      start => {ignore, Extra},
-      restart => logi_builtin_restart_strategy_constant:new(10 * 1000),
-      shutdown => 1000
-     },
-    maps:merge(Default, AgentSpec).
+get_extra_data({_, _, ExtraData}) -> ExtraData.
 
 %% @doc Returns a normalized form of `Condition'
 -spec normalize_condition(Condition :: condition()) -> normalized_condition().
@@ -243,13 +234,16 @@ is_condition(X)                -> is_severity_condition(X).
 
 %% @doc Returns `true' if `X' is a module which implements the `sink' behaviour, otherwise `false'
 -spec is_callback_module(X :: (callback_module() | term())) -> boolean().
-is_callback_module(X) -> is_atom(X) andalso logi_utils:function_exported(X, write, 3).
+is_callback_module(X) ->
+    (is_atom(X) andalso
+     logi_utils:function_exported(X, write, 3) andalso
+     logi_utils:function_exported(X, whereis_agent, 1)).
 
 %% @doc Writes a log message
 %%
 %% If it fails to write, an exception will be raised.
 -spec write(logi_context:context(), io:format(), logi_layout:data(), sink()) -> any().
-write(Context, Format, Data, {Module, Layout, ExtraData, _}) ->
+write(Context, Format, Data, {Module, Layout, ExtraData}) ->
     FormattedData = logi_layout:format(Context, Format, Data, Layout),
     Module:write(Context, FormattedData, ExtraData).
 

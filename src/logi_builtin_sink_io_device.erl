@@ -48,6 +48,7 @@
 %% 'logi_sink' Callback API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([write/3]).
+-export([whereis_agent/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
@@ -79,3 +80,7 @@ new(Options) ->
 %% @private
 write(_Context, FormattedData, IoDevice) ->
     io:put_chars(IoDevice, FormattedData).
+
+%% @private
+whereis_agent(IoDevice) when is_pid(IoDevice) -> IoDevice;
+whereis_agent(IoDevice)                       -> whereis(IoDevice).
