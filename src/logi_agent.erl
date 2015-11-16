@@ -15,7 +15,7 @@
 -export([get_restart/1]).
 -export([get_start/1]).
 
--export([start_agent/1]).
+-export([start_agent/2]).
 -export([whereis_name/1]).
 
 -export_type([spec/0]).
@@ -101,16 +101,16 @@ get_restart(#opaque_agent{})                    -> logi_builtin_restart_strategy
 get_start(#agent_spec{start = Start}) -> Start;
 get_start(_)                          -> undefined.
 
--spec start_agent(spec()) -> {ok, pid(), logi_sink:extra_data()} | {error, Reason::term()} | {ignore, logi_sink:extra_data()}.
-start_agent(#opaque_agent{extra_data = ExtraData}) ->
+-spec start_agent(spec(), pid()) -> {ok, pid(), logi_sink:extra_data()} | {error, Reason::term()} | {ignore, logi_sink:extra_data()}.
+start_agent(#opaque_agent{extra_data = ExtraData}, _) ->
     {ignore, ExtraData};
-start_agent(#external_agent{agent_ref = AgentRef, extra_data = ExtraData}) ->
+start_agent(#external_agent{agent_ref = AgentRef, extra_data = ExtraData}, _) ->
     case whereis_name(AgentRef) of
         undefined -> {error, {external_agent_not_found, AgentRef}};
         AgentPid  -> {ok, AgentPid, ExtraData}
     end;
-start_agent(#agent_spec{start = {M, F, Args}}) ->
-    case (catch apply(M, F, Args)) of
+start_agent(#agent_spec{start = {M, F, Args}}, AgentSup) ->
+    case (catch apply(M, F, [AgentSup | Args])) of
         {ok, Pid}            -> {ok, Pid, undefined};
         {ok, Pid, ExtraData} -> {ok, Pid, ExtraData};
         {error, Reason}      -> {error, Reason};

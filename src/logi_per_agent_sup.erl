@@ -33,7 +33,7 @@
           agent_spec :: logi_agent:spec(),
           agent_pid :: pid() | undefined,
           listener_pid :: pid(),
-          child_agent_sup :: pid() | undefined,
+          child_agent_sup :: pid() | undefined, % TODO: ensure to be pid (for logi_agent:start_agent/2)
           restart :: logi_restart_strategy:strategy()
         }).
 
@@ -62,13 +62,16 @@ which_children(SupPid) ->
 %% @private
 init([Listener, AgentSpec]) ->
     _ = process_flag(trap_exit, true),
-    case logi_agent:start_agent(AgentSpec) of
-        {error, Reason}      -> {stop, Reason};
+    {ok, ChildAgentSup} = logi_agent_sup:start_link(),
+    case logi_agent:start_agent(AgentSpec, ChildAgentSup) of
+        {error, Reason}      ->
+            _ = exit(ChildAgentSup, shutdown), % TODO
+            {stop, Reason};
         {ignore, ExtraData}  ->
             _ = notify_extra_data(ExtraData, Listener),
+            _ = exit(ChildAgentSup, shutdown), % TODO
             ignore;
         {ok, Pid, ExtraData} ->
-            {ok, ChildAgentSup} = logi_agent_sup:start_link(),
             _ = monitor(process, Pid),
             _ = report_progress(Pid, AgentSpec),
             State =
@@ -151,7 +154,7 @@ handle_exit(_, Reason, State) ->
 
 -spec handle_restart_agent(#?STATE{}) -> {noreply, #?STATE{}} | {stop, term(), #?STATE{}}.
 handle_restart_agent(State0) ->
-    case logi_agent:start_agent(State0#?STATE.agent_spec) of
+    case logi_agent:start_agent(State0#?STATE.agent_spec, State0#?STATE.child_agent_sup) of
         {error, Reason} ->
             case schedule_restart(State0) of
                 stop         -> {stop, Reason, State0};
