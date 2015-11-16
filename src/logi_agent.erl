@@ -16,6 +16,7 @@
 -export([get_start/1]).
 
 -export([start_agent/1]).
+-export([whereis_name/1]).
 
 -export_type([spec/0]).
 -export_type([mfargs/0]).
@@ -116,6 +117,13 @@ start_agent(#agent_spec{start = {M, F, Args}}) ->
         Other                -> {error, Other}
     end.
 
+-spec whereis_name(proc_ref()) -> pid() | undefined.
+whereis_name(X) when is_pid(X)  -> X;
+whereis_name(X) when is_atom(X) -> whereis(X);
+whereis_name({global, X})       -> global:whereis_name(X);
+whereis_name({via, Module, X})  -> Module:whereis_name(X);
+whereis_name({ResolveFn, X})    -> ResolveFn(X).
+
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
 %%----------------------------------------------------------------------------------------------------------------------
@@ -133,10 +141,3 @@ is_proc_ref({global, _})      -> true;
 is_proc_ref({via, Module, _}) -> is_atom(Module);
 is_proc_ref({ResolveFn, _})   -> is_function(ResolveFn, 1);
 is_proc_ref(X)                -> is_pid(X) orelse is_atom(X).
-
--spec whereis_name(proc_ref()) -> pid() | undefined.
-whereis_name(X) when is_pid(X)  -> X;
-whereis_name(X) when is_atom(X) -> whereis(X);
-whereis_name({global, X})       -> global:whereis_name(X);
-whereis_name({via, Module, X})  -> Module:whereis_name(X);
-whereis_name({ResolveFn, X})    -> ResolveFn(X).

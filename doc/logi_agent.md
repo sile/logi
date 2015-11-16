@@ -77,7 +77,7 @@ start_result() = {ok, pid()} | {ok, pid(), <a href="logi_sink.md#type-extra_data
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_restart-1">get_restart/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_shutdown-1">get_shutdown/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_start-1">get_start/1</a></td><td></td></tr><tr><td valign="top"><a href="#is_spec-1">is_spec/1</a></td><td></td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td></td></tr><tr><td valign="top"><a href="#new_external-3">new_external/3</a></td><td></td></tr><tr><td valign="top"><a href="#new_opaque-1">new_opaque/1</a></td><td></td></tr><tr><td valign="top"><a href="#start_agent-1">start_agent/1</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_restart-1">get_restart/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_shutdown-1">get_shutdown/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_start-1">get_start/1</a></td><td></td></tr><tr><td valign="top"><a href="#is_spec-1">is_spec/1</a></td><td></td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td></td></tr><tr><td valign="top"><a href="#new_external-3">new_external/3</a></td><td></td></tr><tr><td valign="top"><a href="#new_opaque-1">new_opaque/1</a></td><td></td></tr><tr><td valign="top"><a href="#start_agent-1">start_agent/1</a></td><td></td></tr><tr><td valign="top"><a href="#whereis_name-1">whereis_name/1</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -153,6 +153,15 @@ new_opaque(ExtraData::<a href="logi_sink.md#type-extra_data">logi_sink:extra_dat
 
 <pre><code>
 start_agent(Opaque_agent::<a href="#type-spec">spec()</a>) -&gt; {ok, pid(), <a href="logi_sink.md#type-extra_data">logi_sink:extra_data()</a>} | {error, Reason::term()} | {ignore, <a href="logi_sink.md#type-extra_data">logi_sink:extra_data()</a>}
+</code></pre>
+<br />
+
+<a name="whereis_name-1"></a>
+
+### whereis_name/1 ###
+
+<pre><code>
+whereis_name(X::<a href="#type-proc_ref">proc_ref()</a>) -&gt; pid() | undefined
 </code></pre>
 <br />
 
