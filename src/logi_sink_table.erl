@@ -40,19 +40,19 @@ delete(Table) ->
     ok.
 
 %% @doc Registers an sink
--spec register(table(), logi_sink:id(), logi_sink:sink(), logi_sink:condition(), logi_sink:condition()) -> ok.
+-spec register(table(), logi_sink:id(), logi_sink:sink(), logi_condition:condition(), logi_condition:condition()) -> ok.
 register(Table, SinkId, Sink, NewCondition, OldCondition) ->
-    {Added, _, Deleted} = diff(logi_sink:normalize_condition(NewCondition),
-                               logi_sink:normalize_condition(OldCondition)),
+    {Added, _, Deleted} = diff(logi_condition:normalize(NewCondition),
+                               logi_condition:normalize(OldCondition)),
     ok = insert_sink(Table, SinkId, Sink),
     ok = index_condition(Table, SinkId, Added),
     ok = deindex_condition(Table, SinkId, Deleted),
     ok.
 
 %% @doc Deregisters an sink
--spec deregister(table(), logi_sink:id(), logi_sink:condition()) -> ok.
+-spec deregister(table(), logi_sink:id(), logi_condition:condition()) -> ok.
 deregister(Table, SinkId, Condition) ->
-    ok = deindex_condition(Table, SinkId, logi_sink:normalize_condition(Condition)),
+    ok = deindex_condition(Table, SinkId, logi_condition:normalize(Condition)),
     ok = delete_sink(Table, SinkId),
     ok.
 
@@ -102,7 +102,7 @@ delete_sink(Table, SinkId) ->
     _ = ets:delete(Table, SinkId),
     ok.
 
--spec index_condition(table(), logi_sink:id(), logi_sink:normalized_condition()) -> ok.
+-spec index_condition(table(), logi_sink:id(), logi_condition:normalized_condition()) -> ok.
 index_condition(_Table, _SinkId, []) ->
     ok;
 index_condition(Table, SinkId, [S | Condition]) when is_atom(S) ->
@@ -118,7 +118,7 @@ index_condition(Table, SinkId, [{S, A, M} | Condition]) ->
     ok = push_sink_id(Table, {S, A, M}, SinkId),
     index_condition(Table, SinkId, Condition).
 
--spec deindex_condition(table(), logi_sink:id(), logi_sink:normalized_condition()) -> ok.
+-spec deindex_condition(table(), logi_sink:id(), logi_condition:normalized_condition()) -> ok.
 deindex_condition(_Table, _SinkId, []) ->
     ok;
 deindex_condition(Table, SinkId, [S | Condition]) when is_atom(S) ->

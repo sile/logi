@@ -102,7 +102,7 @@
 -record(sink,
         {
           id        :: logi_sink:id(),
-          condition :: logi_sink:condition(),
+          condition :: logi_condition:condition(),
           spec      :: logi_sink:spec(),
           instance  :: logi_sink:sink() | restarting,
           agent_pid :: pid(),
@@ -152,7 +152,7 @@
 %%
 %% The function returns `{ok, Sink}' if the specified sink exists in the channel, `error' otherwise.
 
--type installed_sink() :: {logi_sink:condition(), logi_sink:spec(), logi_sink:sink() | restarting}.
+-type installed_sink() :: {logi_condition:condition(), logi_sink:spec(), logi_sink:sink() | restarting}.
 %% The information of an installed sink
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -195,14 +195,14 @@ delete(Channel)                       -> error(badarg, [Channel]).
 which_channels() -> logi_channel_sup:which_children().
 
 %% @equiv install_sink(Condition, Sink, [])
--spec install_sink(logi_sink:condition(), logi_sink:sink()) -> install_sink_result().
+-spec install_sink(logi_condition:condition(), logi_sink:sink()) -> install_sink_result().
 install_sink(Condition, Sink) -> install_sink(Condition, Sink, []).
 
 %% @doc Installs `Sink'
--spec install_sink(logi_sink:condition(), logi_sink:sink(), install_sink_options()) -> install_sink_result().
+-spec install_sink(logi_condition:condition(), logi_sink:sink(), install_sink_options()) -> install_sink_result().
 install_sink(Condition, Sink, Options) ->
     Args = [Condition, Sink, Options],
-    _ = logi_sink:is_condition(Condition) orelse error(badarg, Args),
+    _ = logi_condition:is_condition(Condition) orelse error(badarg, Args),
     _ = logi_sink:is_spec(Sink) orelse error(badarg, Args),
     _ = is_list(Options) orelse error(badarg, Args),
 
@@ -234,19 +234,19 @@ uninstall_sink(SinkId, Options) ->
     gen_server:call(Pid, {uninstall_sink, SinkId}).
 
 %% @equiv set_sink_condition(SinkId, Condition, [])
--spec set_sink_condition(logi_sink:id(), logi_sink:condition()) -> {ok, Old::logi_sink:condition()} | error.
+-spec set_sink_condition(logi_sink:id(), logi_condition:condition()) -> {ok, Old::logi_condition:condition()} | error.
 set_sink_condition(SinkId, Condition) ->
     set_sink_condition(SinkId, Condition, []).
 
 %% @doc TODO
--spec set_sink_condition(logi_sink:id(), logi_sink:condition(), Options) -> {ok, Old} | error when
+-spec set_sink_condition(logi_sink:id(), logi_condition:condition(), Options) -> {ok, Old} | error when
       Options :: [Option],
       Option  :: {channel, id()},
-      Old     :: logi_sink:condition().
+      Old     :: logi_condition:condition().
 set_sink_condition(SinkId, Condition, Options) ->
     Args = [SinkId, Condition, Options],
     _ = is_atom(SinkId) orelse error(badarg, Args),
-    _ = logi_sink:is_condition(Condition) orelse error(badarg, Args),
+    _ = logi_condition:is_condition(Condition) orelse error(badarg, Args),
     _ = is_list(Options) orelse error(badarg, Args),
 
     Channel = proplists:get_value(channel, Options, default_channel()),
@@ -353,7 +353,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal Functions
 %%----------------------------------------------------------------------------------------------------------------------
 -spec handle_install_sink(Arg, #?STATE{}) -> {reply, Result, #?STATE{}} when
-      Arg      :: {logi_sink:id(), logi_sink:spec(), logi_sink:condition(), IfExists},
+      Arg      :: {logi_sink:id(), logi_sink:spec(), logi_condition:condition(), IfExists},
       IfExists :: error | if_exists | supersede,
       Result   :: {ok, OldSink} | {error, Reason},
       OldSink  :: undefined | installed_sink(),
@@ -397,8 +397,8 @@ handle_install_sink({SinkId, SinkSpec, Condition, IfExists}, State0) ->
     end.
 
 -spec handle_set_sink_condition(Arg, #?STATE{}) -> {reply, Result, #?STATE{}} when
-      Arg    :: {logi_sink:id(), New::logi_sink:condition()},
-      Result :: {ok, Old::logi_sink:condition()} | error.
+      Arg    :: {logi_sink:id(), New::logi_condition:condition()},
+      Result :: {ok, Old::logi_condition:condition()} | error.
 handle_set_sink_condition({SinkId, Condition}, State0) ->
     case lists:keytake(SinkId, #sink.id, State0#?STATE.sinks) of
         false                 -> {reply, error, State0};

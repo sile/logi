@@ -130,7 +130,7 @@ Otherwise the result value depends on the value of the `if_exists` option
 
 
 <pre><code>
-installed_sink() = {<a href="logi_sink.md#type-condition">logi_sink:condition()</a>, <a href="logi_sink.md#type-spec">logi_sink:spec()</a>, <a href="logi_sink.md#type-sink">logi_sink:sink()</a> | restarting}
+installed_sink() = {<a href="logi_condition.md#type-condition">logi_condition:condition()</a>, <a href="logi_sink.md#type-spec">logi_sink:spec()</a>, <a href="logi_sink.md#type-sink">logi_sink:sink()</a> | restarting}
 </code></pre>
 
  The information of an installed sink
@@ -233,7 +233,7 @@ The default value of the `channel` option is `logi_channel:default_channel()`.
 ### install_sink/2 ###
 
 <pre><code>
-install_sink(Condition::<a href="logi_sink.md#type-condition">logi_sink:condition()</a>, Sink::<a href="logi_sink.md#type-sink">logi_sink:sink()</a>) -&gt; <a href="#type-install_sink_result">install_sink_result()</a>
+install_sink(Condition::<a href="logi_condition.md#type-condition">logi_condition:condition()</a>, Sink::<a href="logi_sink.md#type-sink">logi_sink:sink()</a>) -&gt; <a href="#type-install_sink_result">install_sink_result()</a>
 </code></pre>
 <br />
 
@@ -244,7 +244,7 @@ Equivalent to [`install_sink(Condition, Sink, [])`](#install_sink-3).
 ### install_sink/3 ###
 
 <pre><code>
-install_sink(Condition::<a href="logi_sink.md#type-condition">logi_sink:condition()</a>, Sink::<a href="logi_sink.md#type-sink">logi_sink:sink()</a>, Options::<a href="#type-install_sink_options">install_sink_options()</a>) -&gt; <a href="#type-install_sink_result">install_sink_result()</a>
+install_sink(Condition::<a href="logi_condition.md#type-condition">logi_condition:condition()</a>, Sink::<a href="logi_sink.md#type-sink">logi_sink:sink()</a>, Options::<a href="#type-install_sink_options">install_sink_options()</a>) -&gt; <a href="#type-install_sink_result">install_sink_result()</a>
 </code></pre>
 <br />
 
@@ -255,7 +255,7 @@ Installs `Sink`
 ### set_sink_condition/2 ###
 
 <pre><code>
-set_sink_condition(SinkId::<a href="logi_sink.md#type-id">logi_sink:id()</a>, Condition::<a href="logi_sink.md#type-condition">logi_sink:condition()</a>) -&gt; {ok, Old::<a href="logi_sink.md#type-condition">logi_sink:condition()</a>} | error
+set_sink_condition(SinkId::<a href="logi_sink.md#type-id">logi_sink:id()</a>, Condition::<a href="logi_condition.md#type-condition">logi_condition:condition()</a>) -&gt; {ok, Old::<a href="logi_condition.md#type-condition">logi_condition:condition()</a>} | error
 </code></pre>
 <br />
 
@@ -266,10 +266,10 @@ Equivalent to [`set_sink_condition(SinkId, Condition, [])`](#set_sink_condition-
 ### set_sink_condition/3 ###
 
 <pre><code>
-set_sink_condition(SinkId::<a href="logi_sink.md#type-id">logi_sink:id()</a>, Condition::<a href="logi_sink.md#type-condition">logi_sink:condition()</a>, Options) -&gt; {ok, Old} | error
+set_sink_condition(SinkId::<a href="logi_sink.md#type-id">logi_sink:id()</a>, Condition::<a href="logi_condition.md#type-condition">logi_condition:condition()</a>, Options) -&gt; {ok, Old} | error
 </code></pre>
 
-<ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {channel, <a href="#type-id">id()</a>}</code></li><li><code>Old = <a href="logi_sink.md#type-condition">logi_sink:condition()</a></code></li></ul>
+<ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {channel, <a href="#type-id">id()</a>}</code></li><li><code>Old = <a href="logi_condition.md#type-condition">logi_condition:condition()</a></code></li></ul>
 
 TODO
 
