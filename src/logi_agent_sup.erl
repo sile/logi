@@ -4,8 +4,6 @@
 %%
 %% TODO: doc
 %%
-%% TODO: => logi_agent_set_sup
-%%
 %% @private
 -module(logi_agent_sup).
 
@@ -24,6 +22,12 @@
 -export([init/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
+%% Macros
+%%----------------------------------------------------------------------------------------------------------------------
+-define(POP_FROM_MSG_QUEUE(Pattern),
+        receive Pattern -> ok after 0 -> Pattern = error(invalid_msg_queue_contents) end).
+
+%%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @doc Starts a supervisor
@@ -35,12 +39,12 @@ start_link() ->
 -spec start_agent(pid(), logi_agent:spec()) -> {ok, pid(), logi_sink:extra_data()} | {error, Reason::term()}.
 start_agent(SupPid, AgentSpec) ->
     case supervisor:start_child(SupPid, [self(), AgentSpec]) of
-        {error, Reason}   -> {error, Reason};
-        ignore            ->
-            receive {'AGENT_EXTRA_DATA', ExtraData} -> ok end,
+        {error, Reason} -> {error, Reason};
+        {ok, undefined} ->
+            ?POP_FROM_MSG_QUEUE({'AGENT_EXTRA_DATA', ExtraData}),
             {ok, self(), ExtraData}; % Returns dummy pid()
         {ok, AgentSupPid} ->
-            receive {'AGENT_UP', AgentSupPid, _, ExtraData} -> ok end,
+            ?POP_FROM_MSG_QUEUE({'AGENT_UP', AgentSupPid, _, ExtraData}),
             {ok, AgentSupPid, ExtraData}
     end.
 

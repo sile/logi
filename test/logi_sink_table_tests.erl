@@ -13,8 +13,7 @@
         (fun () ->
                  Agent = logi_agent:new_opaque(Id),
                  Spec = logi_sink:new(?TEST_SINK, ?LAYOUT, Agent),
-                 {ok, Sink, _} = logi_sink:instantiate(Spec, self()),
-                 Sink
+                 logi_sink:instantiate(Spec, Id)
          end)()).
 
 %%----------------------------------------------------------------------------------------------------------------------

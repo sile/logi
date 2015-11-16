@@ -10,7 +10,7 @@ Sinks.
 
 Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
-__This module defines the `logi_sink` behaviour.__<br /> Required callback functions: `write/3`.
+__This module defines the `logi_sink` behaviour.__<br /> Required callback functions: `write/3`, `whereis_agent/1`.
 
 <a name="description"></a>
 
@@ -68,36 +68,6 @@ A channel can have multiple sinks:
 <a name="types"></a>
 
 ## Data Types ##
-
-
-
-
-### <a name="type-agent_spec">agent_spec()</a> ###
-
-
-<pre><code>
-agent_spec() = #{start =&gt; <a href="#type-mfargs">mfargs()</a> | {external, <a href="#type-proc_ref">proc_ref()</a>} | {external, <a href="#type-proc_ref">proc_ref()</a>, <a href="#type-extra_data">extra_data()</a>} | ignore | {ignore, <a href="#type-extra_data">extra_data()</a>}, restart =&gt; <a href="logi_restart_strategy.md#type-strategy">logi_restart_strategy:strategy()</a>, shutdown =&gt; timeout() | brutal_kill}
-</code></pre>
-
-
-
-
-### <a name="type-agent_start_result">agent_start_result()</a> ###
-
-
-<pre><code>
-agent_start_result() = {ok, pid()} | {ok, pid(), <a href="#type-extra_data">extra_data()</a>} | {error, term()}
-</code></pre>
-
-
-
-
-### <a name="type-agent_status">agent_status()</a> ###
-
-
-<pre><code>
-agent_status() = starting | running | stopping | stopped | not_exist
-</code></pre>
 
 
 
@@ -180,16 +150,6 @@ NOTE: The modules which does not belong to any application are forbidden.
 
 
 
-### <a name="type-mfargs">mfargs()</a> ###
-
-
-<pre><code>
-mfargs() = {Module::module(), Function::atom(), Args::[term()]}
-</code></pre>
-
-
-
-
 ### <a name="type-normalized_condition">normalized_condition()</a> ###
 
 
@@ -213,16 +173,6 @@ normalized_condition() = [<a href="logi.md#type-severity">logi:severity()</a> | 
   > Normalize(#{severity => [info], application => kernel, module => [lists, logi]}).
   [{info,kernel},{info,logi,logi},{info,stdlib,lists}]
 ```
-
-
-
-### <a name="type-proc_ref">proc_ref()</a> ###
-
-
-<pre><code>
-proc_ref() = pid() | port() | atom() | {global, term()} | {via, module(), term()}
-</code></pre>
-
 
 
 
@@ -260,12 +210,23 @@ severity_condition() = (Min::<a href="logi.md#type-severity">logi:severity()</a>
 
 __abstract datatype__: `sink()`
 
+ A sink instance.
+
+
+
+### <a name="type-spec">spec()</a> ###
+
+
+__abstract datatype__: `spec()`
+
+ A sink specification
+
 <a name="index"></a>
 
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_agent_spec-1">get_agent_spec/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_extra_data-1">get_extra_data/1</a></td><td>Gets the extra data of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_layout-1">get_layout/1</a></td><td>Gets the layout of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Sink</code></td></tr><tr><td valign="top"><a href="#is_callback_module-1">is_callback_module/1</a></td><td>Returns <code>true</code> if <code>X</code> is a module which implements the <code>sink</code> behaviour, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_condition-1">is_condition/1</a></td><td>Returns <code>true</code> if <code>X</code> is a valid <code>condition()</code> value, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_sink-1">is_sink/1</a></td><td>Returns <code>true</code> if <code>X</code> is a sink, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Equivalent to <a href="#new-3"><tt>new(Module, Layout, undefined)</tt></a>.</td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td>Creates a new sink instance.</td></tr><tr><td valign="top"><a href="#new-4">new/4</a></td><td></td></tr><tr><td valign="top"><a href="#normalize_condition-1">normalize_condition/1</a></td><td>Returns a normalized form of <code>Condition</code></td></tr><tr><td valign="top"><a href="#set_extra-2">set_extra/2</a></td><td></td></tr><tr><td valign="top"><a href="#write-4">write/4</a></td><td>Writes a log message.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_agent_spec-1">get_agent_spec/1</a></td><td>Gets the agent spec of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_extra_data-1">get_extra_data/1</a></td><td>Gets the extra data of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_layout-1">get_layout/1</a></td><td>Gets the layout of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Sink</code></td></tr><tr><td valign="top"><a href="#instantiate-2">instantiate/2</a></td><td>TODO.</td></tr><tr><td valign="top"><a href="#is_callback_module-1">is_callback_module/1</a></td><td>Returns <code>true</code> if <code>X</code> is a module which implements the <code>sink</code> behaviour, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_condition-1">is_condition/1</a></td><td>Returns <code>true</code> if <code>X</code> is a valid <code>condition()</code> value, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_sink-1">is_sink/1</a></td><td>Returns <code>true</code> if <code>X</code> is a sink instance, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_spec-1">is_spec/1</a></td><td>Records <code>true</code> if <code>X</code> is a sink specification, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td>TODO:.</td></tr><tr><td valign="top"><a href="#normalize_condition-1">normalize_condition/1</a></td><td>Returns a normalized form of <code>Condition</code></td></tr><tr><td valign="top"><a href="#write-4">write/4</a></td><td>Writes a log message.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -277,9 +238,11 @@ __abstract datatype__: `sink()`
 ### get_agent_spec/1 ###
 
 <pre><code>
-get_agent_spec(Sink::<a href="#type-sink">sink()</a>) -&gt; <a href="#type-agent_spec">agent_spec()</a>
+get_agent_spec(Sink::<a href="#type-spec">spec()</a>) -&gt; <a href="logi_agent.md#type-spec">logi_agent:spec()</a>
 </code></pre>
 <br />
+
+Gets the agent spec of `Sink`
 
 <a name="get_extra_data-1"></a>
 
@@ -297,7 +260,7 @@ Gets the extra data of `Sink`
 ### get_layout/1 ###
 
 <pre><code>
-get_layout(Sink::<a href="#type-sink">sink()</a>) -&gt; <a href="logi_layout.md#type-layout">logi_layout:layout()</a>
+get_layout(Sink::<a href="#type-sink">sink()</a> | <a href="#type-spec">spec()</a>) -&gt; <a href="logi_layout.md#type-layout">logi_layout:layout()</a>
 </code></pre>
 <br />
 
@@ -308,11 +271,22 @@ Gets the layout of `Sink`
 ### get_module/1 ###
 
 <pre><code>
-get_module(Sink::<a href="#type-sink">sink()</a>) -&gt; <a href="#type-callback_module">callback_module()</a>
+get_module(Sink::<a href="#type-sink">sink()</a> | <a href="#type-spec">spec()</a>) -&gt; <a href="#type-callback_module">callback_module()</a>
 </code></pre>
 <br />
 
 Gets the module of `Sink`
+
+<a name="instantiate-2"></a>
+
+### instantiate/2 ###
+
+<pre><code>
+instantiate(Spec::<a href="#type-spec">spec()</a>, ExtraData::<a href="#type-extra_data">extra_data()</a>) -&gt; <a href="#type-sink">sink()</a>
+</code></pre>
+<br />
+
+TODO
 
 <a name="is_callback_module-1"></a>
 
@@ -345,38 +319,29 @@ is_sink(X::<a href="#type-sink">sink()</a> | term()) -&gt; boolean()
 </code></pre>
 <br />
 
-Returns `true` if `X` is a sink, otherwise `false`
+Returns `true` if `X` is a sink instance, otherwise `false`
 
-<a name="new-2"></a>
+<a name="is_spec-1"></a>
 
-### new/2 ###
+### is_spec/1 ###
 
 <pre><code>
-new(Module::<a href="#type-callback_module">callback_module()</a>, Layout::<a href="logi_layout.md#type-layout">logi_layout:layout()</a>) -&gt; <a href="#type-sink">sink()</a>
+is_spec(X::<a href="#type-spec">spec()</a> | term()) -&gt; boolean()
 </code></pre>
 <br />
 
-Equivalent to [`new(Module, Layout, undefined)`](#new-3).
+Records `true` if `X` is a sink specification, otherwise `false`
 
 <a name="new-3"></a>
 
 ### new/3 ###
 
 <pre><code>
-new(Module::<a href="#type-callback_module">callback_module()</a>, Layout::<a href="logi_layout.md#type-layout">logi_layout:layout()</a>, ExtraData::<a href="#type-extra_data">extra_data()</a>) -&gt; <a href="#type-sink">sink()</a>
+new(Module::<a href="#type-callback_module">callback_module()</a>, Layout::<a href="logi_layout.md#type-layout">logi_layout:layout()</a>, AgentSpec::<a href="logi_agent.md#type-spec">logi_agent:spec()</a>) -&gt; <a href="#type-spec">spec()</a>
 </code></pre>
 <br />
 
-Creates a new sink instance
-
-<a name="new-4"></a>
-
-### new/4 ###
-
-<pre><code>
-new(Module::<a href="#type-callback_module">callback_module()</a>, Layout::<a href="logi_layout.md#type-layout">logi_layout:layout()</a>, ExtraData::<a href="#type-extra_data">extra_data()</a>, AgentSpec::<a href="#type-agent_spec">agent_spec()</a>) -&gt; <a href="#type-sink">sink()</a>
-</code></pre>
-<br />
+TODO:
 
 <a name="normalize_condition-1"></a>
 
@@ -388,12 +353,6 @@ normalize_condition(Condition::<a href="#type-condition">condition()</a>) -&gt; 
 <br />
 
 Returns a normalized form of `Condition`
-
-<a name="set_extra-2"></a>
-
-### set_extra/2 ###
-
-`set_extra(Sink, Extra) -> any()`
 
 <a name="write-4"></a>
 

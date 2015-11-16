@@ -62,7 +62,7 @@ which_children(SupPid) ->
 %% @private
 init([Listener, AgentSpec]) ->
     _ = process_flag(trap_exit, true),
-    case logi_agent:start_agent_if_need(AgentSpec) of
+    case logi_agent:start_agent(AgentSpec) of
         {error, Reason}      -> {stop, Reason};
         {ignore, ExtraData}  ->
             _ = notify_extra_data(ExtraData, Listener),
@@ -70,7 +70,7 @@ init([Listener, AgentSpec]) ->
         {ok, Pid, ExtraData} ->
             {ok, ChildAgentSup} = logi_agent_sup:start_link(),
             _ = monitor(process, Pid),
-            %% TODO: _ = report_progress(Pid, Start),
+            _ = report_progress(Pid, AgentSpec),
             State =
                 #?STATE{
                     agent_spec = AgentSpec,
@@ -151,7 +151,7 @@ handle_exit(_, Reason, State) ->
 
 -spec handle_restart_agent(#?STATE{}) -> {noreply, #?STATE{}} | {stop, term(), #?STATE{}}.
 handle_restart_agent(State0) ->
-    case logi_agent:start_agent_if_need(State0#?STATE.agent_spec) of
+    case logi_agent:start_agent(State0#?STATE.agent_spec) of
         {error, Reason} ->
             case schedule_restart(State0) of
                 stop         -> {stop, Reason, State0};
@@ -159,11 +159,8 @@ handle_restart_agent(State0) ->
             end;
         {ok, Pid, ExtraData} ->
             _ = monitor(process, Pid),
-            State1 =
-                #?STATE{
-                    agent_pid = Pid
-                   },
-            %% TODO: _ = report_progress(Pid, State1#?STATE.start),
+            State1 = State0#?STATE{agent_pid = Pid},
+            _ = report_progress(Pid, State1#?STATE.agent_spec),
             _ = notify_agent_up(ExtraData, State1),
             {noreply, State1}
     end.
@@ -229,7 +226,6 @@ schedule_restart(State) ->
     case logi_restart_strategy:next(State#?STATE.restart) of
         stop                    -> stop;
         {ok, infinity, Restart} ->
-            %% TODO: delete(?)
             {ok, State#?STATE{restart = Restart, agent_pid = undefined, child_agent_sup = undefined}};
         {ok, NextTime, Restart} ->
             _ = erlang:send_after(NextTime, self(), restart_agent),
@@ -237,12 +233,12 @@ schedule_restart(State) ->
     end.
 
 %% TODO: support other resports
-%% -spec report_progress(pid(), logi_agent:mfargs()) -> ok.
-%% report_progress(Pid, Start) ->
-%%     SupName = {self(), ?MODULE},
-%%     Progress = [{supervisor, SupName},
-%%                 {started, [{pid, Pid}, {mfa, Start}]}],
-%%     error_logger:info_report(progress, Progress).
+-spec report_progress(pid(), logi_agent:spec()) -> ok.
+report_progress(Pid, AgentSpec) ->
+    SupName = {self(), ?MODULE},
+    Progress = [{supervisor, SupName},
+                {started, [{pid, Pid}, {agent_spec, AgentSpec}]}],
+    error_logger:info_report(progress, Progress).
 
 -spec report_error(atom(), term(), #?STATE{}) -> ok.
 report_error(Error, Reason, #?STATE{agent_pid = Pid, agent_spec = AgentSpec}) ->
@@ -258,13 +254,10 @@ notify_extra_data(ExtraData, ListenerPid) ->
     _ = ListenerPid ! {'AGENT_EXTRA_DATA', ExtraData},
     ok.
 
--spec notify_agent_up(logi_sink:extra_data(), pid(), pid()) -> ok.
-notify_agent_up(ExtraData, AgentPid, ListenerPid) -> % TODO: delete
+-spec notify_agent_up(logi_sink:extra_data(), #?STATE{}) -> ok.
+notify_agent_up(ExtraData, #?STATE{listener_pid = ListenerPid, agent_pid = AgentPid}) ->
     _ = ListenerPid ! {'AGENT_UP', self(), AgentPid, ExtraData},
     ok.
--spec notify_agent_up(logi_sink:extra_data(), #?STATE{}) -> ok.
-notify_agent_up(ExtraData, #?STATE{listener_pid = Listener, agent_pid = Agent}) ->
-    notify_agent_up(ExtraData, Agent, Listener).
 
 -spec notify_agent_down(term(), #?STATE{}) -> ok.
 notify_agent_down(Reason, #?STATE{listener_pid = Listener, agent_pid = Agent}) ->

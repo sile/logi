@@ -54,13 +54,13 @@
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @equiv new([])
--spec new() -> logi_sink:sink().
+-spec new() -> logi_sink:spec().
 new() -> new([]).
 
 %% @doc Creates a new sink instance
 %%
-%% TODO: default value
--spec new(Options) -> logi_sink:sink() when
+%% TODO: doc: default value
+-spec new(Options) -> logi_sink:spec() when
       Options :: [Option],
       Option  :: {io_device, io:device()}
                | {layout, logi_layout:layout()}

@@ -52,7 +52,7 @@
 %% @doc Creats a new sink instance
 %%
 %% The default layout is `logi_builtin_layout_default:new()'.
--spec new(write_fun()) -> logi_sink:sink().
+-spec new(write_fun()) -> logi_sink:spec().
 new(Fun) ->
     _ = erlang:is_function(Fun, 3) orelse error(badarg, [Fun]),
     Agent = logi_agent:new_opaque(Fun),

@@ -106,7 +106,7 @@ new(Module::<a href="#type-callback_module">callback_module()</a>, State::<a hre
 ### next/1 ###
 
 <pre><code>
-next(X1::<a href="#type-strategy">strategy()</a>) -&gt; {ok, timeout(), <a href="#type-strategy">strategy()</a>} | {stop, term()} | {uninstall_sink, term()}
+next(X1::<a href="#type-strategy">strategy()</a>) -&gt; {ok, timeout(), <a href="#type-strategy">strategy()</a>} | stop
 </code></pre>
 <br />
 

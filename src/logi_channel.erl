@@ -279,6 +279,8 @@ which_sinks() -> which_sinks([]).
 %% @doc Returns a list of installed sinks
 %%
 %% The default value of the `channel' option is `logi_channel:default_channel()'.
+%%
+%% TODO: doc: result list includes restarting sinks
 -spec which_sinks(Options) -> [logi_sink:id()] when
       Options :: [{channel, Channel}],
       Channel :: id().
@@ -286,8 +288,8 @@ which_sinks(Options) ->
     _ = is_list(Options) orelse error(badarg, [Options]),
 
     Channel = proplists:get_value(channel, Options, default_channel()),
-    _ = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, [Options]),
-    logi_sink_table:which_sinks(Channel). % TODO: via channel process
+    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, [Options]),
+    gen_server:call(Pid, which_sinks).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Application Internal Functions
@@ -327,6 +329,7 @@ handle_call({install_sink,   Arg},     _, State) -> handle_install_sink(Arg, Sta
 handle_call({uninstall_sink, Arg},     _, State) -> handle_uninstall_sink(Arg, State);
 handle_call({set_sink_condition, Arg}, _, State) -> handle_set_sink_condition(Arg, State);
 handle_call({find_sink,      Arg},     _, State) -> handle_find_sink(Arg, State);
+handle_call(which_sinks,               _, State) -> handle_which_sinks(State);
 handle_call(_,                         _, State) -> {noreply, State}.
 
 %% @private
@@ -427,6 +430,10 @@ handle_find_sink(SinkId, State) ->
         false -> {reply, error, State};
         Sink  -> {reply, {ok, to_installed_sink(Sink)}, State}
     end.
+
+-spec handle_which_sinks(#?STATE{}) -> {reply, [logi_sink:id()], #?STATE{}}.
+handle_which_sinks(State) ->
+    {reply, [Id || #sink{id = Id} <- State#?STATE.sinks], State}.
 
 -spec handle_down(reference(), #?STATE{}) -> {noreply, #?STATE{}}.
 handle_down(Ref, State0) ->
