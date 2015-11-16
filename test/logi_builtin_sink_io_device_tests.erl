@@ -11,7 +11,7 @@ new_test_() ->
      {"Creates a new sink instance",
       fun () ->
               Sink = logi_builtin_sink_io_device:new(),
-              ?assert(logi_sink:is_sink(Sink))
+              ?assert(logi_sink:is_spec(Sink))
       end}
     ].
 

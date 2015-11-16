@@ -184,16 +184,10 @@ new(Module, Layout, AgentSpec) ->
     #?SPEC{module = Module, layout = Layout, agent_spec = AgentSpec}.
 
 %% @doc TODO
--spec instantiate(spec(), pid()) -> {ok, sink(), logi_agent:agent()} | {error, Reason::term()}.
-instantiate(Spec, ParentSup) ->
-    _ = is_spec(Spec) orelse error(badarg, [Spec, ParentSup]),
-    _ = is_pid(ParentSup) orelse error(badarg, [Spec, ParentSup]),
-    case logi_agent:start_agent_if_need(Spec#?SPEC.agent_spec, ParentSup) of
-        {error, Reason}        -> {error, Reason};
-        {ok, Agent, ExtraData} ->
-            Sink = {Spec#?SPEC.module, Spec#?SPEC.layout, ExtraData},
-            {ok, Sink, Agent}
-    end.
+-spec instantiate(spec(), extra_data()) -> sink().
+instantiate(Spec, ExtraData) ->
+    _ = is_spec(Spec) orelse error(badarg, [Spec, ExtraData]),
+    {Spec#?SPEC.module, Spec#?SPEC.layout, ExtraData}.
 
 %% @doc Records `true' if `X' is a sink specification, otherwise `false'
 -spec is_spec(X :: (spec() | term())) -> boolean().

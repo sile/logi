@@ -55,7 +55,8 @@
 -spec new(write_fun()) -> logi_sink:sink().
 new(Fun) ->
     _ = erlang:is_function(Fun, 3) orelse error(badarg, [Fun]),
-    logi_sink:new(?MODULE, logi_builtin_layout_pass_through:new(), Fun).
+    Agent = logi_agent:new_opaque(Fun),
+    logi_sink:new(?MODULE, logi_builtin_layout_pass_through:new(), Agent).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback Functions

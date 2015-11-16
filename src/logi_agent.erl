@@ -14,10 +14,11 @@
 -export([is_spec/1]).
 
 -export([get_monitor/1]).
+-export([get_shutdown/1]).
+-export([get_restart/1]).
+-export([get_start/1]).
 
--export([start_agent_if_need/2]).
--export([stop_agent_if_need/2]).
--export([handle_down/3]).
+-export([start_agent_if_need/1]).
 
 -export_type([agent/0]).
 -export_type([spec/0]).
@@ -71,7 +72,8 @@
 -type proc_ref() :: pid()
                   | atom()
                   | {global, term()}
-                  | {via, module(), term()}.
+                  | {via, module(), term()}
+                  | {fun ((term()) -> pid() | undefined), term()}.
 
 -type start() :: mfargs()
                | {external, proc_ref()}
@@ -112,47 +114,33 @@ is_spec(X) -> is_record(X, agent_spec) orelse is_record(X, external_agent) orels
 get_monitor(#?AGENT{monitor = Monitor}) ->
     Monitor.
 
--spec start_agent_if_need(spec(), pid()) -> {ok, agent(), logi_sink:extra_data()} | {error, Reason::term()}.
-start_agent_if_need(#opaque_agent{extra_data = ExtraData}, _) ->
-    DummyPid = self(),
-    Monitor = monitor(process, DummyPid),
-    {ok, #?AGENT{agent_pid = DummyPid, monitor = Monitor}, ExtraData};
-start_agent_if_need(#external_agent{agent_ref = AgentRef, restart = Restart, extra_data = ExtraData}, _) ->
+-spec get_shutdown(spec()) -> shutdown() | undefined.
+get_shutdown(#agent_spec{shutdown = Shutdown}) -> Shutdown;
+get_shutdown(_)                                -> undefined.
+
+-spec get_restart(spec()) -> logi_restart_strategy:strategy().
+get_restart(#agent_spec{restart = Restart})     -> Restart;
+get_restart(#external_agent{restart = Restart}) -> Restart;
+get_restart(#opaque_agent{})                    -> logi_builtin_restart_strategy_stop:new().
+
+-spec get_start(spec()) -> mfargs() | undefined.
+get_start(#agent_spec{start = Start}) -> Start;
+get_start(_)                          -> undefined.
+
+-spec start_agent_if_need(spec()) -> {ok, pid(), logi_sink:extra_data()} | {error, Reason::term()} | {ignore, logi_sink:extra_data()}.
+start_agent_if_need(#opaque_agent{extra_data = ExtraData}) ->
+    {ignore, ExtraData};
+start_agent_if_need(#external_agent{agent_ref = AgentRef, extra_data = ExtraData}) ->
     case where(AgentRef) of
         undefined -> {error, {external_agent_not_found, AgentRef}};
-        AgentPid  ->
-            Monitor = monitor(process, AgentPid),
-            {ok, #?AGENT{agent_pid = AgentPid, monitor = Monitor, restart = Restart}, ExtraData}
+        AgentPid  -> {ok, AgentPid, ExtraData}
     end;
-start_agent_if_need(#agent_spec{start = Start, shutdown = Shutdown, restart = Restart}, AgentListSup) ->
-    case logi_agent_list_sup:start_agent(AgentListSup, Start, Shutdown) of
-        {error, Reason}                   -> {error, Reason};
-        {ok, SupPid, AgentPid, ExtraData} ->
-            Monitor = monitor(process, AgentPid),
-            Agent = #?AGENT{sup_pid = SupPid, agent_pid = AgentPid, monitor = Monitor, restart = Restart},
-            {ok, Agent, ExtraData}
-    end.
-
--spec stop_agent_if_need(agent(), pid()) -> agent().
-stop_agent_if_need(Agent = #?AGENT{sup_pid = undefined, monitor = Monitor}, _) ->
-    _ = demonitor(Monitor, [flush]),
-    _ = erlang:cancel_timer(Agent#?AGENT.timer),
-    Agent;
-stop_agent_if_need(Agent = #?AGENT{sup_pid = SupPid, monitor = Monitor}, AgentListSup) ->
-    ok = logi_agent_list_sup:stop_agent(AgentListSup, SupPid),
-    _ = erlang:cancel_timer(Agent#?AGENT.timer),
-    _ = demonitor(Monitor, [flush]),
-    Agent#?AGENT{sup_pid = SupPid}.
-
--spec handle_down(agent(), logi_sink:id(), pid()) -> {retry_after, agent()} | {uninstall, Reason::term()}.
-handle_down(Agent0, SinkId, AgentListSup) ->
-    Agent1 = logi_agent:stop_agent_if_need(Agent0, AgentListSup),
-    case logi_restart_strategy:next(Agent0#?AGENT.restart) of
-        {uninstall_sink, Reason} -> {uninstall, Reason};
-        {ok, Timeout, Restart} -> % TODO: handle infinity
-            RestartTimer = erlang:send_after(Timeout, self(), {restart, SinkId}),
-            Agent2 = Agent1#?AGENT{restart = Restart, timer = RestartTimer},
-            {retry_after, Agent2}
+start_agent_if_need(#agent_spec{start = {M, F, Args}}) ->
+    case (catch apply(M, F, Args)) of
+        {ok, Pid}            -> {ok, Pid, undefined};
+        {ok, Pid, ExtraData} -> {ok, Pid, ExtraData};
+        {error, Reason}      -> {error, Reason};
+        Other                -> {error, Other}
     end.
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -170,10 +158,12 @@ is_shutdown(Timeout)     -> is_integer(Timeout) andalso Timeout >= 0.
 -spec is_proc_ref(proc_ref() | term()) -> boolean().
 is_proc_ref({global, _})      -> true;
 is_proc_ref({via, Module, _}) -> is_atom(Module);
+is_proc_ref({ResolveFn, _})   -> is_function(ResolveFn, 1);
 is_proc_ref(X)                -> is_pid(X) orelse is_atom(X).
 
 -spec where(proc_ref()) -> pid() | undefined.
 where(X) when is_pid(X)  -> X;
 where(X) when is_atom(X) -> whereis(X);
 where({global, X})       -> global:whereis_name(X);
-where({via, Module, X})  -> Module:whereis_name(X).
+where({via, Module, X})  -> Module:whereis_name(X);
+where({ResolveFn, X})    -> ResolveFn(X).

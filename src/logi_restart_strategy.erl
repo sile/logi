@@ -18,9 +18,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Behaviour Callbacks
 %%----------------------------------------------------------------------------------------------------------------------
--callback next(state()) -> {ok, timeout(), state()} |
-                           {stop, term()} | % TODO: delete(?)
-                           {uninstall_sink, term()}.
+-callback next(state()) -> {ok, timeout(), state()} | stop.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
@@ -51,9 +49,7 @@ get_module({Module, _}) -> Module.
 -spec get_state(strategy()) -> state().
 get_state({_, State}) -> State.
 
--spec next(strategy()) -> {ok, timeout(), strategy()} |
-                          {stop, term()} |
-                          {uninstall_sink, term()}.
+-spec next(strategy()) -> {ok, timeout(), strategy()} | stop.
 next({Module, State0}) ->
     case Module:next(State0) of
         {ok, Timeout, State1} -> {ok, Timeout, {Module, State1}};

@@ -3,7 +3,7 @@
  [
   {description, "A Logger Interface Library"},
   {vsn, git},
-  {registered, [logi_sup, logi_channel_root_sup, logi_default_log]},
+  {registered, [logi_sup, logi_channel_sup, logi_default_log]},
   {applications, [kernel, stdlib]},
   {mod, {logi_app, []}},
   {env,

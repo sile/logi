@@ -9,6 +9,13 @@
 -define(CHANNEL, logi_test_log).
 -define(TEST_SINK, logi_builtin_sink_fun).
 -define(LAYOUT, logi_builtin_layout_pass_through:new()).
+-define(SINK(Id),
+        (fun () ->
+                 Agent = logi_agent:new_opaque(Id),
+                 Spec = logi_sink:new(?TEST_SINK, ?LAYOUT, Agent),
+                 {ok, Sink, _} = logi_sink:instantiate(Spec, self()),
+                 Sink
+         end)()).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Unit Tests
@@ -36,13 +43,13 @@ register_test_() ->
      [
       {"Registers a sink",
        fun () ->
-               ?assertEqual(ok, logi_sink_table:register(?CHANNEL, ?TEST_SINK, logi_sink:new(?TEST_SINK, ?LAYOUT), debug, [])),
+               ?assertEqual(ok, logi_sink_table:register(?CHANNEL, ?TEST_SINK, ?SINK(?TEST_SINK), debug, [])),
                ?assertEqual([?TEST_SINK], logi_sink_table:which_sinks(?CHANNEL))
        end},
       {"Deregisters a sink",
        fun () ->
-               ok = logi_sink_table:register(?CHANNEL, hoge, logi_sink:new(?TEST_SINK, ?LAYOUT), debug, []),
-               ok = logi_sink_table:register(?CHANNEL, fuga, logi_sink:new(?TEST_SINK, ?LAYOUT), debug, []),
+               ok = logi_sink_table:register(?CHANNEL, hoge, ?SINK(?TEST_SINK), debug, []),
+               ok = logi_sink_table:register(?CHANNEL, fuga, ?SINK(?TEST_SINK), debug, []),
                ?assertEqual(lists:sort([hoge, fuga]), lists:sort(logi_sink_table:which_sinks(?CHANNEL))),
 
                ?assertEqual(ok, logi_sink_table:deregister(?CHANNEL, hoge, debug)),
@@ -60,7 +67,7 @@ select_test_() ->
      [
       {"Selects sinks that meet the condition",
        fun () ->
-               Sink = fun (Id, Condition) -> {Id, Condition, logi_sink:new(?TEST_SINK, ?LAYOUT, Id)} end,
+               Sink = fun (Id, Condition) -> {Id, Condition, ?SINK(Id)} end,
                Sink1 = Sink(s1, debug),
                Sink2 = Sink(s2, {info, alert}),
                Sink3 = Sink(s3, [info]),
@@ -72,7 +79,7 @@ select_test_() ->
 
                Select =
                    fun (Severity, Application, Module) ->
-                           lists:sort([Id || {_, _, Id, _} <- logi_sink_table:select(?CHANNEL, Severity, Application, Module)])
+                           lists:sort([Id || {_, _, Id} <- logi_sink_table:select(?CHANNEL, Severity, Application, Module)])
                    end,
 
                ?assertEqual([s1],                 Select(debug, stdlib, lists)),
@@ -104,7 +111,7 @@ select_test_() ->
                            receive
                                {'DOWN', Monitor, _, _, _} -> Recur(lists:delete(Monitor, List))
                            after 0 ->
-                                   Sink = logi_sink:new(?TEST_SINK, ?LAYOUT),
+                                   Sink = ?SINK(?TEST_SINK),
                                    ok = logi_sink_table:register(?CHANNEL, hoge, Sink, debug, []),
                                    logi_sink_table:deregister(?CHANNEL, hoge, debug),
                                    Recur(List)

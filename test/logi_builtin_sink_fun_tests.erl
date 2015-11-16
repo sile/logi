@@ -12,7 +12,7 @@ new_test_() ->
       fun () ->
               WriteFun = fun (_, Format, Data) ->  io_lib:format(Format, Data) end,
               Sink = logi_builtin_sink_fun:new(WriteFun),
-              ?assert(logi_sink:is_sink(Sink))
+              ?assert(logi_sink:is_spec(Sink))
       end},
      {"[ERORR] The argument is not a `write_fun/0'",
       fun () ->

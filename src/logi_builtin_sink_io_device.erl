@@ -63,16 +63,20 @@ new() -> new([]).
 -spec new(Options) -> logi_sink:sink() when
       Options :: [Option],
       Option  :: {io_device, io:device()}
-               | {layout, logi_layout:layout()}.
+               | {layout, logi_layout:layout()}
+               | {restart, logi_restart_strategy:strategy()}.
 new(Options) ->
     _ = is_list(Options) orelse error(badarg, [Options]),
 
     IoDevice = proplists:get_value(io_device, Options, standard_io),
     Layout = proplists:get_value(layout, Options, logi_builtin_layout_default:new()),
+    Restart = proplists:get_value(restart, Options, logi_builtin_restart_strategy_stop:new()),
     _ = is_pid(IoDevice) orelse is_atom(IoDevice) orelse error(badarg, [Options]),
     _ = logi_layout:is_layout(Layout) orelse error(badarg, [Options]),
+    _ = logi_restart_strategy:is_strategy(Restart) orelse error(badarg, [Options]),
 
-    logi_sink:new(?MODULE, Layout, IoDevice).
+    Agent = logi_agent:new_external({fun ?MODULE:whereis_agent/1, IoDevice}, Restart, IoDevice),
+    logi_sink:new(?MODULE, Layout, Agent).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback Functions
@@ -83,4 +87,5 @@ write(_Context, FormattedData, IoDevice) ->
 
 %% @private
 whereis_agent(IoDevice) when is_pid(IoDevice) -> IoDevice;
+whereis_agent(standard_io)                    -> group_leader();
 whereis_agent(IoDevice)                       -> whereis(IoDevice).
