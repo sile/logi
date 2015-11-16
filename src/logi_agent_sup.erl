@@ -41,6 +41,7 @@ start_agent(SupPid, AgentSpec) ->
     case supervisor:start_child(SupPid, [self(), AgentSpec]) of
         {error, Reason} -> {error, Reason};
         {ok, undefined} ->
+            %% TODO: errorの場合でも、receiveしておかないとゴミが残りそう (reference()を渡す方式に変えた方がよい)
             ?POP_FROM_MSG_QUEUE({'AGENT_EXTRA_DATA', ExtraData}),
             {ok, self(), ExtraData}; % Returns dummy pid()
         {ok, AgentSupPid} ->

@@ -67,7 +67,7 @@
 %% Behaviour Callbacks
 %%----------------------------------------------------------------------------------------------------------------------
 -callback write(logi_context:context(), logi_layout:formatted_data(), extra_data()) -> any().
--callback whereis_agent(extra_data()) -> pid() | undefined.
+-callback whereis_agent(extra_data()) -> pid() | undefined. % TODO: 不要かも
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros & Records & Types
