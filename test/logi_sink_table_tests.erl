@@ -9,12 +9,7 @@
 -define(CHANNEL, logi_test_log).
 -define(TEST_SINK, logi_builtin_sink_fun).
 -define(LAYOUT, logi_builtin_layout_pass_through:new()).
--define(SINK(Id),
-        (fun () ->
-                 Agent = logi_agent:new_opaque(Id),
-                 Spec = logi_sink:new(?TEST_SINK, ?LAYOUT, Agent),
-                 logi_sink:instantiate(Spec, Id)
-         end)()).
+-define(SINK(Id), logi_sink:new(?TEST_SINK, ?LAYOUT, Id)).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Unit Tests

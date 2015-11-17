@@ -47,45 +47,40 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback API
 %%----------------------------------------------------------------------------------------------------------------------
+-export([init/1]).
 -export([write/3]).
--export([whereis_agent/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @equiv new([])
--spec new() -> logi_sink:spec().
+-spec new() -> logi_sink:sink().
 new() -> new([]).
 
 %% @doc Creates a new sink instance
 %%
 %% TODO: doc: default value
--spec new(Options) -> logi_sink:spec() when
+-spec new(Options) -> logi_sink:sink() when
       Options :: [Option],
       Option  :: {io_device, io:device()}
-               | {layout, logi_layout:layout()}
-               | {restart, logi_restart_strategy:strategy()}.
+               | {layout, logi_layout:layout()}.
 new(Options) ->
     _ = is_list(Options) orelse error(badarg, [Options]),
 
     IoDevice = proplists:get_value(io_device, Options, standard_io),
     Layout = proplists:get_value(layout, Options, logi_builtin_layout_default:new()),
-    Restart = proplists:get_value(restart, Options, logi_builtin_restart_strategy_stop:new()),
     _ = is_pid(IoDevice) orelse is_atom(IoDevice) orelse error(badarg, [Options]),
     _ = logi_layout:is_layout(Layout) orelse error(badarg, [Options]),
-    _ = logi_restart_strategy:is_strategy(Restart) orelse error(badarg, [Options]),
 
-    Agent = logi_agent:new_external({fun ?MODULE:whereis_agent/1, IoDevice}, Restart, IoDevice),
-    logi_sink:new(?MODULE, Layout, Agent).
+    logi_sink:new(?MODULE, Layout, IoDevice).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-write(_Context, FormattedData, IoDevice) ->
-    io:put_chars(IoDevice, FormattedData).
+init(IoDevice) ->
+    {ok, IoDevice}.
 
 %% @private
-whereis_agent(IoDevice) when is_pid(IoDevice) -> IoDevice;
-whereis_agent(standard_io)                    -> group_leader();
-whereis_agent(IoDevice)                       -> whereis(IoDevice).
+write(_Context, FormattedData, IoDevice) ->
+    io:put_chars(IoDevice, FormattedData).

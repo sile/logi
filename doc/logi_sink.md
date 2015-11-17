@@ -10,7 +10,7 @@ Sinks.
 
 Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
-__This module defines the `logi_sink` behaviour.__<br /> Required callback functions: `write/3`, `whereis_agent/1`.
+__This module defines the `logi_sink` behaviour.__<br /> Required callback functions: `init/1`, `write/3`.
 
 <a name="description"></a>
 
@@ -83,6 +83,16 @@ callback_module() = module()
 
 
 
+### <a name="type-control_process">control_process()</a> ###
+
+
+<pre><code>
+control_process() = pid()
+</code></pre>
+
+
+
+
 ### <a name="type-extra_data">extra_data()</a> ###
 
 
@@ -117,37 +127,26 @@ __abstract datatype__: `sink()`
 
  A sink instance.
 
-
-
-### <a name="type-spec">spec()</a> ###
-
-
-__abstract datatype__: `spec()`
-
- A sink specification
-
 <a name="index"></a>
 
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_agent_spec-1">get_agent_spec/1</a></td><td>Gets the agent spec of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_extra_data-1">get_extra_data/1</a></td><td>Gets the extra data of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_layout-1">get_layout/1</a></td><td>Gets the layout of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Sink</code></td></tr><tr><td valign="top"><a href="#instantiate-2">instantiate/2</a></td><td>TODO.</td></tr><tr><td valign="top"><a href="#is_callback_module-1">is_callback_module/1</a></td><td>Returns <code>true</code> if <code>X</code> is a module which implements the <code>sink</code> behaviour, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_sink-1">is_sink/1</a></td><td>Returns <code>true</code> if <code>X</code> is a sink instance, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_spec-1">is_spec/1</a></td><td>Records <code>true</code> if <code>X</code> is a sink specification, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td>TODO:.</td></tr><tr><td valign="top"><a href="#write-4">write/4</a></td><td>Writes a log message.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#change_owner_process-2">change_owner_process/2</a></td><td></td></tr><tr><td valign="top"><a href="#get_extra_data-1">get_extra_data/1</a></td><td>Gets the extra data of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_layout-1">get_layout/1</a></td><td>Gets the layout of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Sink</code></td></tr><tr><td valign="top"><a href="#init-1">init/1</a></td><td></td></tr><tr><td valign="top"><a href="#is_callback_module-1">is_callback_module/1</a></td><td>Returns <code>true</code> if <code>X</code> is a module which implements the <code>sink</code> behaviour, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_sink-1">is_sink/1</a></td><td>Returns <code>true</code> if <code>X</code> is a sink instance, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td>Creates a new sink instance.</td></tr><tr><td valign="top"><a href="#write-4">write/4</a></td><td>Writes a log message.</td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
 
-<a name="get_agent_spec-1"></a>
+<a name="change_owner_process-2"></a>
 
-### get_agent_spec/1 ###
+### change_owner_process/2 ###
 
 <pre><code>
-get_agent_spec(Sink::<a href="#type-spec">spec()</a>) -&gt; <a href="logi_agent.md#type-spec">logi_agent:spec()</a>
+change_owner_process(ControlProcess::<a href="#type-control_process">control_process()</a>, NewOwner::pid()) -&gt; ok
 </code></pre>
 <br />
-
-Gets the agent spec of `Sink`
 
 <a name="get_extra_data-1"></a>
 
@@ -165,7 +164,7 @@ Gets the extra data of `Sink`
 ### get_layout/1 ###
 
 <pre><code>
-get_layout(Sink::<a href="#type-sink">sink()</a> | <a href="#type-spec">spec()</a>) -&gt; <a href="logi_layout.md#type-layout">logi_layout:layout()</a>
+get_layout(Sink::<a href="#type-sink">sink()</a>) -&gt; <a href="logi_layout.md#type-layout">logi_layout:layout()</a>
 </code></pre>
 <br />
 
@@ -176,22 +175,20 @@ Gets the layout of `Sink`
 ### get_module/1 ###
 
 <pre><code>
-get_module(Sink::<a href="#type-sink">sink()</a> | <a href="#type-spec">spec()</a>) -&gt; <a href="#type-callback_module">callback_module()</a>
+get_module(Sink::<a href="#type-sink">sink()</a>) -&gt; <a href="#type-callback_module">callback_module()</a>
 </code></pre>
 <br />
 
 Gets the module of `Sink`
 
-<a name="instantiate-2"></a>
+<a name="init-1"></a>
 
-### instantiate/2 ###
+### init/1 ###
 
 <pre><code>
-instantiate(Spec::<a href="#type-spec">spec()</a>, ExtraData::<a href="#type-extra_data">extra_data()</a>) -&gt; <a href="#type-sink">sink()</a>
+init(X1::<a href="#type-sink">sink()</a>) -&gt; {ok, <a href="#type-sink">sink()</a>} | {ok, <a href="#type-sink">sink()</a>, <a href="#type-control_process">control_process()</a>} | {error, Reason::term()}
 </code></pre>
 <br />
-
-TODO
 
 <a name="is_callback_module-1"></a>
 
@@ -215,27 +212,16 @@ is_sink(X::<a href="#type-sink">sink()</a> | term()) -&gt; boolean()
 
 Returns `true` if `X` is a sink instance, otherwise `false`
 
-<a name="is_spec-1"></a>
-
-### is_spec/1 ###
-
-<pre><code>
-is_spec(X::<a href="#type-spec">spec()</a> | term()) -&gt; boolean()
-</code></pre>
-<br />
-
-Records `true` if `X` is a sink specification, otherwise `false`
-
 <a name="new-3"></a>
 
 ### new/3 ###
 
 <pre><code>
-new(Module::<a href="#type-callback_module">callback_module()</a>, Layout::<a href="logi_layout.md#type-layout">logi_layout:layout()</a>, AgentSpec::<a href="logi_agent.md#type-spec">logi_agent:spec()</a>) -&gt; <a href="#type-spec">spec()</a>
+new(Module::<a href="#type-callback_module">callback_module()</a>, Layout::<a href="logi_layout.md#type-layout">logi_layout:layout()</a>, ExtraData::<a href="#type-extra_data">extra_data()</a>) -&gt; <a href="#type-sink">sink()</a>
 </code></pre>
 <br />
 
-TODO:
+Creates a new sink instance
 
 <a name="write-4"></a>
 

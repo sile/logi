@@ -50,40 +50,29 @@
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([new/3]).
--export([instantiate/2]).
--export([is_sink/1, is_spec/1]).
--export([get_module/1, get_layout/1, get_extra_data/1, get_agent_spec/1]).
+-export([is_sink/1]).
+-export([get_module/1, get_layout/1, get_extra_data/1]).
 -export([is_callback_module/1]).
+-export([change_owner_process/2]).
 
+-export([init/1]).
 -export([write/4]).
 
 -export_type([id/0]).
 -export_type([sink/0]).
--export_type([spec/0]).
 -export_type([callback_module/0]).
 -export_type([extra_data/0]).
+-export_type([control_process/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Behaviour Callbacks
 %%----------------------------------------------------------------------------------------------------------------------
+-callback init(extra_data()) -> {ok, extra_data()} | {ok, extra_data(), control_process()} | {error, Reason::term()}.
 -callback write(logi_context:context(), logi_layout:formatted_data(), extra_data()) -> any().
--callback whereis_agent(extra_data()) -> pid() | undefined. % TODO: 不要かも
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros & Records & Types
 %%----------------------------------------------------------------------------------------------------------------------
--define(SPEC, logi_sink_spec).
-
--record(?SPEC,
-        {
-          module     :: callback_module(),
-          layout     :: logi_layout:layout(),
-          agent_spec :: logi_agent:spec()
-        }).
-
--opaque spec() :: #?SPEC{}.
-%% A sink specification
-
 -opaque sink() :: {callback_module(), logi_layout:layout(), extra_data()}.
 %% A sink instance.
 
@@ -101,26 +90,23 @@
 %% This value will be loaded from ETS every time the `write/4' is called.
 %% Therefore, very huge data can cause a performance issue.
 
+-type control_process() :: pid().
+%% TODO: doc
+%%
+%% ルール:
+%% - init/1呼び出し元プロセスが最初の所有者
+%% - change_owner_process/2で変わる
+%% - 所有者が死んだら自分も死ぬ
+
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @doc TODO:
--spec new(callback_module(), logi_layout:layout(), logi_agent:spec()) -> spec().
-new(Module, Layout, AgentSpec) ->
-    _ = is_callback_module(Module) orelse error(badarg, [Module, Layout, AgentSpec]),
-    _ = logi_layout:is_layout(Layout) orelse error(badarg, [Module, Layout, AgentSpec]),
-    _ = logi_agent:is_spec(AgentSpec) orelse error(badarg, [Module, Layout, AgentSpec]),
-    #?SPEC{module = Module, layout = Layout, agent_spec = AgentSpec}.
-
-%% @doc TODO
--spec instantiate(spec(), extra_data()) -> sink().
-instantiate(Spec, ExtraData) ->
-    _ = is_spec(Spec) orelse error(badarg, [Spec, ExtraData]),
-    {Spec#?SPEC.module, Spec#?SPEC.layout, ExtraData}.
-
-%% @doc Records `true' if `X' is a sink specification, otherwise `false'
--spec is_spec(X :: (spec() | term())) -> boolean().
-is_spec(X) -> is_record(X, ?SPEC).
+%% @doc Creates a new sink instance
+-spec new(callback_module(), logi_layout:layout(), extra_data()) -> sink().
+new(Module, Layout, ExtraData) ->
+    _ = is_callback_module(Module) orelse error(badarg, [Module, Layout, ExtraData]),
+    _ = logi_layout:is_layout(Layout) orelse error(badarg, [Module, Layout, ExtraData]),
+    {Module, Layout, ExtraData}.
 
 %% @doc Returns `true' if `X' is a sink instance, otherwise `false'
 -spec is_sink(X :: (sink() | term())) -> boolean().
@@ -128,18 +114,12 @@ is_sink({Module, Layout, _}) -> is_callback_module(Module) andalso logi_layout:i
 is_sink(_)                   -> false.
 
 %% @doc Gets the module of `Sink'
--spec get_module(Sink :: (sink() | spec())) -> callback_module().
-get_module(#?SPEC{module = Module}) -> Module;
-get_module({Module, _, _})          -> Module.
+-spec get_module(Sink :: sink()) -> callback_module().
+get_module({Module, _, _}) -> Module.
 
 %% @doc Gets the layout of `Sink'
--spec get_layout(Sink :: (sink() | spec())) -> logi_layout:layout().
-get_layout(#?SPEC{layout = Layout}) -> Layout;
-get_layout({_, Layout, _})          -> Layout.
-
-%% @doc Gets the agent spec of `Sink'
--spec get_agent_spec(Sink :: spec()) -> logi_agent:spec().
-get_agent_spec(#?SPEC{agent_spec = AgentSpec}) -> AgentSpec.
+-spec get_layout(Sink :: sink()) -> logi_layout:layout().
+get_layout({_, Layout, _}) -> Layout.
 
 %% @doc Gets the extra data of `Sink'
 -spec get_extra_data(Sink :: sink()) -> extra_data().
@@ -150,7 +130,22 @@ get_extra_data({_, _, ExtraData}) -> ExtraData.
 is_callback_module(X) ->
     (is_atom(X) andalso
      logi_utils:function_exported(X, write, 3) andalso
-     logi_utils:function_exported(X, whereis_agent, 1)).
+     logi_utils:function_exported(X, init, 1)).
+
+%% TODO: doc
+-spec change_owner_process(control_process(), pid()) -> ok.
+change_owner_process(ControlProcess, NewOwner) ->
+    _ = ControlProcess ! {'CHANGE_OWNER', self(), NewOwner},
+    ok.
+
+%% TODO: doc
+-spec init(sink()) -> {ok, sink()} | {ok, sink(), control_process()} | {error, Reason::term()}.
+init({Module, Layout, ExtraData0}) ->
+    case Module:init(ExtraData0) of
+        {error, Reason}           -> {error, Reason};
+        {ok, ExtraData1}          -> {ok, {Module, Layout, ExtraData1}};
+        {ok, ExtraData1, Control} -> {ok, {Module, Layout, ExtraData1}, Control}
+    end.
 
 %% @doc Writes a log message
 %%

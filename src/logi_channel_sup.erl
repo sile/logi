@@ -1,6 +1,6 @@
 %% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc The root supervisor of a supervision tree which is constituted by channel and agent processes
+%% @doc The supervisor for logi_channel processes
 %% @private
 -module(logi_channel_sup).
 
@@ -29,7 +29,7 @@ start_link() ->
 -spec start_child(logi_channel:id()) -> {ok, pid()} | {error, Reason} when
       Reason :: {already_started, pid()} | term().
 start_child(Channel) ->
-    Child = #{id => Channel, start => {logi_per_channel_sup, start_link, [Channel]}, type => supervisor},
+    Child = #{id => Channel, start => {logi_channel, start_link, [Channel]}},
     supervisor:start_child(?MODULE, Child).
 
 %% @doc Stops a channel process which name is `Channel'
@@ -50,5 +50,5 @@ which_children() ->
 %% @private
 init([]) ->
     Default = logi_channel:default_channel(),
-    Child = #{id => Default, start => {logi_per_channel_sup, start_link, [Default]}, type => supervisor},
+    Child = #{id => Default, start => {logi_channel, start_link, [Default]}},
     {ok, {#{}, [Child]}}.

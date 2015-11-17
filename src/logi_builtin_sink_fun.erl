@@ -37,8 +37,8 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback API
 %%----------------------------------------------------------------------------------------------------------------------
+-export([init/1]).
 -export([write/3]).
--export([whereis_agent/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
@@ -52,19 +52,18 @@
 %% @doc Creats a new sink instance
 %%
 %% The default layout is `logi_builtin_layout_default:new()'.
--spec new(write_fun()) -> logi_sink:spec().
+-spec new(write_fun()) -> logi_sink:sink().
 new(Fun) ->
     _ = erlang:is_function(Fun, 3) orelse error(badarg, [Fun]),
-    Agent = logi_agent:new_opaque(Fun),
-    logi_sink:new(?MODULE, logi_builtin_layout_pass_through:new(), Agent).
+    logi_sink:new(?MODULE, logi_builtin_layout_pass_through:new(), Fun).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-write(Context, {Format, Data}, Fun) ->
-    Fun(Context, Format, Data).
+init(Fun) ->
+    {ok, Fun}.
 
 %% @private
-whereis_agent(_) ->
-    undefined.
+write(Context, {Format, Data}, Fun) ->
+    Fun(Context, Format, Data).

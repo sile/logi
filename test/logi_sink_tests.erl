@@ -8,7 +8,6 @@
 %%----------------------------------------------------------------------------------------------------------------------
 -define(TEST_SINK, logi_builtin_sink_fun).
 -define(LAYOUT, logi_builtin_layout_pass_through:new()).
--define(AGENT, logi_agent:new_opaque(undefined)).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Unit Tests
@@ -17,8 +16,8 @@ new_test_() ->
     [
      {"Creates a sink specification",
       fun () ->
-              Sink = logi_sink:new(?TEST_SINK, ?LAYOUT, ?AGENT),
-              ?assert(logi_sink:is_spec(Sink))
+              Sink = logi_sink:new(?TEST_SINK, ?LAYOUT, extra_data),
+              ?assert(logi_sink:is_sink(Sink))
       end}
     ].
 
@@ -26,9 +25,9 @@ get_test_() ->
     [
      {"Gets the information from a sink",
       fun () ->
-              S = logi_sink:new(?TEST_SINK, ?LAYOUT, ?AGENT),
+              S = logi_sink:new(?TEST_SINK, ?LAYOUT, extra),
               ?assertEqual(?TEST_SINK, logi_sink:get_module(S)),
               ?assertEqual(?LAYOUT,    logi_sink:get_layout(S)),
-              ?assertEqual(?AGENT,     logi_sink:get_agent_spec(S))
+              ?assertEqual(extra,      logi_sink:get_extra_data(S))
       end}
     ].

@@ -73,7 +73,7 @@ Customizes message layout:
 ### new/0 ###
 
 <pre><code>
-new() -&gt; <a href="logi_sink.md#type-spec">logi_sink:spec()</a>
+new() -&gt; <a href="logi_sink.md#type-sink">logi_sink:sink()</a>
 </code></pre>
 <br />
 
@@ -84,10 +84,10 @@ Equivalent to [`new([])`](#new-1).
 ### new/1 ###
 
 <pre><code>
-new(Options) -&gt; <a href="logi_sink.md#type-spec">logi_sink:spec()</a>
+new(Options) -&gt; <a href="logi_sink.md#type-sink">logi_sink:sink()</a>
 </code></pre>
 
-<ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {io_device, <a href="io.md#type-device">io:device()</a>} | {layout, <a href="logi_layout.md#type-layout">logi_layout:layout()</a>} | {restart, <a href="logi_restart_strategy.md#type-strategy">logi_restart_strategy:strategy()</a>}</code></li></ul>
+<ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {io_device, <a href="io.md#type-device">io:device()</a>} | {layout, <a href="logi_layout.md#type-layout">logi_layout:layout()</a>}</code></li></ul>
 
 Creates a new sink instance
 

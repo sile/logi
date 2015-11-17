@@ -76,7 +76,7 @@ write_fun() = fun((<a href="logi_context.md#type-context">logi_context:context()
 ### new/1 ###
 
 <pre><code>
-new(Fun::<a href="#type-write_fun">write_fun()</a>) -&gt; <a href="logi_sink.md#type-spec">logi_sink:spec()</a>
+new(Fun::<a href="#type-write_fun">write_fun()</a>) -&gt; <a href="logi_sink.md#type-sink">logi_sink:sink()</a>
 </code></pre>
 <br />
 
