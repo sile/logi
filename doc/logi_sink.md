@@ -10,7 +10,7 @@ Sinks.
 
 Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
-__This module defines the `logi_sink` behaviour.__<br /> Required callback functions: `init/1`, `write/3`.
+__This module defines the `logi_sink` behaviour.__<br /> Required callback functions: `write/3`.
 
 <a name="description"></a>
 
@@ -83,16 +83,6 @@ callback_module() = module()
 
 
 
-### <a name="type-control_process">control_process()</a> ###
-
-
-<pre><code>
-control_process() = pid()
-</code></pre>
-
-
-
-
 ### <a name="type-extra_data">extra_data()</a> ###
 
 
@@ -120,40 +110,40 @@ The sinks installed in the same channel must have different identifiers.
 
 
 
+### <a name="type-instance">instance()</a> ###
+
+
+__abstract datatype__: `instance()`
+
+ A sink instance.
+
+
+
 ### <a name="type-sink">sink()</a> ###
 
 
-__abstract datatype__: `sink()`
-
- A sink instance.
+<pre><code>
+sink() = <a href="#type-instance">instance()</a> | <a href="logi_sink_factory.md#type-factory">logi_sink_factory:factory()</a>
+</code></pre>
 
 <a name="index"></a>
 
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#change_owner_process-2">change_owner_process/2</a></td><td></td></tr><tr><td valign="top"><a href="#get_extra_data-1">get_extra_data/1</a></td><td>Gets the extra data of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_layout-1">get_layout/1</a></td><td>Gets the layout of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Sink</code></td></tr><tr><td valign="top"><a href="#init-1">init/1</a></td><td></td></tr><tr><td valign="top"><a href="#is_callback_module-1">is_callback_module/1</a></td><td>Returns <code>true</code> if <code>X</code> is a module which implements the <code>sink</code> behaviour, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_sink-1">is_sink/1</a></td><td>Returns <code>true</code> if <code>X</code> is a sink instance, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td>Creates a new sink instance.</td></tr><tr><td valign="top"><a href="#write-4">write/4</a></td><td>Writes a log message.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_extra_data-1">get_extra_data/1</a></td><td>Gets the extra data of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_layout-1">get_layout/1</a></td><td>Gets the layout of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Sink</code></td></tr><tr><td valign="top"><a href="#is_callback_module-1">is_callback_module/1</a></td><td>Returns <code>true</code> if <code>X</code> is a module which implements the <code>sink</code> behaviour, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_instance-1">is_instance/1</a></td><td>Returns <code>true</code> if <code>X</code> is a sink instance, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_sink-1">is_sink/1</a></td><td>Returns <code>true</code> if <code>X</code> is a <code>sink()</code> object, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td>Creates a new sink instance.</td></tr><tr><td valign="top"><a href="#write-4">write/4</a></td><td>Writes a log message.</td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
 
-<a name="change_owner_process-2"></a>
-
-### change_owner_process/2 ###
-
-<pre><code>
-change_owner_process(ControlProcess::<a href="#type-control_process">control_process()</a>, NewOwner::pid()) -&gt; ok
-</code></pre>
-<br />
-
 <a name="get_extra_data-1"></a>
 
 ### get_extra_data/1 ###
 
 <pre><code>
-get_extra_data(Sink::<a href="#type-sink">sink()</a>) -&gt; <a href="#type-extra_data">extra_data()</a>
+get_extra_data(Sink::<a href="#type-instance">instance()</a>) -&gt; <a href="#type-extra_data">extra_data()</a>
 </code></pre>
 <br />
 
@@ -164,7 +154,7 @@ Gets the extra data of `Sink`
 ### get_layout/1 ###
 
 <pre><code>
-get_layout(Sink::<a href="#type-sink">sink()</a>) -&gt; <a href="logi_layout.md#type-layout">logi_layout:layout()</a>
+get_layout(Sink::<a href="#type-instance">instance()</a>) -&gt; <a href="logi_layout.md#type-layout">logi_layout:layout()</a>
 </code></pre>
 <br />
 
@@ -175,20 +165,11 @@ Gets the layout of `Sink`
 ### get_module/1 ###
 
 <pre><code>
-get_module(Sink::<a href="#type-sink">sink()</a>) -&gt; <a href="#type-callback_module">callback_module()</a>
+get_module(Sink::<a href="#type-instance">instance()</a>) -&gt; <a href="#type-callback_module">callback_module()</a>
 </code></pre>
 <br />
 
 Gets the module of `Sink`
-
-<a name="init-1"></a>
-
-### init/1 ###
-
-<pre><code>
-init(X1::<a href="#type-sink">sink()</a>) -&gt; {ok, <a href="#type-sink">sink()</a>} | {ok, <a href="#type-sink">sink()</a>, <a href="#type-control_process">control_process()</a>} | {error, Reason::term()}
-</code></pre>
-<br />
 
 <a name="is_callback_module-1"></a>
 
@@ -201,6 +182,17 @@ is_callback_module(X::<a href="#type-callback_module">callback_module()</a> | te
 
 Returns `true` if `X` is a module which implements the `sink` behaviour, otherwise `false`
 
+<a name="is_instance-1"></a>
+
+### is_instance/1 ###
+
+<pre><code>
+is_instance(X::<a href="#type-instance">instance()</a> | term()) -&gt; boolean()
+</code></pre>
+<br />
+
+Returns `true` if `X` is a sink instance, otherwise `false`
+
 <a name="is_sink-1"></a>
 
 ### is_sink/1 ###
@@ -210,14 +202,14 @@ is_sink(X::<a href="#type-sink">sink()</a> | term()) -&gt; boolean()
 </code></pre>
 <br />
 
-Returns `true` if `X` is a sink instance, otherwise `false`
+Returns `true` if `X` is a `sink()` object, otherwise `false`
 
 <a name="new-3"></a>
 
 ### new/3 ###
 
 <pre><code>
-new(Module::<a href="#type-callback_module">callback_module()</a>, Layout::<a href="logi_layout.md#type-layout">logi_layout:layout()</a>, ExtraData::<a href="#type-extra_data">extra_data()</a>) -&gt; <a href="#type-sink">sink()</a>
+new(Module::<a href="#type-callback_module">callback_module()</a>, Layout::<a href="logi_layout.md#type-layout">logi_layout:layout()</a>, ExtraData::<a href="#type-extra_data">extra_data()</a>) -&gt; <a href="#type-instance">instance()</a>
 </code></pre>
 <br />
 
@@ -228,7 +220,7 @@ Creates a new sink instance
 ### write/4 ###
 
 <pre><code>
-write(Context::<a href="logi_context.md#type-context">logi_context:context()</a>, Format::<a href="io.md#type-format">io:format()</a>, Data::<a href="logi_layout.md#type-data">logi_layout:data()</a>, X4::<a href="#type-sink">sink()</a>) -&gt; any()
+write(Context::<a href="logi_context.md#type-context">logi_context:context()</a>, Format::<a href="io.md#type-format">io:format()</a>, Data::<a href="logi_layout.md#type-data">logi_layout:data()</a>, X4::<a href="#type-instance">instance()</a>) -&gt; any()
 </code></pre>
 <br />
 
