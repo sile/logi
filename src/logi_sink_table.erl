@@ -22,7 +22,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 -type table() :: ets:tab().
 
--type select_result() :: [logi_sink:instance()].
+-type select_result() :: [logi_sink:sink()].
 %% A result of {@link select/4} function
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -40,7 +40,7 @@ delete(Table) ->
     ok.
 
 %% @doc Registers an sink
--spec register(table(), logi_sink:id(), logi_sink:instance(), logi_condition:condition(), logi_condition:condition()) -> ok.
+-spec register(table(), logi_sink:id(), logi_sink:sink(), logi_condition:condition(), logi_condition:condition()) -> ok.
 register(Table, SinkId, Sink, NewCondition, OldCondition) ->
     {Added, _, Deleted} = diff(logi_condition:normalize(NewCondition),
                                logi_condition:normalize(OldCondition)),
@@ -91,7 +91,7 @@ diff(A, B) ->
       ordsets:to_list(ordsets:subtract(Bs, As))
     }.
 
--spec insert_sink(table(), logi_sink:id(), logi_sink:instance()) -> ok.
+-spec insert_sink(table(), logi_sink:id(), logi_sink:sink()) -> ok.
 insert_sink(Table, SinkId, Sink) ->
     E = {SinkId, Sink},
     _ = ets:insert(Table, E),

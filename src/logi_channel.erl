@@ -54,7 +54,7 @@
 -export([delete/1]).
 -export([which_channels/0]).
 
--export([install_sink/2, install_sink/3]).
+-export([install_sink/3, install_sink/4]).
 -export([uninstall_sink/1, uninstall_sink/2]).
 -export([set_sink_condition/2, set_sink_condition/3]).
 -export([find_sink/1,  find_sink/2]).
@@ -103,8 +103,8 @@
         {
           id        :: logi_sink:id(),
           condition :: logi_condition:condition(),
-          sink      :: logi_sink:sink(),
-          instance  :: logi_sink:instance(),
+          spec      :: logi_sink:spec(),
+          instance  :: logi_sink:sink(),
           owner     :: pid(),
           owner_id  :: term(),
           monitor   :: reference()
@@ -156,8 +156,8 @@
 -type installed_sink() ::
         #{
            condition => logi_condition:condition(),
-           sink      => logi_sink:sink(),
-           instance  => logi_sink:instance(),
+           spec      => logi_sink:spec(),
+           instance  => logi_sink:sink(),
            owner     => pid()
          }.
 %% The information of an installed sink
@@ -202,25 +202,19 @@ delete(Channel)                       -> error(badarg, [Channel]).
 which_channels() -> logi_channel_sup:which_children().
 
 %% @equiv install_sink(Condition, Sink, [])
--spec install_sink(logi_condition:condition(), logi_sink:sink()) -> install_sink_result(). % TODO: install_sink_result/0は型にしなくても良い
-install_sink(Condition, Sink) -> install_sink(Condition, Sink, []).
+-spec install_sink(logi_sink:id(), logi_condition:condition(), logi_sink:spec()) -> install_sink_result(). % TODO: install_sink_result/0は型にしなくても良い
+install_sink(SinkId, Condition, Sink) -> install_sink(SinkId, Condition, Sink, []).
 
 %% @doc Installs `Sink'
 %%
 %% TODO: notice: This function may block if instantiate/1 of the Sink blocks
--spec install_sink(logi_condition:condition(), logi_sink:sink(), install_sink_options()) -> install_sink_result().
-install_sink(Condition, Sink, Options) ->
+-spec install_sink(logi_sink:id(), logi_condition:condition(), logi_sink:spec(), install_sink_options()) -> install_sink_result().
+install_sink(Id, Condition, Sink, Options) ->
     Args = [Condition, Sink, Options],
     _ = logi_condition:is_condition(Condition) orelse error(badarg, Args),
-    _ = logi_sink:is_sink(Sink) orelse error(badarg, Args),
+    _ = logi_sink:is_spec(Sink) orelse error(badarg, Args),
     _ = is_list(Options) orelse error(badarg, Args),
 
-    DefaultId =
-        case logi_sink_factory:is_factory(Sink) of
-            false -> logi_sink:get_module(Sink);
-            true  -> logi_sink_factory:get_module(Sink)
-        end,
-    Id       = proplists:get_value(id, Options, DefaultId),
     Channel  = proplists:get_value(channel, Options, default_channel()),
     IfExists = proplists:get_value(if_exists, Options, error),
     _ = is_atom(Id) orelse error(badarg, Args),
@@ -363,7 +357,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal Functions
 %%----------------------------------------------------------------------------------------------------------------------
 -spec handle_install_sink(Arg, #?STATE{}) -> {reply, Result, #?STATE{}} when
-      Arg      :: {logi_sink:id(), logi_sink:sink(), logi_condition:condition(), IfExists},
+      Arg      :: {logi_sink:id(), logi_sink:spec(), logi_condition:condition(), IfExists},
       IfExists :: error | if_exists | supersede,
       Result   :: {ok, OldSink} | {error, Reason},
       OldSink  :: undefined | installed_sink(),
@@ -391,7 +385,7 @@ handle_install_sink({SinkId, Sink, Condition, IfExists}, State0) ->
                         #sink{
                            id        = SinkId,
                            condition = Condition,
-                           sink      = Sink,
+                           spec      = Sink,
                            instance  = Instance,
                            owner     = Owner,
                            owner_id  = OwnerId,
@@ -450,17 +444,16 @@ to_installed_sink(undefined) ->
 to_installed_sink(Sink) ->
     #{
        condition => Sink#sink.condition,
-       sink      => Sink#sink.sink,
+       spec      => Sink#sink.spec,
        instance  => Sink#sink.instance,
        owner     => Sink#sink.owner
      }.
 
--spec create_sink_instance(logi_sink:sink(), #?STATE{}) ->
-                                  {ok, logi_sink:instance(), pid(), term()} | {error, Reason::term()}.
+-spec create_sink_instance(logi_sink:spec(), #?STATE{}) -> {ok, logi_sink:sink(), pid(), term()} | {error, term()}.
 create_sink_instance(Sink, State) ->
     SinkOwnerSup = logi_per_channel_sup:get_sink_owner_sup(State#?STATE.supervisor),
     try
-        logi_sink_factory:instantiate_if_needed(Sink, SinkOwnerSup)
+        logi_sink:instantiate(Sink, SinkOwnerSup)
     catch
         Class:ErrorReason -> {error, {Class, ErrorReason, erlang:get_stacktrace()}}
     end.

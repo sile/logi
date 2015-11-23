@@ -325,13 +325,14 @@ metadata_test_() ->
 log_test_() ->
     InstallSinkOpt =
         fun (Severity, Optins) ->
+                Id = proplists:get_value(id, Optins),
                 Caller = self(),
                 WriteFun = fun (Context, Format, Data) -> Caller ! {'LOGI_MSG', Context, Format, Data} end,
                 {ok, _} = logi_channel:install_sink(
-                            Severity, logi_builtin_sink_fun:new(WriteFun), [{if_exists, supersede} | Optins]),
+                            Id, Severity, logi_builtin_sink_fun:new(WriteFun), [{if_exists, supersede} | Optins]),
                 ok
         end,
-    InstallSink = fun (Severity) -> InstallSinkOpt(Severity, []) end,
+    InstallSink = fun (Severity) -> InstallSinkOpt(Severity, [{id, test}]) end,
     {foreach,
      fun () ->
              {ok, Apps} = application:ensure_all_started(logi),
@@ -456,7 +457,7 @@ log_test_() ->
        fun () ->
                ErroneousWriteFun = fun (_, _, _) -> error(something_wrong) end,
                InstallSinkOpt(info, [{id, sink_0}]),
-               {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_fun:new(ErroneousWriteFun), [{id, sink_1}]),
+               {ok, _} = logi_channel:install_sink(sink_1, info, logi_builtin_sink_fun:new(ErroneousWriteFun)),
                InstallSinkOpt(info, [{id, sink_2}]),
 
                logi:info("hello world"),

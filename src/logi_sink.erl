@@ -51,17 +51,20 @@
 %%----------------------------------------------------------------------------------------------------------------------
 -export([new/3]).
 -export([is_sink/1]).
--export([is_instance/1]).
--export([get_module/1, get_layout/1, get_extra_data/1]).
+-export([is_spec/1]).
 -export([is_callback_module/1]).
+-export([get_module/1, get_layout/1, get_extra_data/1]).
+-export([instantiate/2]).
 
 -export([write/4]).
 
 -export_type([id/0]).
 -export_type([sink/0]).
--export_type([instance/0]).
 -export_type([callback_module/0]).
 -export_type([extra_data/0]).
+-export_type([spec/0]).
+-export_type([simple_one_for_one_child_spec/0]).
+-export_type([startchild_ret/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Behaviour Callbacks
@@ -71,9 +74,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros & Records & Types
 %%----------------------------------------------------------------------------------------------------------------------
--type sink() :: instance() | logi_sink_factory:factory().
-
--opaque instance() :: {callback_module(), logi_layout:layout(), extra_data()}.
+-type sink() :: {callback_module(), logi_layout:layout(), extra_data()}.
 %% A sink instance.
 
 -type id() :: atom().
@@ -90,35 +91,42 @@
 %% This value will be loaded from ETS every time the `write/4' is called.
 %% Therefore, very huge data can cause a performance issue.
 
+-type spec() :: sink() | supervisor:child_spec() | simple_one_for_one_child_spec().
+
+-type simple_one_for_one_child_spec() :: [term()].
+
+-type startchild_ret() :: {ok, pid(), sink()} | {error, Reason::term()}.
+
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @doc Creates a new sink instance
--spec new(callback_module(), logi_layout:layout(), extra_data()) -> instance().
+-spec new(callback_module(), logi_layout:layout(), extra_data()) -> sink().
 new(Module, Layout, ExtraData) ->
     _ = is_callback_module(Module) orelse error(badarg, [Module, Layout, ExtraData]),
     _ = logi_layout:is_layout(Layout) orelse error(badarg, [Module, Layout, ExtraData]),
     {Module, Layout, ExtraData}.
 
 %% @doc Returns `true' if `X' is a sink instance, otherwise `false'
--spec is_instance(X :: (instance() | term())) -> boolean().
-is_instance({Module, Layout, _}) -> is_callback_module(Module) andalso logi_layout:is_layout(Layout);
-is_instance(_)                   -> false.
+-spec is_sink(X :: (sink() | term())) -> boolean().
+is_sink({Module, Layout, _}) -> is_callback_module(Module) andalso logi_layout:is_layout(Layout);
+is_sink(_)                   -> false.
 
 %% @doc Returns `true' if `X' is a `sink()' object, otherwise `false'
--spec is_sink(X :: (sink() | term())) -> boolean().
-is_sink(X) -> is_instance(X) orelse logi_sink_factory:is_factory(X).
+-spec is_spec(X :: (spec() | term())) -> boolean().
+is_spec(X) ->
+    (is_sink(X) orelse is_list(X) orelse supervisor:check_childspecs([X]) =:= ok).
 
 %% @doc Gets the module of `Sink'
--spec get_module(Sink :: instance()) -> callback_module().
+-spec get_module(Sink :: sink()) -> callback_module().
 get_module({Module, _, _}) -> Module.
 
 %% @doc Gets the layout of `Sink'
--spec get_layout(Sink :: instance()) -> logi_layout:layout().
+-spec get_layout(Sink :: sink()) -> logi_layout:layout().
 get_layout({_, Layout, _}) -> Layout.
 
 %% @doc Gets the extra data of `Sink'
--spec get_extra_data(Sink :: instance()) -> extra_data().
+-spec get_extra_data(Sink :: sink()) -> extra_data().
 get_extra_data({_, _, ExtraData}) -> ExtraData.
 
 %% @doc Returns `true' if `X' is a module which implements the `sink' behaviour, otherwise `false'
@@ -128,7 +136,30 @@ is_callback_module(X) -> (is_atom(X) andalso logi_utils:function_exported(X, wri
 %% @doc Writes a log message
 %%
 %% If it fails to write, an exception will be raised.
--spec write(logi_context:context(), io:format(), logi_layout:data(), instance()) -> any().
+-spec write(logi_context:context(), io:format(), logi_layout:data(), sink()) -> any().
 write(Context, Format, Data, {Module, Layout, ExtraData}) ->
     FormattedData = logi_layout:format(Context, Format, Data, Layout),
     Module:write(Context, FormattedData, ExtraData).
+
+-spec instantiate(spec(), Supervisor) -> {ok, logi_sink:sink(), ChildPid, ChildId} | {error, Reason} when
+      Supervisor :: pid() | atom() | {global, term()} | {via, module(), term()},
+      ChildPid   :: pid(), % owner of the sink instance
+      ChildId    :: term(),
+      Reason     :: term().
+instantiate(Sink = {_, _, _}, _Supervisor) ->
+    {ok, Sink, self(), make_ref()};
+instantiate(ChildSpec, Supervisor) ->
+    Id = fun (_, #{id := Id})         -> Id;
+             (_, {Id, _, _, _, _, _}) -> Id;
+             (Pid, _)                 -> Pid
+         end,
+    case supervisor:start_child(Supervisor, ChildSpec) of
+        {error, Reason} -> {error, Reason};
+        {ok, Pid, Sink} ->
+            _ = logi_sink:is_sink(Sink) orelse error({badresult, {ok, Pid, Sink}}, [ChildSpec, Supervisor]),
+            {ok, Sink, Pid, Id(Pid, ChildSpec)};
+        {ok, Pid} ->
+            _ = supervisor:terminate_child(Supervisor, Id(Pid, ChildSpec)),
+            _ = supervisor:delete_child(Supervisor, Id(Pid, ChildSpec)),
+            error({badresult, {ok, Pid}}, [ChildSpec, Supervisor])
+    end.

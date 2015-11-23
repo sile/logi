@@ -30,7 +30,7 @@ write_test_() ->
        fun () ->
                Issuer = self(),
                WriteFun = fun (_, Format, Data) -> Issuer ! {write, Format, Data} end,
-               {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_fun:new(WriteFun)),
+               {ok, _} = logi_channel:install_sink(test, info, logi_builtin_sink_fun:new(WriteFun)),
                logi:info("hello world"),
                receive
                    {write, "hello world", []} -> ?assert(true)

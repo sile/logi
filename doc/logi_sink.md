@@ -110,12 +110,13 @@ The sinks installed in the same channel must have different identifiers.
 
 
 
-### <a name="type-instance">instance()</a> ###
+### <a name="type-simple_one_for_one_child_spec">simple_one_for_one_child_spec()</a> ###
 
 
-__abstract datatype__: `instance()`
+<pre><code>
+simple_one_for_one_child_spec() = [term()]
+</code></pre>
 
- A sink instance.
 
 
 
@@ -123,7 +124,28 @@ __abstract datatype__: `instance()`
 
 
 <pre><code>
-sink() = <a href="#type-instance">instance()</a> | <a href="logi_sink_factory.md#type-factory">logi_sink_factory:factory()</a>
+sink() = {<a href="#type-callback_module">callback_module()</a>, <a href="logi_layout.md#type-layout">logi_layout:layout()</a>, <a href="#type-extra_data">extra_data()</a>}
+</code></pre>
+
+ A sink instance.
+
+
+
+### <a name="type-spec">spec()</a> ###
+
+
+<pre><code>
+spec() = <a href="#type-sink">sink()</a> | <a href="supervisor.md#type-child_spec">supervisor:child_spec()</a> | <a href="#type-simple_one_for_one_child_spec">simple_one_for_one_child_spec()</a>
+</code></pre>
+
+
+
+
+### <a name="type-startchild_ret">startchild_ret()</a> ###
+
+
+<pre><code>
+startchild_ret() = {ok, pid(), <a href="#type-sink">sink()</a>} | {error, Reason::term()}
 </code></pre>
 
 <a name="index"></a>
@@ -131,7 +153,7 @@ sink() = <a href="#type-instance">instance()</a> | <a href="logi_sink_factory.md
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_extra_data-1">get_extra_data/1</a></td><td>Gets the extra data of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_layout-1">get_layout/1</a></td><td>Gets the layout of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Sink</code></td></tr><tr><td valign="top"><a href="#is_callback_module-1">is_callback_module/1</a></td><td>Returns <code>true</code> if <code>X</code> is a module which implements the <code>sink</code> behaviour, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_instance-1">is_instance/1</a></td><td>Returns <code>true</code> if <code>X</code> is a sink instance, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_sink-1">is_sink/1</a></td><td>Returns <code>true</code> if <code>X</code> is a <code>sink()</code> object, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td>Creates a new sink instance.</td></tr><tr><td valign="top"><a href="#write-4">write/4</a></td><td>Writes a log message.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_extra_data-1">get_extra_data/1</a></td><td>Gets the extra data of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_layout-1">get_layout/1</a></td><td>Gets the layout of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Sink</code></td></tr><tr><td valign="top"><a href="#instantiate-2">instantiate/2</a></td><td></td></tr><tr><td valign="top"><a href="#is_callback_module-1">is_callback_module/1</a></td><td>Returns <code>true</code> if <code>X</code> is a module which implements the <code>sink</code> behaviour, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_sink-1">is_sink/1</a></td><td>Returns <code>true</code> if <code>X</code> is a sink instance, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_spec-1">is_spec/1</a></td><td>Returns <code>true</code> if <code>X</code> is a <code>sink()</code> object, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td>Creates a new sink instance.</td></tr><tr><td valign="top"><a href="#write-4">write/4</a></td><td>Writes a log message.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -143,7 +165,7 @@ sink() = <a href="#type-instance">instance()</a> | <a href="logi_sink_factory.md
 ### get_extra_data/1 ###
 
 <pre><code>
-get_extra_data(Sink::<a href="#type-instance">instance()</a>) -&gt; <a href="#type-extra_data">extra_data()</a>
+get_extra_data(Sink::<a href="#type-sink">sink()</a>) -&gt; <a href="#type-extra_data">extra_data()</a>
 </code></pre>
 <br />
 
@@ -154,7 +176,7 @@ Gets the extra data of `Sink`
 ### get_layout/1 ###
 
 <pre><code>
-get_layout(Sink::<a href="#type-instance">instance()</a>) -&gt; <a href="logi_layout.md#type-layout">logi_layout:layout()</a>
+get_layout(Sink::<a href="#type-sink">sink()</a>) -&gt; <a href="logi_layout.md#type-layout">logi_layout:layout()</a>
 </code></pre>
 <br />
 
@@ -165,11 +187,21 @@ Gets the layout of `Sink`
 ### get_module/1 ###
 
 <pre><code>
-get_module(Sink::<a href="#type-instance">instance()</a>) -&gt; <a href="#type-callback_module">callback_module()</a>
+get_module(Sink::<a href="#type-sink">sink()</a>) -&gt; <a href="#type-callback_module">callback_module()</a>
 </code></pre>
 <br />
 
 Gets the module of `Sink`
+
+<a name="instantiate-2"></a>
+
+### instantiate/2 ###
+
+<pre><code>
+instantiate(Sink::<a href="#type-spec">spec()</a>, Supervisor) -&gt; {ok, <a href="logi_sink.md#type-sink">logi_sink:sink()</a>, ChildPid, ChildId} | {error, Reason}
+</code></pre>
+
+<ul class="definitions"><li><code>Supervisor = pid() | atom() | {global, term()} | {via, module(), term()}</code></li><li><code>ChildPid = pid()</code></li><li><code>ChildId = term()</code></li><li><code>Reason = term()</code></li></ul>
 
 <a name="is_callback_module-1"></a>
 
@@ -182,23 +214,23 @@ is_callback_module(X::<a href="#type-callback_module">callback_module()</a> | te
 
 Returns `true` if `X` is a module which implements the `sink` behaviour, otherwise `false`
 
-<a name="is_instance-1"></a>
-
-### is_instance/1 ###
-
-<pre><code>
-is_instance(X::<a href="#type-instance">instance()</a> | term()) -&gt; boolean()
-</code></pre>
-<br />
-
-Returns `true` if `X` is a sink instance, otherwise `false`
-
 <a name="is_sink-1"></a>
 
 ### is_sink/1 ###
 
 <pre><code>
 is_sink(X::<a href="#type-sink">sink()</a> | term()) -&gt; boolean()
+</code></pre>
+<br />
+
+Returns `true` if `X` is a sink instance, otherwise `false`
+
+<a name="is_spec-1"></a>
+
+### is_spec/1 ###
+
+<pre><code>
+is_spec(X::<a href="#type-spec">spec()</a> | term()) -&gt; boolean()
 </code></pre>
 <br />
 
@@ -209,7 +241,7 @@ Returns `true` if `X` is a `sink()` object, otherwise `false`
 ### new/3 ###
 
 <pre><code>
-new(Module::<a href="#type-callback_module">callback_module()</a>, Layout::<a href="logi_layout.md#type-layout">logi_layout:layout()</a>, ExtraData::<a href="#type-extra_data">extra_data()</a>) -&gt; <a href="#type-instance">instance()</a>
+new(Module::<a href="#type-callback_module">callback_module()</a>, Layout::<a href="logi_layout.md#type-layout">logi_layout:layout()</a>, ExtraData::<a href="#type-extra_data">extra_data()</a>) -&gt; <a href="#type-sink">sink()</a>
 </code></pre>
 <br />
 
@@ -220,7 +252,7 @@ Creates a new sink instance
 ### write/4 ###
 
 <pre><code>
-write(Context::<a href="logi_context.md#type-context">logi_context:context()</a>, Format::<a href="io.md#type-format">io:format()</a>, Data::<a href="logi_layout.md#type-data">logi_layout:data()</a>, X4::<a href="#type-instance">instance()</a>) -&gt; any()
+write(Context::<a href="logi_context.md#type-context">logi_context:context()</a>, Format::<a href="io.md#type-format">io:format()</a>, Data::<a href="logi_layout.md#type-data">logi_layout:data()</a>, X4::<a href="#type-sink">sink()</a>) -&gt; any()
 </code></pre>
 <br />
 
