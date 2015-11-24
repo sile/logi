@@ -79,4 +79,5 @@ new(Options) ->
 %% @private
 write(Context, Format, Data, {Layout, IoDevice}) ->
     FormattedData = logi_layout:format(Context, Format, Data, Layout),
-    io:put_chars(IoDevice, FormattedData).
+    _ = io:put_chars(IoDevice, FormattedData),
+    iolist_size(FormattedData).

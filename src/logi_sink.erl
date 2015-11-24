@@ -65,11 +65,24 @@
 -export_type([spec/0]).
 -export_type([simple_one_for_one_child_spec/0]).
 -export_type([startchild_ret/0]).
+-export_type([write_bytes/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Behaviour Callbacks
 %%----------------------------------------------------------------------------------------------------------------------
--callback write(logi_context:context(), io:format(), logi_layout:data(), extra_data()) -> any().
+-callback write(logi_context:context(), io:format(), logi_layout:data(), extra_data()) -> write_bytes().
+
+%%
+%% -type controlling_destination() :: {pid(), reference()}.
+%%
+
+%% -callback instantiate(controlling_process(), children_supervisor(), token(), spec()) ->
+%%     {ok, sink()} |
+%%     {start_agent, supervisor:sup_flags(), supervisor:child_spec()} |
+%%     {error, term()}.
+
+%%
+%% ret() :: {ok, pid(), logi_sink:sink()}
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros & Records & Types
@@ -96,6 +109,8 @@
 -type simple_one_for_one_child_spec() :: [term()].
 
 -type startchild_ret() :: {ok, pid(), sink()} | {error, Reason::term()}.
+
+-type write_bytes() :: non_neg_integer().
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
@@ -131,7 +146,7 @@ is_callback_module(X) -> (is_atom(X) andalso logi_utils:function_exported(X, wri
 %% @doc Writes a log message
 %%
 %% If it fails to write, an exception will be raised.
--spec write(logi_context:context(), io:format(), logi_layout:data(), sink()) -> any().
+-spec write(logi_context:context(), io:format(), logi_layout:data(), sink()) -> write_bytes().
 write(Context, Format, Data, {Module, ExtraData}) ->
     Module:write(Context, Format, Data, ExtraData).
 
