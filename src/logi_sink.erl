@@ -49,11 +49,11 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/3]).
+-export([new/2]).
 -export([is_sink/1]).
 -export([is_spec/1]).
 -export([is_callback_module/1]).
--export([get_module/1, get_layout/1, get_extra_data/1]).
+-export([get_module/1, get_extra_data/1]).
 -export([instantiate/2]).
 
 -export([write/4]).
@@ -69,12 +69,12 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Behaviour Callbacks
 %%----------------------------------------------------------------------------------------------------------------------
--callback write(logi_context:context(), logi_layout:formatted_data(), extra_data()) -> any().
+-callback write(logi_context:context(), io:format(), logi_layout:data(), extra_data()) -> any().
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros & Records & Types
 %%----------------------------------------------------------------------------------------------------------------------
--type sink() :: {callback_module(), logi_layout:layout(), extra_data()}.
+-type sink() :: {callback_module(), extra_data()}.
 %% A sink instance.
 
 -type id() :: atom().
@@ -101,16 +101,15 @@
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @doc Creates a new sink instance
--spec new(callback_module(), logi_layout:layout(), extra_data()) -> sink().
-new(Module, Layout, ExtraData) ->
-    _ = is_callback_module(Module) orelse error(badarg, [Module, Layout, ExtraData]),
-    _ = logi_layout:is_layout(Layout) orelse error(badarg, [Module, Layout, ExtraData]),
-    {Module, Layout, ExtraData}.
+-spec new(callback_module(), extra_data()) -> sink().
+new(Module, ExtraData) ->
+    _ = is_callback_module(Module) orelse error(badarg, [Module, ExtraData]),
+    {Module, ExtraData}.
 
 %% @doc Returns `true' if `X' is a sink instance, otherwise `false'
 -spec is_sink(X :: (sink() | term())) -> boolean().
-is_sink({Module, Layout, _}) -> is_callback_module(Module) andalso logi_layout:is_layout(Layout);
-is_sink(_)                   -> false.
+is_sink({Module, _}) -> is_callback_module(Module);
+is_sink(_)           -> false.
 
 %% @doc Returns `true' if `X' is a `sink()' object, otherwise `false'
 -spec is_spec(X :: (spec() | term())) -> boolean().
@@ -119,34 +118,29 @@ is_spec(X) ->
 
 %% @doc Gets the module of `Sink'
 -spec get_module(Sink :: sink()) -> callback_module().
-get_module({Module, _, _}) -> Module.
-
-%% @doc Gets the layout of `Sink'
--spec get_layout(Sink :: sink()) -> logi_layout:layout().
-get_layout({_, Layout, _}) -> Layout.
+get_module({Module, _}) -> Module.
 
 %% @doc Gets the extra data of `Sink'
 -spec get_extra_data(Sink :: sink()) -> extra_data().
-get_extra_data({_, _, ExtraData}) -> ExtraData.
+get_extra_data({_, ExtraData}) -> ExtraData.
 
 %% @doc Returns `true' if `X' is a module which implements the `sink' behaviour, otherwise `false'
 -spec is_callback_module(X :: (callback_module() | term())) -> boolean().
-is_callback_module(X) -> (is_atom(X) andalso logi_utils:function_exported(X, write, 3)).
+is_callback_module(X) -> (is_atom(X) andalso logi_utils:function_exported(X, write, 4)).
 
 %% @doc Writes a log message
 %%
 %% If it fails to write, an exception will be raised.
 -spec write(logi_context:context(), io:format(), logi_layout:data(), sink()) -> any().
-write(Context, Format, Data, {Module, Layout, ExtraData}) ->
-    FormattedData = logi_layout:format(Context, Format, Data, Layout),
-    Module:write(Context, FormattedData, ExtraData).
+write(Context, Format, Data, {Module, ExtraData}) ->
+    Module:write(Context, Format, Data, ExtraData).
 
 -spec instantiate(spec(), Supervisor) -> {ok, logi_sink:sink(), ChildPid, ChildId} | {error, Reason} when
       Supervisor :: pid() | atom() | {global, term()} | {via, module(), term()},
       ChildPid   :: pid(), % owner of the sink instance
       ChildId    :: term(),
       Reason     :: term().
-instantiate(Sink = {_, _, _}, _Supervisor) ->
+instantiate(Sink = {_, _}, _Supervisor) ->
     {ok, Sink, self(), make_ref()};
 instantiate(ChildSpec, Supervisor) ->
     Id = fun (_, #{id := Id})         -> Id;

@@ -144,8 +144,7 @@ select_test_() ->
     Channel = test_channel,
     Install =
         fun (Id, Condition) ->
-                Layout = logi_builtin_layout_pass_through:new(),
-                Sink = logi_sink:new(logi_builtin_sink_fun, Layout, Id),
+                Sink = logi_sink:new(logi_builtin_sink_fun, Id),
                 {ok, _} = logi_channel:install_sink(Id, Condition, Sink, [{channel, Channel}]),
                 ok
         end,
@@ -156,7 +155,7 @@ select_test_() ->
         end,
     Select =
         fun (Severity, Application, Module) ->
-                lists:sort([Id || {_, _, Id} <- logi_channel:select_sink(Channel, Severity, Application, Module)])
+                lists:sort([Id || {_, Id} <- logi_channel:select_sink(Channel, Severity, Application, Module)])
         end,
     {setup,
      fun () -> ok = application:start(logi) end,

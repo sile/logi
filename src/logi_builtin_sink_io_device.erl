@@ -47,8 +47,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback API
 %%----------------------------------------------------------------------------------------------------------------------
--export([init/1]).
--export([write/3]).
+-export([write/4]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
@@ -72,15 +71,12 @@ new(Options) ->
     _ = is_pid(IoDevice) orelse is_atom(IoDevice) orelse error(badarg, [Options]),
     _ = logi_layout:is_layout(Layout) orelse error(badarg, [Options]),
 
-    logi_sink:new(?MODULE, Layout, IoDevice).
+    logi_sink:new(?MODULE, {Layout, IoDevice}).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-init(IoDevice) ->
-    {ok, IoDevice}.
-
-%% @private
-write(_Context, FormattedData, IoDevice) ->
+write(Context, Format, Data, {Layout, IoDevice}) ->
+    FormattedData = logi_layout:format(Context, Format, Data, Layout),
     io:put_chars(IoDevice, FormattedData).

@@ -8,8 +8,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 -define(CHANNEL, logi_test_log).
 -define(TEST_SINK, logi_builtin_sink_fun).
--define(LAYOUT, logi_builtin_layout_pass_through:new()).
--define(SINK(Id), logi_sink:new(?TEST_SINK, ?LAYOUT, Id)).
+-define(SINK(Id), logi_sink:new(?TEST_SINK, Id)).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Unit Tests
@@ -73,7 +72,7 @@ select_test_() ->
 
                Select =
                    fun (Severity, Application, Module) ->
-                           lists:sort([Id || {_, _, Id} <- logi_sink_table:select(?CHANNEL, Severity, Application, Module)])
+                           lists:sort([Id || {_, Id} <- logi_sink_table:select(?CHANNEL, Severity, Application, Module)])
                    end,
 
                ?assertEqual([s1],                 Select(debug, stdlib, lists)),

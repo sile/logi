@@ -7,7 +7,6 @@
 %% Macros
 %%----------------------------------------------------------------------------------------------------------------------
 -define(TEST_SINK, logi_builtin_sink_fun).
--define(LAYOUT, logi_builtin_layout_pass_through:new()).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Unit Tests
@@ -16,7 +15,7 @@ new_test_() ->
     [
      {"Creates a sink specification",
       fun () ->
-              Sink = logi_sink:new(?TEST_SINK, ?LAYOUT, extra_data),
+              Sink = logi_sink:new(?TEST_SINK, extra_data),
               ?assert(logi_sink:is_sink(Sink))
       end}
     ].
@@ -25,9 +24,8 @@ get_test_() ->
     [
      {"Gets the information from a sink",
       fun () ->
-              S = logi_sink:new(?TEST_SINK, ?LAYOUT, extra),
+              S = logi_sink:new(?TEST_SINK, extra),
               ?assertEqual(?TEST_SINK, logi_sink:get_module(S)),
-              ?assertEqual(?LAYOUT,    logi_sink:get_layout(S)),
               ?assertEqual(extra,      logi_sink:get_extra_data(S))
       end}
     ].
