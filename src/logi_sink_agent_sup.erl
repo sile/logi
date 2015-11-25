@@ -31,15 +31,12 @@ get_child_agent_set_sup(Sup) ->
     [ChildAgentSetSup] = [Pid || {child_agent_set_sup, Pid, _, _} <- supervisor:which_children(Sup), is_pid(Pid)],
     ChildAgentSetSup.
 
--spec start_agent(pid(), supervisor:child_spec()) -> {ok, pid(), logi_sink:sink()} | {error, Reason::term()}.
+-spec start_agent(pid(), supervisor:child_spec()) -> {ok, pid()} | {error, Reason::term()}.
 start_agent(Sup, ChildSpec) ->
     case supervisor:start_child(Sup, ChildSpec) of
         {error, Reason} -> {error, Reason};
-        {ok, Pid, Sink} ->
-            _ = logi_sink:is_sink(Sink) orelse error({badresult, {ok, Pid, Sink}}, [Sup, ChildSpec]),
-            {ok, Pid, Sink};
-        {ok, Pid} ->
-            error({badresult, {ok, Pid}}, [Sup, ChildSpec])
+        {ok, undefined} -> {error, {ignored, ChildSpec}};
+        {ok, Pid}       -> {ok, Pid}
     end.
 
 %%----------------------------------------------------------------------------------------------------------------------

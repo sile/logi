@@ -185,10 +185,10 @@ Gets the module of `Sink`
 ### instantiate/2 ###
 
 <pre><code>
-instantiate(ParentSup, Spec::<a href="#type-spec">spec()</a>) -&gt; {ok, <a href="#type-sink">sink()</a>, AgentSup} | {error, Reason}
+instantiate(ParentSup, Spec::<a href="#type-spec">spec()</a>) -&gt; {ok, <a href="#type-sink">sink()</a>, AgentSup, AgentPid} | {error, Reason}
 </code></pre>
 
-<ul class="definitions"><li><code>ParentSup = <a href="logi_sink_agent.md#type-agent_set_sup">logi_sink_agent:agent_set_sup()</a></code></li><li><code>AgentSup = <a href="logi_sink_agent.md#type-agent_sup">logi_sink_agent:agent_sup()</a> | undefined</code></li><li><code>Reason = term()</code></li></ul>
+<ul class="definitions"><li><code>ParentSup = <a href="logi_sink_agent.md#type-agent_set_sup">logi_sink_agent:agent_set_sup()</a></code></li><li><code>AgentSup = <a href="logi_sink_agent.md#type-agent_sup">logi_sink_agent:agent_sup()</a> | undefined</code></li><li><code>AgentPid = <a href="logi_sink_agent.md#type-agent">logi_sink_agent:agent()</a> | undefined</code></li><li><code>Reason = term()</code></li></ul>
 
 <a name="is_callback_module-1"></a>
 

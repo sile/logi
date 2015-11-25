@@ -134,26 +134,24 @@ is_callback_module(X) -> (is_atom(X) andalso logi_utils:function_exported(X, wri
 write(Context, Format, Data, {Module, ExtraData}) ->
     Module:write(Context, Format, Data, ExtraData).
 
--spec instantiate(ParentSup, spec()) -> {ok, sink(), AgentSup} | {error, Reason} when
+-spec instantiate(ParentSup, spec()) -> {ok, sink(), AgentSup, AgentPid} | {error, Reason} when
       ParentSup :: logi_sink_agent:agent_set_sup(),
       AgentSup  :: logi_sink_agent:agent_sup() | undefined,
+      AgentPid  :: logi_sink_agent:agent() | undefined,
       Reason    :: term().
 instantiate(ParentSup, Spec) ->
+    _ = is_pid(ParentSup) orelse error(badarg, [ParentSup, Spec]),
+    _ = logi_sink:is_spec(Spec) orelse error(badarg, [ParentSup, Spec]),
     case logi_sink_agent:is_spec(Spec) of
-        false -> {ok, Spec, undefined};
+        false -> {ok, Spec, undefined, undefined};
         true  -> logi_sink_agent:start_agent(ParentSup, Spec)
     end.
 
+%% TODO: change nameXXX: name
 -spec cleanup(ParentSup, AgentSup) -> ok when
       ParentSup :: logi_sink_agent:agent_set_sup(),
       AgentSup  :: logi_sink_agent:agent_sup() | undefined.
 cleanup(_ParentSup, undefined) ->
     ok;
 cleanup(ParentSup, AgentSup) ->
-    _ = supervisor:terminate_child(ParentSup, AgentSup),
-    fun Flush () ->
-            receive
-                {'SINK_CTRL', _, AgentSup, _, _} -> Flush()
-            after 0 -> ok
-            end
-    end().
+    logi_sink_agent_set_sup:stop_agent_sup(ParentSup, AgentSup).
