@@ -72,7 +72,6 @@
 %%----------------------------------------------------------------------------------------------------------------------
 -callback write(logi_context:context(), io:format(), logi_layout:data(), extra_data()) -> written_data().
 
-
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros & Records & Types
 %%----------------------------------------------------------------------------------------------------------------------
@@ -134,24 +133,22 @@ is_callback_module(X) -> (is_atom(X) andalso logi_utils:function_exported(X, wri
 write(Context, Format, Data, {Module, ExtraData}) ->
     Module:write(Context, Format, Data, ExtraData).
 
--spec instantiate(ParentSup, spec()) -> {ok, sink(), AgentSup, AgentPid} | {error, Reason} when
-      ParentSup :: logi_sink_agent:agent_set_sup(),
-      AgentSup  :: logi_sink_agent:agent_sup() | undefined,
-      AgentPid  :: logi_sink_agent:agent() | undefined,
-      Reason    :: term().
-instantiate(ParentSup, Spec) ->
-    _ = is_pid(ParentSup) orelse error(badarg, [ParentSup, Spec]),
-    _ = logi_sink:is_spec(Spec) orelse error(badarg, [ParentSup, Spec]),
+-spec instantiate(logi_sink_agent:controller(), spec()) -> {ok, sink(), AgentSup, AgentPid} | {error, Reason} when
+      AgentSup :: logi_sink_agent:agent_sup() | undefined,
+      AgentPid :: logi_sink_agent:agent() | undefined,
+      Reason   :: term().
+instantiate(Controller, Spec) ->
+    _ = logi_sink:is_spec(Spec) orelse error(badarg, [Spec]),
     case logi_sink_agent:is_spec(Spec) of
         false -> {ok, Spec, undefined, undefined};
-        true  -> logi_sink_agent:start_agent(ParentSup, Spec)
+        true  -> logi_sink_agent:start_agent(Controller, Spec)
     end.
 
 %% TODO: change nameXXX: name
--spec cleanup(ParentSup, AgentSup) -> ok when
-      ParentSup :: logi_sink_agent:agent_set_sup(),
-      AgentSup  :: logi_sink_agent:agent_sup() | undefined.
-cleanup(_ParentSup, undefined) ->
+-spec cleanup(logi_sink_agent:controller(), AgentSup) -> ok when
+      AgentSup :: logi_sink_agent:agent_sup() | undefined.
+cleanup(_Controller, undefined) ->
     ok;
-cleanup(ParentSup, AgentSup) ->
-    logi_sink_agent_set_sup:stop_agent_sup(ParentSup, AgentSup).
+cleanup(Controller, AgentSup) ->
+    _ = is_pid(AgentSup) orelse error(badarg, [AgentSup]),
+    logi_sink_agent:stop_agent(Controller, AgentSup).

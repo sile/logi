@@ -18,6 +18,8 @@
 -export([resume_sink/2]).
 -export([update_sink/2]).
 
+-export([make_root_controller/1]).
+
 %% TODO: get_agent_tree
 
 -export_type([spec/0]).
@@ -31,8 +33,8 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Behaviour Callbacks
 %%----------------------------------------------------------------------------------------------------------------------
--callback make_child_spec(controller(), agent_set_sup(), data()) -> supervisor:child_spec().
-%% @see make_child_spec/3
+-callback make_child_spec(controller(), data()) -> supervisor:child_spec().
+%% @see make_child_spec/2
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros & Records & Types
@@ -47,7 +49,6 @@
         }).
 
 -opaque spec() :: #?SPEC{}.
-
 
 -type callback_module() :: module().
 -type data() :: term().
@@ -73,7 +74,12 @@ new(Callbacks, Data) ->
 -spec new(callback_module(), data(), supervisor:sup_flags()) -> spec().
 new(CallbackModule, Data, SupFlags) ->
     %% TODO: validate
+    %% TODO: restriction: strategy shloud be 'one_for_all'
     #?SPEC{module = CallbackModule, sup_flags = SupFlags, data = Data}.
+
+-spec make_root_controller(pid()) -> controller().
+make_root_controller(Sup) ->
+    {self(), Sup}.
 
 -spec is_spec(spec() | term()) -> boolean().
 is_spec(X) -> is_record(X, ?SPEC).
@@ -101,19 +107,19 @@ start_ack(Controller = {Pid, AgentSup}, Sink) ->
     ok.
 
 %% @private
--spec start_agent(agent_set_sup(), spec()) -> {ok, logi_sink:sink(), agent_sup(), agent()} | {error, term()}.
-start_agent(ParentSup, Spec) ->
+-spec start_agent(controller(), spec()) -> {ok, logi_sink:sink(), agent_sup(), agent()} | {error, term()}.
+start_agent({_, ParentSup}, Spec) ->
     SupFlags = Spec#?SPEC.sup_flags,
-    case logi_sink_agent_set_sup:start_agent_sup(ParentSup, SupFlags) of
+    ChildrenSup = logi_sink_agent_set_sup:get_current_process(ParentSup),
+    case logi_sink_agent_set_sup:start_agent_sup(ChildrenSup, SupFlags) of
         {error, Reason} -> {error, Reason};
         {ok, AgentSup}  ->
             Controller = {self(), AgentSup},
             try
-                ChildrenSup = logi_sink_agent_sup:get_child_agent_set_sup(AgentSup),
-                ChildSpec = (Spec#?SPEC.module):make_child_spec(Controller, ChildrenSup, Spec#?SPEC.data),
+                ChildSpec = (Spec#?SPEC.module):make_child_spec(Controller, Spec#?SPEC.data),
                 case logi_sink_agent_sup:start_agent(AgentSup, ChildSpec) of
                     {error, Reason} ->
-                        ok = logi_sink_agent_set_sup:stop_agent_sup(ParentSup, AgentSup),
+                        ok = logi_sink_agent_set_sup:stop_agent_sup(ChildrenSup, AgentSup),
                         {error, Reason};
                     {ok, AgentPid} ->
                         receive
@@ -124,11 +130,13 @@ start_agent(ParentSup, Spec) ->
                 end
             catch
                 ExClass:ExReason ->
-                    ok = logi_sink_agent_set_sup:stop_agent_sup(ParentSup, AgentSup),
+                    ok = logi_sink_agent_set_sup:stop_agent_sup(ChildrenSup, AgentSup),
                     erlang:raise(ExClass, ExReason, erlang:get_stacktrace())
             end
     end.
 
--spec stop_agent(agent_set_sup(), agent_sup()) -> ok.
-stop_agent(ParentSup, AgentSup) ->
-    logi_sink_agent_set_sup:stop_agent_sup(ParentSup, AgentSup).
+%% @private
+-spec stop_agent(controller(), agent_sup()) -> ok.
+stop_agent({_, ParentSup}, AgentSup) ->
+    ChildrenSup = logi_sink_agent_set_sup:get_current_process(ParentSup),
+    logi_sink_agent_set_sup:stop_agent_sup(ChildrenSup, AgentSup).

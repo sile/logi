@@ -130,7 +130,7 @@ Otherwise the result value depends on the value of the `if_exists` option
 
 
 <pre><code>
-installed_sink() = #{condition =&gt; <a href="logi_condition.md#type-condition">logi_condition:condition()</a>, spec =&gt; <a href="logi_sink.md#type-spec">logi_sink:spec()</a>, sink =&gt; <a href="logi_sink.md#type-sink">logi_sink:sink()</a>, agent_sup =&gt; <a href="logi_sink_agent.md#type-agent_sup">logi_sink_agent:agent_sup()</a> | undefined, status =&gt; running | suspended}
+installed_sink() = #{condition =&gt; <a href="logi_condition.md#type-condition">logi_condition:condition()</a>, spec =&gt; <a href="logi_sink.md#type-spec">logi_sink:spec()</a>, sink =&gt; <a href="logi_sink.md#type-sink">logi_sink:sink()</a>, agent_sup =&gt; <a href="logi_sink_agent.md#type-agent_sup">logi_sink_agent:agent_sup()</a> | undefined, agent_pid =&gt; <a href="logi_sink_agent.md#type-agent">logi_sink_agent:agent()</a> | undefined, status =&gt; running | suspended}
 </code></pre>
 
  The information of an installed sink

@@ -93,7 +93,7 @@
 
 -record(?STATE,
         {
-          supervisor :: pid(),
+          controller :: logi_sink_agent:controller(),
           id         :: id(),
           table      :: logi_sink_table:table(),
           sinks = [] :: sinks()
@@ -328,7 +328,7 @@ select_sink(Channel, Severity, Application, Module) ->
 init([Suprvisor, Id]) ->
     State =
         #?STATE{
-            supervisor = Suprvisor,
+            controller = logi_sink_agent:make_root_controller(Suprvisor),
             id         = Id,
             table      = logi_sink_table:new(Id)
            },
@@ -485,7 +485,7 @@ handle_agent_reset({_, AgentSup, AgentPid, Sink}, State) ->
     case lists:keytake(AgentSup, #sink.agent_sup, State#?STATE.sinks) of
         false -> {noreply, State};
         {value, Sink0, Sinks} ->
-            ok = logi_sink_table:register(State#?STATE.table, Sink0#sink.id, Sink, Sink0#sink.condition, []),
+            ok = logi_sink_table:register(State#?STATE.table, Sink0#sink.id, Sink, Sink0#sink.condition, Sink0#sink.condition),
             Sink1 = Sink0#sink{status = running, agent_pid = AgentPid, instance = Sink},
             {noreply, State#?STATE{sinks = [Sink1 | Sinks]}}
     end.
@@ -508,8 +508,7 @@ to_installed_sink(Sink) ->
       AgentSup :: logi_sink_agent:agent_sup() | undefined,
       AgentPid :: logi_sink_agent:agent() | undefined.
 create_sink_instance(Spec, State) ->
-    AgentSetSup = logi_channel_sup:get_agent_set_sup(State#?STATE.supervisor),
-    case logi_sink:instantiate(AgentSetSup, Spec) of
+    case logi_sink:instantiate(State#?STATE.controller, Spec) of
         {error, Reason}                  -> {error, Reason};
         {ok, Sink, undefined, undefined} -> {ok, Sink, undefined, undefined, make_ref()};
         {ok, Sink, AgentSup, AgentPid}   -> {ok, Sink, AgentSup, AgentPid, monitor(process, AgentSup)}
@@ -520,5 +519,4 @@ release_sink_instance(undefined, _State) ->
     ok;
 release_sink_instance(Sink, State) ->
     _ = demonitor(Sink#sink.monitor, [flush]),
-    AgentSetSup = logi_channel_sup:get_agent_set_sup(State#?STATE.supervisor),
-    logi_sink:cleanup(AgentSetSup, Sink#sink.agent_sup).
+    logi_sink:cleanup(State#?STATE.controller, Sink#sink.agent_sup).
