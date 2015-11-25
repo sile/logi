@@ -110,22 +110,10 @@ The sinks installed in the same channel must have different identifiers.
 
 
 
-### <a name="type-simple_one_for_one_child_spec">simple_one_for_one_child_spec()</a> ###
-
-
-<pre><code>
-simple_one_for_one_child_spec() = [term()]
-</code></pre>
-
-
-
-
 ### <a name="type-sink">sink()</a> ###
 
 
-<pre><code>
-sink() = {<a href="#type-callback_module">callback_module()</a>, <a href="#type-extra_data">extra_data()</a>}
-</code></pre>
+__abstract datatype__: `sink()`
 
  A sink instance.
 
@@ -135,27 +123,17 @@ sink() = {<a href="#type-callback_module">callback_module()</a>, <a href="#type-
 
 
 <pre><code>
-spec() = <a href="#type-sink">sink()</a> | <a href="supervisor.md#type-child_spec">supervisor:child_spec()</a> | <a href="#type-simple_one_for_one_child_spec">simple_one_for_one_child_spec()</a>
+spec() = <a href="#type-sink">sink()</a> | <a href="logi_sink_agent.md#type-spec">logi_sink_agent:spec()</a>
 </code></pre>
 
 
 
 
-### <a name="type-startchild_ret">startchild_ret()</a> ###
+### <a name="type-written_data">written_data()</a> ###
 
 
 <pre><code>
-startchild_ret() = {ok, pid(), <a href="#type-sink">sink()</a>} | {error, Reason::term()}
-</code></pre>
-
-
-
-
-### <a name="type-write_bytes">write_bytes()</a> ###
-
-
-<pre><code>
-write_bytes() = non_neg_integer()
+written_data() = <a href="logi_layout.md#type-formatted_data">logi_layout:formatted_data()</a>
 </code></pre>
 
 <a name="index"></a>
@@ -163,12 +141,22 @@ write_bytes() = non_neg_integer()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_extra_data-1">get_extra_data/1</a></td><td>Gets the extra data of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Sink</code></td></tr><tr><td valign="top"><a href="#instantiate-2">instantiate/2</a></td><td></td></tr><tr><td valign="top"><a href="#is_callback_module-1">is_callback_module/1</a></td><td>Returns <code>true</code> if <code>X</code> is a module which implements the <code>sink</code> behaviour, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_sink-1">is_sink/1</a></td><td>Returns <code>true</code> if <code>X</code> is a sink instance, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_spec-1">is_spec/1</a></td><td>Returns <code>true</code> if <code>X</code> is a <code>sink()</code> object, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new sink instance.</td></tr><tr><td valign="top"><a href="#write-4">write/4</a></td><td>Writes a log message.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#cleanup-3">cleanup/3</a></td><td></td></tr><tr><td valign="top"><a href="#get_extra_data-1">get_extra_data/1</a></td><td>Gets the extra data of <code>Sink</code></td></tr><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td>Gets the module of <code>Sink</code></td></tr><tr><td valign="top"><a href="#instantiate-2">instantiate/2</a></td><td></td></tr><tr><td valign="top"><a href="#is_callback_module-1">is_callback_module/1</a></td><td>Returns <code>true</code> if <code>X</code> is a module which implements the <code>sink</code> behaviour, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_sink-1">is_sink/1</a></td><td>Returns <code>true</code> if <code>X</code> is a sink instance, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_spec-1">is_spec/1</a></td><td>Returns <code>true</code> if <code>X</code> is a <code>sink()</code> object, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new sink instance.</td></tr><tr><td valign="top"><a href="#write-4">write/4</a></td><td>Writes a log message.</td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
+
+<a name="cleanup-3"></a>
+
+### cleanup/3 ###
+
+<pre><code>
+cleanup(ParentSup, AgentSup, AgentRef) -&gt; ok
+</code></pre>
+
+<ul class="definitions"><li><code>ParentSup = <a href="logi_sink_agent.md#type-agent_set_sup">logi_sink_agent:agent_set_sup()</a></code></li><li><code>AgentSup = <a href="logi_sink_agent.md#type-agent_sup">logi_sink_agent:agent_sup()</a> | undefined</code></li><li><code>AgentRef = <a href="logi_sink_agent.md#type-agent_ref">logi_sink_agent:agent_ref()</a></code></li></ul>
 
 <a name="get_extra_data-1"></a>
 
@@ -197,10 +185,10 @@ Gets the module of `Sink`
 ### instantiate/2 ###
 
 <pre><code>
-instantiate(Sink::<a href="#type-spec">spec()</a>, Supervisor) -&gt; {ok, <a href="logi_sink.md#type-sink">logi_sink:sink()</a>, ChildPid, ChildId} | {error, Reason}
+instantiate(ParentSup, Spec::<a href="#type-spec">spec()</a>) -&gt; {ok, <a href="#type-sink">sink()</a>, AgentSup, AgentRef} | {error, Reason}
 </code></pre>
 
-<ul class="definitions"><li><code>Supervisor = pid() | atom() | {global, term()} | {via, module(), term()}</code></li><li><code>ChildPid = pid()</code></li><li><code>ChildId = term()</code></li><li><code>Reason = term()</code></li></ul>
+<ul class="definitions"><li><code>ParentSup = <a href="logi_sink_agent.md#type-agent_set_sup">logi_sink_agent:agent_set_sup()</a></code></li><li><code>AgentSup = <a href="logi_sink_agent.md#type-agent_sup">logi_sink_agent:agent_sup()</a> | undefined</code></li><li><code>AgentRef = <a href="logi_sink_agent.md#type-agent_ref">logi_sink_agent:agent_ref()</a></code></li><li><code>Reason = term()</code></li></ul>
 
 <a name="is_callback_module-1"></a>
 
@@ -251,7 +239,7 @@ Creates a new sink instance
 ### write/4 ###
 
 <pre><code>
-write(Context::<a href="logi_context.md#type-context">logi_context:context()</a>, Format::<a href="io.md#type-format">io:format()</a>, Data::<a href="logi_layout.md#type-data">logi_layout:data()</a>, X4::<a href="#type-sink">sink()</a>) -&gt; <a href="#type-write_bytes">write_bytes()</a>
+write(Context::<a href="logi_context.md#type-context">logi_context:context()</a>, Format::<a href="io.md#type-format">io:format()</a>, Data::<a href="logi_layout.md#type-data">logi_layout:data()</a>, X4::<a href="#type-sink">sink()</a>) -&gt; <a href="#type-written_data">written_data()</a>
 </code></pre>
 <br />
 

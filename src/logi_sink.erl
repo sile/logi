@@ -54,7 +54,9 @@
 -export([is_spec/1]).
 -export([is_callback_module/1]).
 -export([get_module/1, get_extra_data/1]).
+
 -export([instantiate/2]).
+-export([cleanup/2]).
 
 -export([write/4]).
 
@@ -63,31 +65,18 @@
 -export_type([callback_module/0]).
 -export_type([extra_data/0]).
 -export_type([spec/0]).
--export_type([simple_one_for_one_child_spec/0]).
--export_type([startchild_ret/0]).
--export_type([write_bytes/0]).
+-export_type([written_data/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Behaviour Callbacks
 %%----------------------------------------------------------------------------------------------------------------------
--callback write(logi_context:context(), io:format(), logi_layout:data(), extra_data()) -> write_bytes().
+-callback write(logi_context:context(), io:format(), logi_layout:data(), extra_data()) -> written_data().
 
-%%
-%% -type controlling_destination() :: {pid(), reference()}.
-%%
-
-%% -callback instantiate(controlling_process(), children_supervisor(), token(), spec()) ->
-%%     {ok, sink()} |
-%%     {start_agent, supervisor:sup_flags(), supervisor:child_spec()} |
-%%     {error, term()}.
-
-%%
-%% ret() :: {ok, pid(), logi_sink:sink()}
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros & Records & Types
 %%----------------------------------------------------------------------------------------------------------------------
--type sink() :: {callback_module(), extra_data()}.
+-opaque sink() :: {callback_module(), extra_data()}.
 %% A sink instance.
 
 -type id() :: atom().
@@ -104,13 +93,9 @@
 %% This value will be loaded from ETS every time the `write/4' is called.
 %% Therefore, very huge data can cause a performance issue.
 
--type spec() :: sink() | supervisor:child_spec() | simple_one_for_one_child_spec().
+-type spec() :: sink() | logi_sink_agent:spec().
 
--type simple_one_for_one_child_spec() :: [term()].
-
--type startchild_ret() :: {ok, pid(), sink()} | {error, Reason::term()}.
-
--type write_bytes() :: non_neg_integer().
+-type written_data() :: logi_layout:formatted_data().
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
@@ -128,8 +113,7 @@ is_sink(_)           -> false.
 
 %% @doc Returns `true' if `X' is a `sink()' object, otherwise `false'
 -spec is_spec(X :: (spec() | term())) -> boolean().
-is_spec(X) ->
-    (is_sink(X) orelse is_list(X) orelse supervisor:check_childspecs([X]) =:= ok).
+is_spec(X) -> is_sink(X) orelse logi_sink_agent:is_spec(X).
 
 %% @doc Gets the module of `Sink'
 -spec get_module(Sink :: sink()) -> callback_module().
@@ -146,29 +130,30 @@ is_callback_module(X) -> (is_atom(X) andalso logi_utils:function_exported(X, wri
 %% @doc Writes a log message
 %%
 %% If it fails to write, an exception will be raised.
--spec write(logi_context:context(), io:format(), logi_layout:data(), sink()) -> write_bytes().
+-spec write(logi_context:context(), io:format(), logi_layout:data(), sink()) -> written_data().
 write(Context, Format, Data, {Module, ExtraData}) ->
     Module:write(Context, Format, Data, ExtraData).
 
--spec instantiate(spec(), Supervisor) -> {ok, logi_sink:sink(), ChildPid, ChildId} | {error, Reason} when
-      Supervisor :: pid() | atom() | {global, term()} | {via, module(), term()},
-      ChildPid   :: pid(), % owner of the sink instance
-      ChildId    :: term(),
-      Reason     :: term().
-instantiate(Sink = {_, _}, _Supervisor) ->
-    {ok, Sink, self(), make_ref()};
-instantiate(ChildSpec, Supervisor) ->
-    Id = fun (_, #{id := Id})         -> Id;
-             (_, {Id, _, _, _, _, _}) -> Id;
-             (Pid, _)                 -> Pid
-         end,
-    case supervisor:start_child(Supervisor, ChildSpec) of
-        {error, Reason} -> {error, Reason};
-        {ok, Pid, Sink} ->
-            _ = logi_sink:is_sink(Sink) orelse error({badresult, {ok, Pid, Sink}}, [ChildSpec, Supervisor]),
-            {ok, Sink, Pid, Id(Pid, ChildSpec)};
-        {ok, Pid} ->
-            _ = supervisor:terminate_child(Supervisor, Id(Pid, ChildSpec)),
-            _ = supervisor:delete_child(Supervisor, Id(Pid, ChildSpec)),
-            error({badresult, {ok, Pid}}, [ChildSpec, Supervisor])
+-spec instantiate(ParentSup, spec()) -> {ok, sink(), AgentSup} | {error, Reason} when
+      ParentSup :: logi_sink_agent:agent_set_sup(),
+      AgentSup  :: logi_sink_agent:agent_sup() | undefined,
+      Reason    :: term().
+instantiate(ParentSup, Spec) ->
+    case logi_sink_agent:is_spec(Spec) of
+        false -> {ok, Spec, undefined};
+        true  -> logi_sink_agent:start_agent(ParentSup, Spec)
     end.
+
+-spec cleanup(ParentSup, AgentSup) -> ok when
+      ParentSup :: logi_sink_agent:agent_set_sup(),
+      AgentSup  :: logi_sink_agent:agent_sup() | undefined.
+cleanup(_ParentSup, undefined) ->
+    ok;
+cleanup(ParentSup, AgentSup) ->
+    _ = supervisor:terminate_child(ParentSup, AgentSup),
+    fun Flush () ->
+            receive
+                {'SINK_CTRL', _, AgentSup, _, _} -> Flush()
+            after 0 -> ok
+            end
+    end().

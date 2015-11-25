@@ -80,4 +80,4 @@ new(Options) ->
 write(Context, Format, Data, {Layout, IoDevice}) ->
     FormattedData = logi_layout:format(Context, Format, Data, Layout),
     _ = io:put_chars(IoDevice, FormattedData),
-    iolist_size(FormattedData).
+    FormattedData.

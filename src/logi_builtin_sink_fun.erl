@@ -42,7 +42,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
--type write_fun() :: fun ((logi_context:context(), io:format(), logi_layout:data()) -> logi_sink:write_bytes()).
+-type write_fun() :: fun ((logi_context:context(), io:format(), logi_layout:data()) -> logi_sink:written_data()).
 %% A function which is used to consume log messages issued by `logi'
 
 %%----------------------------------------------------------------------------------------------------------------------

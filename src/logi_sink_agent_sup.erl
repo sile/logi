@@ -2,7 +2,7 @@
 %%
 %% @doc TODO
 %% @private
--module(logi_per_channel_sup).
+-module(logi_sink_agent_sup).
 
 -behaviour(supervisor).
 
@@ -10,7 +10,8 @@
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([start_link/1]).
--export([get_sink_owner_sup/1]).
+-export([start_agent/2]).
+-export([get_child_agent_set_sup/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'supervisor' Callback API
@@ -21,24 +22,30 @@
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @doc Starts a supervisor
--spec start_link(logi_channel:id()) -> {ok, pid()} | {error, Reason::term()}.
-start_link(Channel) ->
-    supervisor:start_link(?MODULE, [Channel]).
+-spec start_link(supervisor:sup_flags()) -> {ok, pid()} | {error, Reason::term()}.
+start_link(Flags) ->
+    supervisor:start_link(?MODULE, [Flags]).
 
-%% TODO: doc
--spec get_sink_owner_sup(pid()) -> pid().
-get_sink_owner_sup(SupPid) ->
-    [OwnerSup] = [Pid || {sink_owner_sup, Pid, _, _} <- supervisor:which_children(SupPid), is_pid(Pid)],
-    OwnerSup.
+-spec get_child_agent_set_sup(pid()) -> pid().
+get_child_agent_set_sup(Sup) ->
+    [ChildAgentSetSup] = [Pid || {child_agent_set_sup, Pid, _, _} <- supervisor:which_children(Sup), is_pid(Pid)],
+    ChildAgentSetSup.
+
+-spec start_agent(pid(), supervisor:child_spec()) -> {ok, pid(), logi_sink:sink()} | {error, Reason::term()}.
+start_agent(Sup, ChildSpec) ->
+    case supervisor:start_child(Sup, ChildSpec) of
+        {error, Reason} -> {error, Reason};
+        {ok, Pid, Sink} ->
+            _ = logi_sink:is_sink(Sink) orelse error({badresult, {ok, Pid, Sink}}, [Sup, ChildSpec]),
+            {ok, Pid, Sink};
+        {ok, Pid} ->
+            error({badresult, {ok, Pid}}, [Sup, ChildSpec])
+    end.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'supervisor' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-init([Channel]) ->
-    Children =
-        [
-         #{id => sink_owner_sup, start => {logi_sink_owner_sup, start_link, []}, type => supervisor},
-         #{id => channel, start => {logi_channel, start_link, [Channel]}}
-        ],
-    {ok, {#{strategy => one_for_all}, Children}}.
+init([Flags]) ->
+    ChildrenSup = #{id => child_agent_set_sup, start => {logi_sink_agent_set_sup, start_link, []}, type => supervisor},
+    {ok, {Flags, [ChildrenSup]}}.
