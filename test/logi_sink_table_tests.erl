@@ -8,7 +8,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 -define(CHANNEL, logi_test_log).
 -define(TEST_SINK, logi_builtin_sink_fun).
--define(SINK(Id), logi_sink:new(?TEST_SINK, Id)).
+-define(SINK(Id), logi_sink_writer:new(?TEST_SINK, Id)). % XXX:
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Unit Tests

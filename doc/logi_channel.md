@@ -130,10 +130,9 @@ Otherwise the result value depends on the value of the `if_exists` option
 
 
 <pre><code>
-installed_sink() = #{condition =&gt; <a href="logi_condition.md#type-condition">logi_condition:condition()</a>, spec =&gt; <a href="logi_sink.md#type-spec">logi_sink:spec()</a>, sink =&gt; <a href="logi_sink.md#type-sink">logi_sink:sink()</a>, agent_sup =&gt; <a href="logi_sink_agent.md#type-agent_sup">logi_sink_agent:agent_sup()</a> | undefined, agent_pid =&gt; <a href="logi_sink_agent.md#type-agent">logi_sink_agent:agent()</a> | undefined, status =&gt; running | suspended}
+installed_sink() = #{condition =&gt; <a href="logi_condition.md#type-condition">logi_condition:condition()</a>, spec =&gt; <a href="logi_sink.md#type-sink">logi_sink:sink()</a>, sink =&gt; <a href="logi_sink.md#type-sink">logi_sink:sink()</a>, sink_sup =&gt; <a href="logi_sink.md#type-sink_sup">logi_sink:sink_sup()</a> | undefined, status =&gt; running | suspended}
 </code></pre>
 
- The information of an installed sink
 
 
 
@@ -233,7 +232,7 @@ The default value of the `channel` option is `logi_channel:default_channel()`.
 ### install_sink/3 ###
 
 <pre><code>
-install_sink(SinkId::<a href="logi_sink.md#type-id">logi_sink:id()</a>, Condition::<a href="logi_condition.md#type-condition">logi_condition:condition()</a>, Sink::<a href="logi_sink.md#type-spec">logi_sink:spec()</a>) -&gt; <a href="#type-install_sink_result">install_sink_result()</a>
+install_sink(SinkId::<a href="logi_sink.md#type-id">logi_sink:id()</a>, Condition::<a href="logi_condition.md#type-condition">logi_condition:condition()</a>, Sink::<a href="logi_sink.md#type-sink">logi_sink:sink()</a>) -&gt; <a href="#type-install_sink_result">install_sink_result()</a>
 </code></pre>
 <br />
 
@@ -244,7 +243,7 @@ Equivalent to [`install_sink(Condition, Sink, [])`](#install_sink-3).
 ### install_sink/4 ###
 
 <pre><code>
-install_sink(Id::<a href="logi_sink.md#type-id">logi_sink:id()</a>, Condition::<a href="logi_condition.md#type-condition">logi_condition:condition()</a>, Sink::<a href="logi_sink.md#type-spec">logi_sink:spec()</a>, Options::<a href="#type-install_sink_options">install_sink_options()</a>) -&gt; <a href="#type-install_sink_result">install_sink_result()</a>
+install_sink(Id::<a href="logi_sink.md#type-id">logi_sink:id()</a>, Condition::<a href="logi_condition.md#type-condition">logi_condition:condition()</a>, Sink::<a href="logi_sink.md#type-sink">logi_sink:sink()</a>, Options::<a href="#type-install_sink_options">install_sink_options()</a>) -&gt; <a href="#type-install_sink_result">install_sink_result()</a>
 </code></pre>
 <br />
 

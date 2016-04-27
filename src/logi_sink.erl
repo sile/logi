@@ -51,104 +51,130 @@
 %%----------------------------------------------------------------------------------------------------------------------
 -export([new/2]).
 -export([is_sink/1]).
--export([is_spec/1]).
 -export([is_callback_module/1]).
--export([get_module/1, get_extra_data/1]).
+-export([get_module/1]).
+-export([get_arg/1]).
+-export([make_noop_process_spec/2]).
 
--export([instantiate/2]).
--export([cleanup/2]).
+%% TODO: 別モジュールにする
+-export([notify_started/2]).
+-export([notify_stopped/1]).
+-export([recv_started/1]).
+-export([start_child/2]).
+-export([stop_child/2]).
+-export([make_root_parent/1]).
 
--export([write/4]).
-
--export_type([id/0]).
 -export_type([sink/0]).
 -export_type([callback_module/0]).
--export_type([extra_data/0]).
--export_type([spec/0]).
--export_type([written_data/0]).
+-export_type([arg/0]).
+-export_type([parent/0]).
+-export_type([sink_sup/0]).
+-export_type([id/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Behaviour Callbacks
 %%----------------------------------------------------------------------------------------------------------------------
--callback write(logi_context:context(), io:format(), logi_layout:data(), extra_data()) -> written_data().
+%% make_writer_spec
+-callback make_process_spec(logi_sink:parent(), arg()) -> supervisor:child_spec().
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros & Records & Types
 %%----------------------------------------------------------------------------------------------------------------------
--opaque sink() :: {callback_module(), extra_data()}.
-%% A sink instance.
+-define(SINK, ?MODULE).
+-record(?SINK,
+        {
+          module    :: callback_module(),
+          arg       :: arg(),
+          sup_flags :: supervisor:sup_flags()
+        }).
 
--type id() :: atom().
-%% The identifier of a sink.
-%% The sinks installed in the same channel must have different identifiers.
-
+-opaque sink() :: #?SINK{}.
 -type callback_module() :: module().
-%% A module that implements the `logi_sink' behaviour.
-
--type extra_data() :: term().
-%% The value of the fourth arguemnt of the `write/4' callback function.
-%%
-%% NOTE:
-%% This value will be loaded from ETS every time the `write/4' is called.
-%% Therefore, very huge data can cause a performance issue.
-
--type spec() :: sink() | logi_sink_agent:spec().
-
--type written_data() :: logi_layout:formatted_data().
+-type arg() :: term().
+-type parent() :: {pid(), sink_sup()}.
+-type sink_sup() :: pid().
+-type id() :: atom().
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @doc Creates a new sink instance
--spec new(callback_module(), extra_data()) -> sink().
-new(Module, ExtraData) ->
-    _ = is_callback_module(Module) orelse error(badarg, [Module, ExtraData]),
-    {Module, ExtraData}.
+-spec new(callback_module(), arg()) -> sink().
+new(Module, Arg) ->
+    _ = is_callback_module(Module) orelse error(badarg, [Module, Arg]),
+    #?SINK{
+        module = Module,
+        arg = Arg,
+        sup_flags = #{strategy => one_for_all} % TODO:
+       }.
 
 %% @doc Returns `true' if `X' is a sink instance, otherwise `false'
 -spec is_sink(X :: (sink() | term())) -> boolean().
-is_sink({Module, _}) -> is_callback_module(Module);
-is_sink(_)           -> false.
-
-%% @doc Returns `true' if `X' is a `sink()' object, otherwise `false'
--spec is_spec(X :: (spec() | term())) -> boolean().
-is_spec(X) -> is_sink(X) orelse logi_sink_agent:is_spec(X).
-
-%% @doc Gets the module of `Sink'
--spec get_module(Sink :: sink()) -> callback_module().
-get_module({Module, _}) -> Module.
-
-%% @doc Gets the extra data of `Sink'
--spec get_extra_data(Sink :: sink()) -> extra_data().
-get_extra_data({_, ExtraData}) -> ExtraData.
+is_sink(#?SINK{module = Module}) -> is_callback_module(Module);
+is_sink(_)                       -> false.
 
 %% @doc Returns `true' if `X' is a module which implements the `sink' behaviour, otherwise `false'
 -spec is_callback_module(X :: (callback_module() | term())) -> boolean().
-is_callback_module(X) -> (is_atom(X) andalso logi_utils:function_exported(X, write, 4)).
+is_callback_module(X) -> (is_atom(X) andalso logi_utils:function_exported(X, make_process_spec, 2)).
 
-%% @doc Writes a log message
-%%
-%% If it fails to write, an exception will be raised.
--spec write(logi_context:context(), io:format(), logi_layout:data(), sink()) -> written_data().
-write(Context, Format, Data, {Module, ExtraData}) ->
-    Module:write(Context, Format, Data, ExtraData).
+-spec get_module(sink()) -> callback_module().
+get_module(#?SINK{module = Module}) -> Module.
 
--spec instantiate(logi_sink_agent:controller(), spec()) -> {ok, sink(), AgentSup, AgentPid} | {error, Reason} when
-      AgentSup :: logi_sink_agent:agent_sup() | undefined,
-      AgentPid :: logi_sink_agent:agent() | undefined,
-      Reason   :: term().
-instantiate(Controller, Spec) ->
-    _ = logi_sink:is_spec(Spec) orelse error(badarg, [Spec]),
-    case logi_sink_agent:is_spec(Spec) of
-        false -> {ok, Spec, undefined, undefined};
-        true  -> logi_sink_agent:start_agent(Controller, Spec)
+-spec get_arg(sink()) -> arg().
+get_arg(#?SINK{arg = Arg}) -> Arg.
+
+%% make_stateless_writer_spec (or standalone)
+-spec make_noop_process_spec(parent(), logi_sink_writer:writer()) -> supervisor:child_spec().
+make_noop_process_spec(Parent, Writer) ->
+    #{
+       id => logi_sink_writer:get_module(Writer),
+       start => {logi_sink_noop, start_link, [Parent, Writer]},
+       restart => temporary
+     }.
+
+-spec make_root_parent(sink_sup()) -> parent().
+make_root_parent(SinkSup) ->
+    {self(), SinkSup}.
+
+-spec notify_started(parent(), logi_sink_writer:writer()) -> ok.
+notify_started({Pid, Sup}, Writer) ->
+    _ = Pid ! {'LOGI_SINK_STARTED', Sup, self(), Writer},
+    ok.
+
+-spec notify_stopped(parent()) -> ok.
+notify_stopped({Pid, Sup}) ->
+    _ = Pid ! {'LOGI_SINK_STOPPED', Sup, self()},
+    ok.
+
+-spec recv_started(sink_sup()) -> logi_sink_writer:writer().
+recv_started(SinkSup) ->
+    receive
+        {'LOGI_SINK_STARTED', SinkSup, _, Writer} -> Writer
     end.
 
-%% TODO: change nameXXX: name
--spec cleanup(logi_sink_agent:controller(), AgentSup) -> ok when
-      AgentSup :: logi_sink_agent:agent_sup() | undefined.
-cleanup(_Controller, undefined) ->
-    ok;
-cleanup(Controller, AgentSup) ->
-    _ = is_pid(AgentSup) orelse error(badarg, [AgentSup]),
-    logi_sink_agent:stop_agent(Controller, AgentSup).
+-spec start_child(parent(), sink()) -> {ok, sink_sup()} | {error, Reason::term()}.
+start_child({_, ParentSup}, Sink) ->
+    ChildrenSup = logi_sink_set_sup:get_current_process(ParentSup), % TODO
+    case logi_sink_set_sup:start_sink_sup(ChildrenSup, Sink#?SINK.sup_flags) of
+        {error, Reason} -> {error, Reason};
+        {ok, SinkSup}   ->
+            Parent = {self(), SinkSup},
+            try
+                ChildSpec = (Sink#?SINK.module):make_process_spec(Parent, Sink#?SINK.arg),
+                case logi_sink_sup:start_sink(SinkSup, ChildSpec) of
+                    {error, Reason} ->
+                        ok = logi_sink_set_sup:stop_sink_sup(ChildrenSup, SinkSup),
+                        {error, Reason};
+                    {ok, _SinkPid} ->
+                        {ok, SinkSup}
+                end
+            catch
+                ExClass:ExReason ->
+                    ok = logi_sink_set_sup:stop_sink_sup(ChildrenSup, SinkSup),
+                    erlang:raise(ExClass, ExReason, erlang:get_stacktrace())
+            end
+    end.
+
+-spec stop_child(parent(), sink_sup()) -> ok.
+stop_child({_, ParentSup}, SinkSup) ->
+    ChildrenSup = logi_sink_set_sup:get_current_process(ParentSup), % TODO
+    logi_sink_set_sup:stop_sink_sup(ChildrenSup, SinkSup).

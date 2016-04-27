@@ -170,13 +170,14 @@ write([],                           _Context,_Format,_Data) -> ok;
 write([Sink | Sinks], Context, Format, Data) ->
     %% An error of a sink does not affect to other sinks. Instead, an error report is emitted.
     _ = try
-            logi_sink:write(Context, Format, Data, Sink)
+            %% TODO: Sink => Writer
+            logi_sink_writer:write(Context, Format, Data, Sink)
         catch
             Class:Reason ->
                 error_logger:error_report(
                   [{pid, self()}, {module, ?MODULE}, {line, ?LINE},
                    {msg, "logi_sink:write/4 was aborted"},
-                   {mfargs, {logi_sink, write, [Context, Format, Data, Sink]}},
+                   {mfargs, {logi_sink_writer, write, [Context, Format, Data, Sink]}},
                    {exception, {Class, Reason, erlang:get_stacktrace()}}])
         end,
     write(Sinks, Context, Format, Data).

@@ -2,7 +2,7 @@
 %%
 %% @doc TODO
 %% @private
--module(logi_sink_agent_sup).
+-module(logi_sink_sup).
 
 -behaviour(supervisor).
 
@@ -10,8 +10,8 @@
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([start_link/1]).
--export([start_agent/2]).
--export([get_child_agent_set_sup/1]).
+-export([start_sink/2]).
+-export([get_child_sink_set_sup/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'supervisor' Callback API
@@ -26,13 +26,13 @@
 start_link(Flags) ->
     supervisor:start_link(?MODULE, [Flags]).
 
--spec get_child_agent_set_sup(pid()) -> pid().
-get_child_agent_set_sup(Sup) ->
-    [ChildAgentSetSup] = [Pid || {child_agent_set_sup, Pid, _, _} <- supervisor:which_children(Sup), is_pid(Pid)],
-    ChildAgentSetSup.
+-spec get_child_sink_set_sup(pid()) -> pid().
+get_child_sink_set_sup(Sup) ->
+    [ChildSinkSetSup] = [Pid || {child_sink_set_sup, Pid, _, _} <- supervisor:which_children(Sup), is_pid(Pid)],
+    ChildSinkSetSup.
 
--spec start_agent(pid(), supervisor:child_spec()) -> {ok, pid()} | {error, Reason::term()}.
-start_agent(Sup, ChildSpec) ->
+-spec start_sink(pid(), supervisor:child_spec()) -> {ok, pid()} | {error, Reason::term()}.
+start_sink(Sup, ChildSpec) ->
     case supervisor:start_child(Sup, ChildSpec) of
         {error, Reason} -> {error, Reason};
         {ok, undefined} -> {error, {ignored, ChildSpec}};
@@ -44,5 +44,5 @@ start_agent(Sup, ChildSpec) ->
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
 init([Flags]) ->
-    ChildrenSup = #{id => child_agent_set_sup, start => {logi_sink_agent_set_sup, start_link, []}, type => supervisor},
+    ChildrenSup = #{id => child_sink_set_sup, start => {logi_sink_set_sup, start_link, []}, type => supervisor},
     {ok, {Flags, [ChildrenSup]}}.

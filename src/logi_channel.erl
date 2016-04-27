@@ -93,7 +93,7 @@
 
 -record(?STATE,
         {
-          controller :: logi_sink_agent:controller(),
+          parent     :: logi_sink:parent(),
           id         :: id(),
           table      :: logi_sink_table:table(),
           sinks = [] :: sinks()
@@ -103,12 +103,11 @@
         {
           id        :: logi_sink:id(),
           condition :: logi_condition:condition(),
-          spec      :: logi_sink:spec(),
+          spec      :: logi_sink:sink(),
           instance  :: logi_sink:sink(),
-          agent_sup :: logi_sink_agent:agent_sup() | undefined,
-          agent_pid :: logi_sink_agent:agent() | undefined,
+          sink_sup  :: logi_sink:sink_sup() | undefined,
           monitor   :: reference(),
-          status = running :: running | suspended
+          status = stopped :: running | stopped
         }).
 
 -type sinks() :: [#sink{}].
@@ -157,10 +156,9 @@
 -type installed_sink() ::
         #{
            condition => logi_condition:condition(),
-           spec      => logi_sink:spec(),
+           spec      => logi_sink:sink(),
            sink      => logi_sink:sink(),
-           agent_sup => logi_sink_agent:agent_sup() | undefined,
-           agent_pid => logi_sink_agent:agent() | undefined,
+           sink_sup  => logi_sink:sink_sup() | undefined, % TODO: undefinedのケースはある?
            status    => running | suspended
          }.
 %% The information of an installed sink
@@ -205,17 +203,17 @@ delete(Channel)                       -> error(badarg, [Channel]).
 which_channels() -> logi_channel_set_sup:which_children().
 
 %% @equiv install_sink(Condition, Sink, [])
--spec install_sink(logi_sink:id(), logi_condition:condition(), logi_sink:spec()) -> install_sink_result(). % TODO: install_sink_result/0は型にしなくても良い
+-spec install_sink(logi_sink:id(), logi_condition:condition(), logi_sink:sink()) -> install_sink_result(). % TODO: install_sink_result/0は型にしなくても良い
 install_sink(SinkId, Condition, Sink) -> install_sink(SinkId, Condition, Sink, []).
 
 %% @doc Installs `Sink'
 %%
 %% TODO: notice: This function may block if instantiate/1 of the Sink blocks
--spec install_sink(logi_sink:id(), logi_condition:condition(), logi_sink:spec(), install_sink_options()) -> install_sink_result().
+-spec install_sink(logi_sink:id(), logi_condition:condition(), logi_sink:sink(), install_sink_options()) -> install_sink_result().
 install_sink(Id, Condition, Sink, Options) ->
     Args = [Condition, Sink, Options],
     _ = logi_condition:is_condition(Condition) orelse error(badarg, Args),
-    _ = logi_sink:is_spec(Sink) orelse error(badarg, Args),
+    _ = logi_sink:is_sink(Sink) orelse error(badarg, Args),
     _ = is_list(Options) orelse error(badarg, Args),
 
     Channel  = proplists:get_value(channel, Options, default_channel()),
@@ -328,9 +326,9 @@ select_sink(Channel, Severity, Application, Module) ->
 init([Suprvisor, Id]) ->
     State =
         #?STATE{
-            controller = logi_sink_agent:make_root_controller(Suprvisor),
-            id         = Id,
-            table      = logi_sink_table:new(Id)
+            parent = logi_sink:make_root_parent(Suprvisor),
+            id     = Id,
+            table  = logi_sink_table:new(Id)
            },
     {ok, State}.
 
@@ -345,10 +343,8 @@ handle_call(_,                         _, State) -> {noreply, State}.
 handle_cast(_, State) -> {noreply, State}.
 
 %% @private
-handle_info({'AGENT_RESET', _, _, _} = Info, State) -> handle_agent_reset(Info, State);
-handle_info({'SINK_SUSPEND', _, _} = Info, State)   -> handle_sink_suspend(Info, State);
-handle_info({'SINK_RESUME',  _, _} = Info, State)   -> handle_sink_resume(Info, State);
-handle_info({'SINK_UPDATE',  _, _} = Info, State)   -> handle_sink_update(Info, State);
+handle_info({'LOGI_SINK_STARTED', _, _, _} = Info, State)   -> handle_sink_started(Info, State);
+handle_info({'LOGI_SINK_STOPPED', _, _} = Info, State)   -> handle_sink_stopped(Info, State);
 handle_info({'DOWN', Ref, _, _, _}, State)          -> handle_down(Ref, State);
 handle_info(_,                      State)          -> {noreply, State}.
 
@@ -364,7 +360,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal Functions
 %%----------------------------------------------------------------------------------------------------------------------
 -spec handle_install_sink(Arg, #?STATE{}) -> {reply, Result, #?STATE{}} when
-      Arg      :: {logi_sink:id(), logi_sink:spec(), logi_condition:condition(), IfExists},
+      Arg      :: {logi_sink:id(), logi_sink:sink(), logi_condition:condition(), IfExists},
       IfExists :: error | if_exists | supersede,
       Result   :: {ok, OldSink} | {error, Reason},
       OldSink  :: undefined | installed_sink(),
@@ -383,19 +379,20 @@ handle_install_sink({SinkId, Sink, Condition, IfExists}, State0) ->
             end;
         true ->
             case create_sink_instance(Sink, State0) of
-                {error, Reason}                             -> {reply, {error, Reason}, State0};
-                {ok, Instance, AgentSup, AgentPid, Monitor} ->
-                    ok = logi_sink_table:register(State0#?STATE.table, SinkId, Instance, Condition, OldCondition),
+                {error, Reason} -> {reply, {error, Reason}, State0};
+                {ok, SinkSup}   ->
+                    %% TODO:
+                    Writer = receive {'LOGI_SINK_STARTED', SinkSup, _, W} -> W after 1000 -> error({todo, timeout}) end,
+                    ok = logi_sink_table:register(State0#?STATE.table, SinkId, Writer, Condition, OldCondition),
                     ok = release_sink_instance(OldSink, State0),
                     Entry =
                         #sink{
                            id        = SinkId,
                            condition = Condition,
                            spec      = Sink,
-                           instance  = Instance,
-                           agent_sup = AgentSup,
-                           agent_pid = AgentPid,
-                           monitor   = Monitor
+                           instance  = Writer,
+                           sink_sup  = SinkSup,
+                           monitor   = monitor(process, SinkSup)
                           },
                     State1 = State0#?STATE{sinks = [Entry | Sinks]},
                     {reply, {ok, to_installed_sink(OldSink)}, State1}
@@ -444,49 +441,25 @@ handle_down(Ref, State0) ->
             {noreply, State0#?STATE{sinks = Sinks}}
     end.
 
--spec handle_sink_suspend({'SINK_SUSPEND', logi_sink_agent:agent(), term()}, #?STATE{}) -> {noreply, #?STATE{}}.
-handle_sink_suspend({_, AgentPid, _Reason}, State) ->
-    case lists:keytake(AgentPid, #sink.agent_pid, State#?STATE.sinks) of
-        false                                 -> {noreply, State};
-        {value, #sink{status = suspended}, _} -> {noreply, State};
+%%-spec handle_sink_suspend({'SINK_SUSPEND', logi_sink_agent:agent(), term()}, #?STATE{}) -> {noreply, #?STATE{}}.
+handle_sink_stopped({_, SinkSup, _SinkPid}, State) ->
+    case lists:keytake(SinkSup, #sink.sink_sup, State#?STATE.sinks) of
+        false                               -> {noreply, State};
+        {value, #sink{status = stopped}, _} -> {noreply, State};
         {value, Sink0, Sinks} ->
             ok = logi_sink_table:deregister(State#?STATE.table, Sink0#sink.id, Sink0#sink.condition),
-            Sink1 = Sink0#sink{status = suspended},
+            Sink1 = Sink0#sink{status = stopped},
             {noreply, State#?STATE{sinks = [Sink1 | Sinks]}}
     end.
 
--spec handle_sink_resume({'SINK_RESUME', logi_sink_agent:agent(), term()}, #?STATE{}) -> {noreply, #?STATE{}}.
-handle_sink_resume({_, AgentPid, _Reason}, State) ->
-    case lists:keytake(AgentPid, #sink.agent_pid, State#?STATE.sinks) of
-        false                               -> {noreply, State};
-        {value, #sink{status = running}, _} -> {noreply, State};
-        {value, Sink0, Sinks} ->
-            ok = logi_sink_table:register(State#?STATE.table, Sink0#sink.id, Sink0#sink.instance, Sink0#sink.condition, []),
-            Sink1 = Sink0#sink{status = running},
-            {noreply, State#?STATE{sinks = [Sink1 | Sinks]}}
-    end.
-
--spec handle_sink_update({'SINK_UPDATE', logi_sink_agent:agent(), logi_sink:sink()}, #?STATE{}) -> {noreply, #?STATE{}}.
-handle_sink_update({_, AgentPid, NewInstance}, State) ->
-    case lists:keytake(AgentPid, #sink.agent_pid, State#?STATE.sinks) of
-        false                 -> {noreply, State};
-        {value, Sink0, Sinks} ->
-            _ = case Sink0#sink.status of
-                    suspended -> ok;
-                    running   -> logi_sink_table:register(State#?STATE.table, Sink0#sink.id, NewInstance, Sink0#sink.condition, Sink0#sink.condition)
-                end,
-            Sink1 = Sink0#sink{instance = NewInstance},
-            {noreply, State#?STATE{sinks = [Sink1 | Sinks]}}
-    end.
-
--spec handle_agent_reset({'AGENT_RESET', logi_sink_agent:agent_sup(), logi_sink_agent:agent(), logi_sink:sink()},
-                         #?STATE{}) -> {noreply, #?STATE{}}.
-handle_agent_reset({_, AgentSup, AgentPid, Sink}, State) ->
-    case lists:keytake(AgentSup, #sink.agent_sup, State#?STATE.sinks) of
+%% -spec handle_agent_stareset({'AGENT_RESET', logi_sink_agent:agent_sup(), logi_sink_agent:agent(), logi_sink:sink()},
+%%                          #?STATE{}) -> {noreply, #?STATE{}}.
+handle_sink_started({_, SinkSup, _SinkPid, Writer}, State) ->
+    case lists:keytake(SinkSup, #sink.sink_sup, State#?STATE.sinks) of
         false -> {noreply, State};
         {value, Sink0, Sinks} ->
-            ok = logi_sink_table:register(State#?STATE.table, Sink0#sink.id, Sink, Sink0#sink.condition, Sink0#sink.condition),
-            Sink1 = Sink0#sink{status = running, agent_pid = AgentPid, instance = Sink},
+            ok = logi_sink_table:register(State#?STATE.table, Sink0#sink.id, Writer, Sink0#sink.condition, Sink0#sink.condition),
+            Sink1 = Sink0#sink{status = running, instance = Writer},
             {noreply, State#?STATE{sinks = [Sink1 | Sinks]}}
     end.
 
@@ -498,20 +471,15 @@ to_installed_sink(Sink) ->
        condition => Sink#sink.condition,
        spec      => Sink#sink.spec,
        sink      => Sink#sink.instance,
-       agent_sup => Sink#sink.agent_sup,
-       agent_pid => Sink#sink.agent_pid,
+       sink_sup  => Sink#sink.sink_sup,
        status    => Sink#sink.status
      }.
 
--spec create_sink_instance(logi_sink:spec(), #?STATE{}) ->
-                                  {ok, logi_sink:sink(), AgentSup, AgentPid, reference()} | {error, term()} when
-      AgentSup :: logi_sink_agent:agent_sup() | undefined,
-      AgentPid :: logi_sink_agent:agent() | undefined.
+-spec create_sink_instance(logi_sink:sink(), #?STATE{}) -> {ok, logi_sink:sink_sup()} | {error, term()}.
 create_sink_instance(Spec, State) ->
-    case logi_sink:instantiate(State#?STATE.controller, Spec) of
-        {error, Reason}                  -> {error, Reason};
-        {ok, Sink, undefined, undefined} -> {ok, Sink, undefined, undefined, make_ref()};
-        {ok, Sink, AgentSup, AgentPid}   -> {ok, Sink, AgentSup, AgentPid, monitor(process, AgentSup)}
+    case logi_sink:start_child(State#?STATE.parent, Spec) of
+        {error, Reason} -> {error, Reason};
+        {ok, SinkSup}   -> {ok, SinkSup}
     end.
 
 -spec release_sink_instance(undefined | #sink{}, #?STATE{}) -> ok.
@@ -519,4 +487,4 @@ release_sink_instance(undefined, _State) ->
     ok;
 release_sink_instance(Sink, State) ->
     _ = demonitor(Sink#sink.monitor, [flush]),
-    logi_sink:cleanup(State#?STATE.controller, Sink#sink.agent_sup).
+    logi_sink:stop_child(State#?STATE.parent, Sink#sink.sink_sup).

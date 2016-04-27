@@ -10,7 +10,7 @@
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([start_link/1]).
--export([get_agent_set_sup/1]).
+-export([get_sink_set_sup/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'supervisor' Callback API
@@ -26,10 +26,10 @@ start_link(Channel) ->
     supervisor:start_link(?MODULE, [Channel]).
 
 %% TODO: doc
--spec get_agent_set_sup(pid()) -> logi_sink_agent:agent_set_sup().
-get_agent_set_sup(Sup) ->
-    [AgentSetSup] = [Pid || {agent_set_sup, Pid, _, _} <- supervisor:which_children(Sup), is_pid(Pid)],
-    AgentSetSup.
+-spec get_sink_set_sup(pid()) -> pid().
+get_sink_set_sup(Sup) ->
+    [SinkSetSup] = [Pid || {sink_set_sup, Pid, _, _} <- supervisor:which_children(Sup), is_pid(Pid)],
+    SinkSetSup.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'supervisor' Callback Functions
@@ -38,7 +38,7 @@ get_agent_set_sup(Sup) ->
 init([Channel]) ->
     Children =
         [
-         #{id => agent_set_sup, start => {logi_sink_agent_set_sup, start_link, []}, type => supervisor},
+         #{id => sink_set_sup, start => {logi_sink_set_sup, start_link, []}, type => supervisor},
          #{id => channel, start => {logi_channel, start_link, [Channel]}}
         ],
     {ok, {#{strategy => one_for_all}, Children}}.

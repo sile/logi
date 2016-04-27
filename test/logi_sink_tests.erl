@@ -26,6 +26,6 @@ get_test_() ->
       fun () ->
               S = logi_sink:new(?TEST_SINK, extra),
               ?assertEqual(?TEST_SINK, logi_sink:get_module(S)),
-              ?assertEqual(extra,      logi_sink:get_extra_data(S))
+              ?assertEqual(extra,      logi_sink:get_arg(S))
       end}
     ].

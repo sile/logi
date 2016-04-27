@@ -9,6 +9,8 @@ A built-in IO device sink.
 
 Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
 
+__Behaviours:__ [`logi_sink`](logi_sink.md), [`logi_sink_writer`](logi_sink_writer.md).
+
 <a name="description"></a>
 
 ## Description ##
