@@ -10,8 +10,8 @@
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([start_link/1]).
--export([start_sink/2]).
--export([get_child_sink_set_sup/1]).
+-export([start_grandchild/2]).
+-export([stop_grandchild/2]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'supervisor' Callback API
@@ -26,10 +26,34 @@
 start_link(Flags) ->
     supervisor:start_link(?MODULE, [Flags]).
 
--spec get_child_sink_set_sup(pid()) -> pid().
-get_child_sink_set_sup(Sup) ->
-    [ChildSinkSetSup] = [Pid || {child_sink_set_sup, Pid, _, _} <- supervisor:which_children(Sup), is_pid(Pid)],
-    ChildSinkSetSup.
+-spec start_grandchild(pid(), logi_sink:sink()) -> {ok, logi_sink_proc:child_id()} | {error, Reason::term()}.
+start_grandchild(Sup, GrandChildSink) ->
+    %% TODO: 用語整理
+    GrandChildSup = logi_name_server:whereis_name({Sup, grandchildren_sup}),
+    case logi_sink_set_sup:start_sink_sup(GrandChildSup, logi_sink:get_sup_flags(GrandChildSink)) of
+        {error, Reason} -> {error, Reason};
+        {ok, SinkSup}   ->
+            try
+                case start_sink(SinkSup, logi_sink:get_spec(GrandChildSink)) of
+                    {error, Reson} ->
+                        ok = logi_sink_set_sup:stop_sink_sup(GrandChildSup, SinkSup),
+                        {error, Reson};
+                    {ok, _} ->
+                        {ok, SinkSup}
+                end
+            catch
+                ExClass:ExReason ->
+                    ok = logi_sink_set_sup:stop_sink_sup(GrandChildSup, SinkSup),
+                    erlang:raise(ExClass, ExReason, erlang:get_stacktrace())
+            end
+    end.
+
+-spec stop_grandchild(pid(), logi_sink_proc:child_id()) -> ok.
+stop_grandchild(Sup, GrandChildId) ->
+    case logi_name_server:whereis_name({Sup, grandchildren_sup}) of
+        undefined     -> ok;
+        GrandChildSup -> logi_sink_set_sup:stop_sink_sup(GrandChildSup, GrandChildId)
+    end.
 
 -spec start_sink(pid(), supervisor:child_spec()) -> {ok, pid()} | {error, Reason::term()}.
 start_sink(Sup, ChildSpec) ->

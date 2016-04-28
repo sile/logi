@@ -54,7 +54,7 @@
 -export([delete/1]).
 -export([which_channels/0]).
 
--export([install_sink/3, install_sink/4]).
+-export([install_sink/2, install_sink/3]).
 -export([uninstall_sink/1, uninstall_sink/2]).
 -export([set_sink_condition/2, set_sink_condition/3]).
 -export([find_sink/1,  find_sink/2]).
@@ -93,7 +93,6 @@
 
 -record(?STATE,
         {
-          parent     :: logi_sink:parent(),
           id         :: id(),
           table      :: logi_sink_table:table(),
           sinks = [] :: sinks()
@@ -202,27 +201,26 @@ delete(Channel)                       -> error(badarg, [Channel]).
 -spec which_channels() -> [id()].
 which_channels() -> logi_channel_set_sup:which_children().
 
-%% @equiv install_sink(Condition, Sink, [])
--spec install_sink(logi_sink:id(), logi_condition:condition(), logi_sink:sink()) -> install_sink_result(). % TODO: install_sink_result/0は型にしなくても良い
-install_sink(SinkId, Condition, Sink) -> install_sink(SinkId, Condition, Sink, []).
+%% %% @equiv install_sink(Condition, Sink, [])
+-spec install_sink(logi_sink:sink(), logi_condition:condition()) -> install_sink_result(). % TODO: install_sink_result/0は型にしなくても良い
+install_sink(Sink, Condition) -> install_sink(Sink, Condition, []).
 
 %% @doc Installs `Sink'
 %%
 %% TODO: notice: This function may block if instantiate/1 of the Sink blocks
--spec install_sink(logi_sink:id(), logi_condition:condition(), logi_sink:sink(), install_sink_options()) -> install_sink_result().
-install_sink(Id, Condition, Sink, Options) ->
-    Args = [Condition, Sink, Options],
+-spec install_sink(logi_sink:sink(), logi_condition:condition(), install_sink_options()) -> install_sink_result().
+install_sink(Sink, Condition, Options) ->
+    Args = [Sink, Condition, Options],
     _ = logi_condition:is_condition(Condition) orelse error(badarg, Args),
     _ = logi_sink:is_sink(Sink) orelse error(badarg, Args),
     _ = is_list(Options) orelse error(badarg, Args),
 
     Channel  = proplists:get_value(channel, Options, default_channel()),
     IfExists = proplists:get_value(if_exists, Options, error),
-    _ = is_atom(Id) orelse error(badarg, Args),
     _ = lists:member(IfExists, [error, ignore, supersede]) orelse error(badarg, Args),
 
     Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, Args),
-    gen_server:call(Pid, {install_sink, {Id, Sink, Condition, IfExists}}).
+    gen_server:call(Pid, {install_sink, {Sink, Condition, IfExists}}).
 
 %% @equiv uninstall_sink(SinkId, [])
 -spec uninstall_sink(logi_sink:id()) -> uninstall_sink_result().
@@ -308,7 +306,7 @@ which_sinks(Options) ->
 -spec start_link(id()) -> {ok, pid()} | {error, Reason} when
       Reason :: {already_started, pid()} | term().
 start_link(Channel) ->
-    gen_server:start_link({local, Channel}, ?MODULE, [self(), Channel], []).
+    gen_server:start_link({local, Channel}, ?MODULE, [Channel], []).
 
 %% @doc Selects sinks that meet the condition
 %%
@@ -323,12 +321,11 @@ select_sink(Channel, Severity, Application, Module) ->
 %% 'gen_server' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-init([Suprvisor, Id]) ->
+init([Id]) ->
     State =
         #?STATE{
-            parent = logi_sink:make_root_parent(Suprvisor),
-            id     = Id,
-            table  = logi_sink_table:new(Id)
+            id    = Id,
+            table = logi_sink_table:new(Id)
            },
     {ok, State}.
 
@@ -360,12 +357,13 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal Functions
 %%----------------------------------------------------------------------------------------------------------------------
 -spec handle_install_sink(Arg, #?STATE{}) -> {reply, Result, #?STATE{}} when
-      Arg      :: {logi_sink:id(), logi_sink:sink(), logi_condition:condition(), IfExists},
+      Arg      :: {logi_sink:sink(), logi_condition:condition(), IfExists},
       IfExists :: error | if_exists | supersede,
       Result   :: {ok, OldSink} | {error, Reason},
       OldSink  :: undefined | installed_sink(),
       Reason   :: {already_installed, installed_sink()}.
-handle_install_sink({SinkId, Sink, Condition, IfExists}, State0) ->
+handle_install_sink({Sink, Condition, IfExists}, State0) ->
+    SinkId = logi_sink:get_id(Sink), % TODO:
     {OldSink, OldCondition, Sinks} =
         case lists:keytake(SinkId, #sink.id, State0#?STATE.sinks) of
             false                     -> {undefined, [], State0#?STATE.sinks};
@@ -378,12 +376,14 @@ handle_install_sink({SinkId, Sink, Condition, IfExists}, State0) ->
                 ignore -> {reply, {ok, to_installed_sink(OldSink)}, State0}
             end;
         true ->
-            case create_sink_instance(Sink, State0) of
+            case logi_sink_proc:start_child(Sink) of
                 {error, Reason} -> {reply, {error, Reason}, State0};
                 {ok, SinkSup}   ->
-                    %% TODO:
-                    Writer = receive {'LOGI_SINK_STARTED', SinkSup, _, W} -> W after 1000 -> error({todo, timeout}) end,
-                    ok = logi_sink_table:register(State0#?STATE.table, SinkId, Writer, Condition, OldCondition),
+                    Writer = logi_sink_proc:recv_writer(SinkSup, 1000),
+                    _ = case Writer =:= undefined of
+                            true  -> logi_sink_table:deregister(State0#?STATE.table, SinkId, OldCondition);
+                            false -> logi_sink_table:register(State0#?STATE.table, SinkId, Writer, Condition, OldCondition)
+                        end,
                     ok = release_sink_instance(OldSink, State0),
                     Entry =
                         #sink{
@@ -475,16 +475,9 @@ to_installed_sink(Sink) ->
        status    => Sink#sink.status
      }.
 
--spec create_sink_instance(logi_sink:sink(), #?STATE{}) -> {ok, logi_sink:sink_sup()} | {error, term()}.
-create_sink_instance(Spec, State) ->
-    case logi_sink:start_child(State#?STATE.parent, Spec) of
-        {error, Reason} -> {error, Reason};
-        {ok, SinkSup}   -> {ok, SinkSup}
-    end.
-
 -spec release_sink_instance(undefined | #sink{}, #?STATE{}) -> ok.
 release_sink_instance(undefined, _State) ->
     ok;
-release_sink_instance(Sink, State) ->
+release_sink_instance(Sink, _State) ->
     _ = demonitor(Sink#sink.monitor, [flush]),
-    logi_sink:stop_child(State#?STATE.parent, Sink#sink.sink_sup).
+    logi_sink_proc:stop_child(Sink#sink.sink_sup).

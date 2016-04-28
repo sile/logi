@@ -49,33 +49,18 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/2]).
+-export([new/1, new/2]).
+-export([from_writer/2]).
 -export([is_sink/1]).
--export([is_callback_module/1]).
--export([get_module/1]).
--export([get_arg/1]).
--export([make_noop_process_spec/2]).
 
-%% TODO: 別モジュールにする
--export([notify_started/2]).
--export([notify_stopped/1]).
--export([recv_started/1]).
--export([start_child/2]).
--export([stop_child/2]).
--export([make_root_parent/1]).
+-export([get_id/1]).
+-export([get_spec/1]).
+-export([get_sup_flags/1]).
 
 -export_type([sink/0]).
--export_type([callback_module/0]).
--export_type([arg/0]).
--export_type([parent/0]).
--export_type([sink_sup/0]).
 -export_type([id/0]).
-
-%%----------------------------------------------------------------------------------------------------------------------
-%% Behaviour Callbacks
-%%----------------------------------------------------------------------------------------------------------------------
-%% make_writer_spec
--callback make_process_spec(logi_sink:parent(), arg()) -> supervisor:child_spec().
+-export_type([spec/0]).
+-export_type([sup_flags/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros & Records & Types
@@ -83,98 +68,63 @@
 -define(SINK, ?MODULE).
 -record(?SINK,
         {
-          module    :: callback_module(),
-          arg       :: arg(),
-          sup_flags :: supervisor:sup_flags()
+          spec      :: spec(),
+          sup_flags :: sup_flags()
         }).
 
--opaque sink() :: #?SINK{}.
--type callback_module() :: module().
--type arg() :: term().
--type parent() :: {pid(), sink_sup()}.
--type sink_sup() :: pid().
--type id() :: atom().
+-type sink() :: #?SINK{}.
+-type id() :: term().
+-type spec() :: supervisor:childspec().
+%% TODO: note: restart is ignored
+-type sup_flags() :: sup_flags:sup_flags().
+%% TODO: note: strategy is ignored
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
--spec new(callback_module(), arg()) -> sink().
-new(Module, Arg) ->
-    _ = is_callback_module(Module) orelse error(badarg, [Module, Arg]),
+-spec new(spec()) -> sink().
+new(Spec) ->
+    new(Spec, #{}).
+
+-spec new(spec(), sup_flags()) -> sink().
+new(Spec, Flags) ->
+    %% TODO: validate
     #?SINK{
-        module = Module,
-        arg = Arg,
-        sup_flags = #{strategy => one_for_all} % TODO:
+        spec      = normalize_spec(Spec),
+        sup_flags = normalize_sup_flags(Flags)
        }.
 
-%% @doc Returns `true' if `X' is a sink instance, otherwise `false'
--spec is_sink(X :: (sink() | term())) -> boolean().
-is_sink(#?SINK{module = Module}) -> is_callback_module(Module);
-is_sink(_)                       -> false.
+-spec from_writer(id(), logi_sink_writer:writer()) -> sink().
+from_writer(Id, Writer) ->
+    new(#{id => Id, start => {logi_sink_noop, start_link, [Writer]}}).
 
-%% @doc Returns `true' if `X' is a module which implements the `sink' behaviour, otherwise `false'
--spec is_callback_module(X :: (callback_module() | term())) -> boolean().
-is_callback_module(X) -> (is_atom(X) andalso logi_utils:function_exported(X, make_process_spec, 2)).
+-spec is_sink(sink() | term()) -> boolean().
+is_sink(X) ->
+    is_record(X, ?SINK).
 
--spec get_module(sink()) -> callback_module().
-get_module(#?SINK{module = Module}) -> Module.
+-spec get_id(sink()) -> id().
+get_id(#?SINK{spec = Spec}) ->
+    maps:get(id, Spec).
 
--spec get_arg(sink()) -> arg().
-get_arg(#?SINK{arg = Arg}) -> Arg.
+-spec get_spec(sink()) -> spec().
+get_spec(#?SINK{spec = Spec}) ->
+    Spec.
 
-%% make_stateless_writer_spec (or standalone)
--spec make_noop_process_spec(parent(), logi_sink_writer:writer()) -> supervisor:child_spec().
-make_noop_process_spec(Parent, Writer) ->
-    #{
-       id => logi_sink_writer:get_module(Writer),
-       start => {logi_sink_noop, start_link, [Parent, Writer]},
-       restart => temporary
-     }.
+-spec get_sup_flags(sink()) -> sup_flags().
+get_sup_flags(#?SINK{sup_flags = Flags}) ->
+    Flags.
 
--spec make_root_parent(sink_sup()) -> parent().
-make_root_parent(SinkSup) ->
-    {self(), SinkSup}.
+%%----------------------------------------------------------------------------------------------------------------------
+%% Internal Functions
+%%----------------------------------------------------------------------------------------------------------------------
+-spec normalize_sup_flags(sup_flags()) -> sup_flags().
+normalize_sup_flags({_, Intensity, Period}) ->
+    #{intensity => Intensity, period => Period};
+normalize_sup_flags(Flags) ->
+    maps:remove(strategy, Flags).
 
--spec notify_started(parent(), logi_sink_writer:writer()) -> ok.
-notify_started({Pid, Sup}, Writer) ->
-    _ = Pid ! {'LOGI_SINK_STARTED', Sup, self(), Writer},
-    ok.
-
--spec notify_stopped(parent()) -> ok.
-notify_stopped({Pid, Sup}) ->
-    _ = Pid ! {'LOGI_SINK_STOPPED', Sup, self()},
-    ok.
-
--spec recv_started(sink_sup()) -> logi_sink_writer:writer().
-recv_started(SinkSup) ->
-    receive
-        {'LOGI_SINK_STARTED', SinkSup, _, Writer} -> Writer
-    end.
-
--spec start_child(parent(), sink()) -> {ok, sink_sup()} | {error, Reason::term()}.
-start_child({_, ParentSup}, Sink) ->
-    ChildrenSup = logi_sink_set_sup:get_current_process(ParentSup), % TODO
-    case logi_sink_set_sup:start_sink_sup(ChildrenSup, Sink#?SINK.sup_flags) of
-        {error, Reason} -> {error, Reason};
-        {ok, SinkSup}   ->
-            Parent = {self(), SinkSup},
-            try
-                ChildSpec = (Sink#?SINK.module):make_process_spec(Parent, Sink#?SINK.arg),
-                case logi_sink_sup:start_sink(SinkSup, ChildSpec) of
-                    {error, Reason} ->
-                        ok = logi_sink_set_sup:stop_sink_sup(ChildrenSup, SinkSup),
-                        {error, Reason};
-                    {ok, _SinkPid} ->
-                        {ok, SinkSup}
-                end
-            catch
-                ExClass:ExReason ->
-                    ok = logi_sink_set_sup:stop_sink_sup(ChildrenSup, SinkSup),
-                    erlang:raise(ExClass, ExReason, erlang:get_stacktrace())
-            end
-    end.
-
--spec stop_child(parent(), sink_sup()) -> ok.
-stop_child({_, ParentSup}, SinkSup) ->
-    ChildrenSup = logi_sink_set_sup:get_current_process(ParentSup), % TODO
-    logi_sink_set_sup:stop_sink_sup(ChildrenSup, SinkSup).
+-spec normalize_spec(spec()) -> spec().
+normalize_spec({Id, StartFunc, _, Shutdown, Type, Modules}) ->
+    #{id => Id, start => StartFunc, shutdown => Shutdown, type => Type, modules => Modules};
+normalize_spec(#{id := _} = Spec) ->
+    maps:remove(restart, Spec).

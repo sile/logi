@@ -2,7 +2,7 @@
 %%
 %% @doc TODO
 %% @private
--module(logi_sink_set_sup).
+-module(logi_sink_set_sup). % TODO: rename
 
 -behaviour(supervisor).
 
@@ -25,14 +25,7 @@
 %% @doc Starts a supervisor
 -spec start_link() -> {ok, pid()} | {error, Reason::term()}.
 start_link() ->
-    _ = erase({?MODULE, 'CURRENT_PID'}),
-    case supervisor:start_link(?MODULE, []) of
-        {error, Reason} -> {error, Reason};
-        {ok, Pid}       ->
-            %% TODO: NOTE:
-            _ = put({?MODULE, 'CURRENT_PID'}, Pid),
-            {ok, Pid}
-    end.
+    supervisor:start_link(?MODULE, [self()]).
 
 -spec start_sink_sup(pid(), supervisor:sup_flags()) -> {ok, pid()} | {error, Reason::term()}.
 start_sink_sup(Sup, Flags) ->
@@ -55,7 +48,9 @@ get_current_process(ParentSup) ->
 %% 'supervisor' Callback Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
-init([]) ->
+init([ParentSup]) ->
+    ok = logi_name_server:register_name({ParentSup, grandchildren_sup}, self()),
+    %% TODO: one_for_one and id=logi_sink:get_id(...)
     Child =
         #{id => sink_sup, start => {logi_sink_sup, start_link, []}, restart => temporary, type => supervisor},
     {ok, {#{strategy => simple_one_for_one}, [Child]}}.
