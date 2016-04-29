@@ -8,6 +8,8 @@
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([is_timestamp/1]).
+-export([is_non_neg_integer/1]).
+-export([is_pos_integer/1]).
 -export([function_exported/3]).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -21,6 +23,16 @@ is_timestamp({A, B, C}) when is_integer(A), A >= 0,
     true;
 is_timestamp(_) ->
     false.
+
+%% @doc Returns `true' if `X' is a non negative integer, `false' otherwise
+-spec is_non_neg_integer(X :: (non_neg_integer() | term())) -> boolean().
+is_non_neg_integer(X) ->
+    is_integer(X) andalso X >= 0.
+
+%% @doc Returns `true' if `X' is a positive integer, `false' otherwise
+-spec is_pos_integer(X :: (non_neg_integer() | term())) -> boolean().
+is_pos_integer(X) ->
+    is_integer(X) andalso X > 0.
 
 %% @doc Equivalent to {@link erlang:function_exported/3} except `Module' will be loaded if it has not been loaded
 -spec function_exported(module(), atom(), arity()) -> boolean().
