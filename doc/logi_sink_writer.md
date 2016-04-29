@@ -1,11 +1,16 @@
 
 
 # Module logi_sink_writer #
+* [Description](#description)
 * [Data Types](#types)
 * [Function Index](#index)
 * [Function Details](#functions)
 
-__This module defines the `logi_sink_writer` behaviour.__<br /> Required callback functions: `write/4`.
+TODO.
+
+Copyright (c) 2014-2016 Takeru Ohta <phjgt308@gmail.com>
+
+__This module defines the `logi_sink_writer` behaviour.__<br /> Required callback functions: `write/4`, `get_writee/1`.
 
 <a name="types"></a>
 
@@ -55,7 +60,7 @@ written_data() = <a href="logi_layout.md#type-formatted_data">logi_layout:format
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_state-1">get_state/1</a></td><td></td></tr><tr><td valign="top"><a href="#is_callback_module-1">is_callback_module/1</a></td><td>Returns <code>true</code> if <code>X</code> is a module which implements the <code>writer</code> behaviour, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_writer-1">is_writer/1</a></td><td>Returns <code>true</code> if <code>X</code> is a writer instance, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new writer instance.</td></tr><tr><td valign="top"><a href="#write-4">write/4</a></td><td>Writes a log message.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_module-1">get_module/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_state-1">get_state/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_writee-1">get_writee/1</a></td><td></td></tr><tr><td valign="top"><a href="#is_callback_module-1">is_callback_module/1</a></td><td>Returns <code>true</code> if <code>X</code> is a module which implements the <code>writer</code> behaviour, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#is_writer-1">is_writer/1</a></td><td>Returns <code>true</code> if <code>X</code> is a writer instance, otherwise <code>false</code></td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new writer instance.</td></tr><tr><td valign="top"><a href="#write-4">write/4</a></td><td>Writes a log message.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -77,6 +82,15 @@ get_module(X1::<a href="#type-writer">writer()</a>) -&gt; <a href="#type-callbac
 
 <pre><code>
 get_state(X1::<a href="#type-writer">writer()</a>) -&gt; <a href="#type-state">state()</a>
+</code></pre>
+<br />
+
+<a name="get_writee-1"></a>
+
+### get_writee/1 ###
+
+<pre><code>
+get_writee(X1::<a href="#type-writer">writer()</a>) -&gt; pid() | undefined
 </code></pre>
 <br />
 

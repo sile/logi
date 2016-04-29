@@ -1,4 +1,4 @@
-%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc A built-in IO device sink
 %%
@@ -44,28 +44,29 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/0, new/1]).
+-export([new/1, new/2]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink_writer' Callback API
 %%----------------------------------------------------------------------------------------------------------------------
--export([write/4]).
+-export([write/4, get_writee/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
-%% @equiv new([])
--spec new() -> logi_sink:sink().
-new() -> new([]).
+%% @equiv new(Id, [])
+-spec new(logi_sink:id()) -> logi_sink:sink().
+new(Id) ->
+    new(Id, []).
 
 %% @doc Creates a new sink instance
 %%
 %% TODO: doc: default value
--spec new(Options) -> logi_sink:sink() when
+-spec new(logi_sink:id(), Options) -> logi_sink:sink() when
       Options :: [Option],
       Option  :: {io_device, io:device()}
                | {layout, logi_layout:layout()}.
-new(Options) ->
+new(Id, Options) ->
     _ = is_list(Options) orelse error(badarg, [Options]),
 
     IoDevice = proplists:get_value(io_device, Options, standard_io),
@@ -73,9 +74,7 @@ new(Options) ->
     _ = is_pid(IoDevice) orelse is_atom(IoDevice) orelse error(badarg, [Options]),
     _ = logi_layout:is_layout(Layout) orelse error(badarg, [Options]),
 
-    logi_sink:from_writer(
-      ?MODULE, % TODO
-      logi_sink_writer:new(?MODULE, {Layout, IoDevice})).
+    logi_sink:from_writer(Id, logi_sink_writer:new(?MODULE, {Layout, IoDevice})).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink_writer' Callback Functions
@@ -85,3 +84,9 @@ write(Context, Format, Data, {Layout, IoDevice}) ->
     FormattedData = logi_layout:format(Context, Format, Data, Layout),
     _ = io:put_chars(IoDevice, FormattedData),
     FormattedData.
+
+%% @private
+get_writee(IoDevice) when is_pid(IoDevice) ->
+    IoDevice;
+get_writee(IoDevice) ->
+    whereis(IoDevice).

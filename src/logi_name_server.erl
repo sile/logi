@@ -1,3 +1,4 @@
+%% @private
 -module(logi_name_server).
 
 -behaviour(gen_server).
@@ -31,9 +32,9 @@
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
--spec register_name(name(), pid()) -> ok.
+-spec register_name(name(), pid()) -> yes | no.
 register_name(Name, Pid) ->
-    gen_server:cast(?MODULE, {register_name, {Name, Pid}}).
+    gen_server:call(?MODULE, {register_name, {Name, Pid}}).
 
 -spec unregister_name(name()) -> ok.
 unregister_name(Name) ->
@@ -49,14 +50,14 @@ init([]) ->
     {ok, State}.
 
 %% @private
+handle_call({register_name, Arg}, _From, State) ->
+    handle_register_name(Arg, State);
 handle_call({whereis_name, Arg}, _From, State) ->
     handle_whereis_name(Arg, State);
 handle_call(_Request, _From, State) ->
     {noreply, State}.
 
 %% @private
-handle_cast({register_name, Arg}, State) ->
-    handle_register_name(Arg, State);
 handle_cast({unregister_name, Arg}, State) ->
     handle_unregister_name(Arg, State);
 handle_cast(_Request, State) ->
@@ -76,19 +77,16 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
--spec handle_register_name({name(), pid()}, #?STATE{}) -> {noreply, #?STATE{}}.
-handle_register_name({Name, Pid}, State0) ->
-    case maps:find(Name, State0#?STATE.names) of
-        {ok, #entry{pid = Pid}} -> {noreply, State0};
-        _                       ->
-            {_, State1} = handle_unregister_name(Name, State0),
-            {_, State2} = handle_down(Pid, State1),
-
+-spec handle_register_name({name(), pid()}, #?STATE{}) -> {reply, yes|no, #?STATE{}}.
+handle_register_name({Name, Pid}, State) ->
+    case maps:is_key(Name, State#?STATE.names) orelse maps:is_key(Pid, State#?STATE.procs) of
+        true  -> {reply, no, State};
+        false ->
             Monitor = monitor(process, Pid),
             Entry = #entry{name = Name, pid = Pid, monitor = Monitor},
-            Names = maps:put(Name, Entry, State2#?STATE.names),
-            Procs = maps:put(Pid, Entry, State2#?STATE.procs),
-            {noreply, State2#?STATE{names = Names, procs = Procs}}
+            Names = maps:put(Name, Entry, State#?STATE.names),
+            Procs = maps:put(Pid, Entry, State#?STATE.procs),
+            {reply, yes, State#?STATE{names = Names, procs = Procs}}
     end.
 
 -spec handle_unregister_name(name(), #?STATE{}) -> {noreply, #?STATE{}}.

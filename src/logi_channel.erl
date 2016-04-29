@@ -1,4 +1,4 @@
-%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc Log Message Channels
 %%
@@ -55,9 +55,11 @@
 -export([which_channels/0]).
 
 -export([install_sink/2, install_sink/3]).
+%% TODO: -export([install_sink_opt/3, install_sink_opt/4]).
 -export([uninstall_sink/1, uninstall_sink/2]).
 -export([set_sink_condition/2, set_sink_condition/3]).
 -export([find_sink/1,  find_sink/2]).
+-export([whereis_sink_proc/1, whereis_sink_proc/2]).
 -export([which_sinks/0, which_sinks/1]).
 
 -export_type([id/0]).
@@ -102,11 +104,10 @@
         {
           id        :: logi_sink:id(),
           condition :: logi_condition:condition(),
-          spec      :: logi_sink:sink(),
-          instance  :: logi_sink:sink(),
-          sink_sup  :: logi_sink:sink_sup() | undefined,
-          monitor   :: reference(),
-          status = stopped :: running | stopped
+          sink      :: logi_sink:sink(),
+          child_id  :: logi_sink_proc:child_id(),
+          writer    :: logi_sink_writer:writer() | undefined,
+          monitor   :: reference()
         }).
 
 -type sinks() :: [#sink{}].
@@ -116,9 +117,8 @@
 
 -type install_sink_options() :: [install_sink_option()].
 
--type install_sink_option() :: {id, logi_sink:id()}
-                             | {channel, id()}
-                             | {if_exists, error | ignore | supersede}.
+-type install_sink_option() ::  {channel, id()}
+                              | {if_exists, error | ignore | supersede}.
 %% Let `Sink' be the sink which is subject of the installation.
 %%
 %% `id':
@@ -155,10 +155,9 @@
 -type installed_sink() ::
         #{
            condition => logi_condition:condition(),
-           spec      => logi_sink:sink(),
            sink      => logi_sink:sink(),
-           sink_sup  => logi_sink:sink_sup() | undefined, % TODO: undefinedのケースはある?
-           status    => running | suspended
+           child_id  => logi_sink_proc:child_id(),
+           writer    => logi_sink_writer:writer() | undefined
          }.
 %% The information of an installed sink
 
@@ -200,6 +199,8 @@ delete(Channel)                       -> error(badarg, [Channel]).
 %% @doc Returns a list of all existing channels
 -spec which_channels() -> [id()].
 which_channels() -> logi_channel_set_sup:which_children().
+
+%% TODO: install_sink_opt/3を用意しても良いかもしれない (install_sink/2系は第一引数にチャンネルを取るようにする)
 
 %% %% @equiv install_sink(Condition, Sink, [])
 -spec install_sink(logi_sink:sink(), logi_condition:condition()) -> install_sink_result(). % TODO: install_sink_result/0は型にしなくても良い
@@ -279,6 +280,30 @@ find_sink(SinkId, Options) ->
     Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, [SinkId, Options]),
     gen_server:call(Pid, {find_sink, SinkId}).
 
+%% @equiv whereis_sink_proc(Path, [])
+-spec whereis_sink_proc([logi_sink:id()]) -> pid() | undefined.
+whereis_sink_proc(Path) ->
+    whereis_sink_proc(Path, []).
+
+%% TODO: doc
+-spec whereis_sink_proc([logi_sink:id()], Options) -> pid() | undefined when
+      Options :: [{channel, id()}].
+whereis_sink_proc([], Options) ->
+    error(badarg, [[], Options]);
+whereis_sink_proc([SinkId | Path], Options) ->
+    case find_sink(SinkId, Options) of
+        error      -> undefined;
+        {ok, Sink} ->
+            (fun Loop (Sup, []) ->
+                     logi_sink_sup:get_child(Sup);
+                 Loop (Sup, [NextId | Rest]) ->
+                     case logi_sink_sup:find_grandchild(Sup, NextId) of
+                         error          -> undefined;
+                         {ok, ChildSup} -> Loop(ChildSup, Rest)
+                     end
+             end)(maps:get(child_id, Sink), Path)
+    end.
+
 %% @equiv which_sinks([])
 -spec which_sinks() -> [logi_sink:id()].
 which_sinks() -> which_sinks([]).
@@ -340,10 +365,9 @@ handle_call(_,                         _, State) -> {noreply, State}.
 handle_cast(_, State) -> {noreply, State}.
 
 %% @private
-handle_info({'LOGI_SINK_STARTED', _, _, _} = Info, State)   -> handle_sink_started(Info, State);
-handle_info({'LOGI_SINK_STOPPED', _, _} = Info, State)   -> handle_sink_stopped(Info, State);
-handle_info({'DOWN', Ref, _, _, _}, State)          -> handle_down(Ref, State);
-handle_info(_,                      State)          -> {noreply, State}.
+handle_info({sink_writer, ChildId, Writer}, State) -> handle_sink_writer(ChildId, Writer, State);
+handle_info({'DOWN', Ref, _, _, _}, State)         -> handle_down(Ref, State);
+handle_info(_,                      State)         -> {noreply, State}.
 
 %% @private
 terminate(_Reason, _State) ->
@@ -363,7 +387,7 @@ code_change(_OldVsn, State, _Extra) ->
       OldSink  :: undefined | installed_sink(),
       Reason   :: {already_installed, installed_sink()}.
 handle_install_sink({Sink, Condition, IfExists}, State0) ->
-    SinkId = logi_sink:get_id(Sink), % TODO:
+    SinkId = logi_sink:get_id(Sink),
     {OldSink, OldCondition, Sinks} =
         case lists:keytake(SinkId, #sink.id, State0#?STATE.sinks) of
             false                     -> {undefined, [], State0#?STATE.sinks};
@@ -376,10 +400,10 @@ handle_install_sink({Sink, Condition, IfExists}, State0) ->
                 ignore -> {reply, {ok, to_installed_sink(OldSink)}, State0}
             end;
         true ->
-            case logi_sink_proc:start_child(Sink) of
+            case logi_sink_proc:start_root_child(Sink) of
                 {error, Reason} -> {reply, {error, Reason}, State0};
-                {ok, SinkSup}   ->
-                    Writer = logi_sink_proc:recv_writer(SinkSup, 1000),
+                {ok, ChildId}   ->
+                    Writer = logi_sink_proc:recv_writer_from_child(ChildId, 1000),
                     _ = case Writer =:= undefined of
                             true  -> logi_sink_table:deregister(State0#?STATE.table, SinkId, OldCondition);
                             false -> logi_sink_table:register(State0#?STATE.table, SinkId, Writer, Condition, OldCondition)
@@ -389,10 +413,10 @@ handle_install_sink({Sink, Condition, IfExists}, State0) ->
                         #sink{
                            id        = SinkId,
                            condition = Condition,
-                           spec      = Sink,
-                           instance  = Writer,
-                           sink_sup  = SinkSup,
-                           monitor   = monitor(process, SinkSup)
+                           sink      = Sink,
+                           writer    = Writer,
+                           child_id  = ChildId,
+                           monitor   = monitor(process, ChildId)
                           },
                     State1 = State0#?STATE{sinks = [Entry | Sinks]},
                     {reply, {ok, to_installed_sink(OldSink)}, State1}
@@ -406,7 +430,7 @@ handle_set_sink_condition({SinkId, Condition}, State0) ->
     case lists:keytake(SinkId, #sink.id, State0#?STATE.sinks) of
         false                 -> {reply, error, State0};
         {value, Sink0, Sinks} ->
-            ok = logi_sink_table:register(State0#?STATE.table, SinkId, Sink0#sink.instance, Condition, Sink0#sink.condition),
+            ok = logi_sink_table:register(State0#?STATE.table, SinkId, Sink0#sink.writer, Condition, Sink0#sink.condition),
             Sink1 = Sink0#sink{condition = Condition},
             State1 = State0#?STATE{sinks = [Sink1 | Sinks]},
             {reply, {ok, Sink0#sink.condition}, State1}
@@ -441,25 +465,16 @@ handle_down(Ref, State0) ->
             {noreply, State0#?STATE{sinks = Sinks}}
     end.
 
-%%-spec handle_sink_suspend({'SINK_SUSPEND', logi_sink_agent:agent(), term()}, #?STATE{}) -> {noreply, #?STATE{}}.
-handle_sink_stopped({_, SinkSup, _SinkPid}, State) ->
-    case lists:keytake(SinkSup, #sink.sink_sup, State#?STATE.sinks) of
-        false                               -> {noreply, State};
-        {value, #sink{status = stopped}, _} -> {noreply, State};
+-spec handle_sink_writer(logi_sink_proc:child_id(), logi_sink_writer:writer()|undefined, #?STATE{}) -> {noreply, #?STATE{}}.
+handle_sink_writer(ChildId, Writer, State = #?STATE{table = Table}) ->
+    case lists:keytake(ChildId, #sink.child_id, State#?STATE.sinks) of
+        false                 -> {noreply, State};
         {value, Sink0, Sinks} ->
-            ok = logi_sink_table:deregister(State#?STATE.table, Sink0#sink.id, Sink0#sink.condition),
-            Sink1 = Sink0#sink{status = stopped},
-            {noreply, State#?STATE{sinks = [Sink1 | Sinks]}}
-    end.
-
-%% -spec handle_agent_stareset({'AGENT_RESET', logi_sink_agent:agent_sup(), logi_sink_agent:agent(), logi_sink:sink()},
-%%                          #?STATE{}) -> {noreply, #?STATE{}}.
-handle_sink_started({_, SinkSup, _SinkPid, Writer}, State) ->
-    case lists:keytake(SinkSup, #sink.sink_sup, State#?STATE.sinks) of
-        false -> {noreply, State};
-        {value, Sink0, Sinks} ->
-            ok = logi_sink_table:register(State#?STATE.table, Sink0#sink.id, Writer, Sink0#sink.condition, Sink0#sink.condition),
-            Sink1 = Sink0#sink{status = running, instance = Writer},
+            _ = case Writer =:= undefined of
+                    true  -> logi_sink_table:deregister(Table, Sink0#sink.id, Sink0#sink.condition);
+                    false -> logi_sink_table:register(Table, Sink0#sink.id, Writer, Sink0#sink.condition, Sink0#sink.condition)
+                end,
+            Sink1 = Sink0#sink{writer = Writer},
             {noreply, State#?STATE{sinks = [Sink1 | Sinks]}}
     end.
 
@@ -469,10 +484,9 @@ to_installed_sink(undefined) ->
 to_installed_sink(Sink) ->
     #{
        condition => Sink#sink.condition,
-       spec      => Sink#sink.spec,
-       sink      => Sink#sink.instance,
-       sink_sup  => Sink#sink.sink_sup,
-       status    => Sink#sink.status
+       sink      => Sink#sink.sink,
+       writer    => Sink#sink.writer,
+       child_id  => Sink#sink.child_id
      }.
 
 -spec release_sink_instance(undefined | #sink{}, #?STATE{}) -> ok.
@@ -480,4 +494,4 @@ release_sink_instance(undefined, _State) ->
     ok;
 release_sink_instance(Sink, _State) ->
     _ = demonitor(Sink#sink.monitor, [flush]),
-    logi_sink_proc:stop_child(Sink#sink.sink_sup).
+    logi_sink_proc:stop_child(Sink#sink.child_id).

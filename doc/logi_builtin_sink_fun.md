@@ -8,9 +8,9 @@
 
 A built-in sink which consumes log messages by an arbitrary user defined function.
 
-Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+Copyright (c) 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 
-__Behaviours:__ [`logi_sink`](logi_sink.md), [`logi_sink_writer`](logi_sink_writer.md).
+__Behaviours:__ [`logi_sink_writer`](logi_sink_writer.md).
 
 <a name="description"></a>
 
@@ -64,19 +64,19 @@ write_fun() = fun((<a href="logi_context.md#type-context">logi_context:context()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Creats a new sink instance.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creats a new sink instance.</td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
 
-<a name="new-1"></a>
+<a name="new-2"></a>
 
-### new/1 ###
+### new/2 ###
 
 <pre><code>
-new(Fun::<a href="#type-write_fun">write_fun()</a>) -&gt; <a href="logi_sink.md#type-sink">logi_sink:sink()</a>
+new(Id::<a href="logi_sink.md#type-id">logi_sink:id()</a>, Fun::<a href="#type-write_fun">write_fun()</a>) -&gt; <a href="logi_sink.md#type-sink">logi_sink:sink()</a>
 </code></pre>
 <br />
 

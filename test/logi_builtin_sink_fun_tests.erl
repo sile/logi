@@ -1,4 +1,5 @@
-%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
+%% @end
 -module(logi_builtin_sink_fun_tests).
 
 -include_lib("eunit/include/eunit.hrl").
@@ -11,13 +12,13 @@ new_test_() ->
      {"Creats a new sink instance",
       fun () ->
               WriteFun = fun (_, Format, Data) ->  io_lib:format(Format, Data) end,
-              Sink = logi_builtin_sink_fun:new(WriteFun),
+              Sink = logi_builtin_sink_fun:new(id, WriteFun),
               ?assert(logi_sink:is_sink(Sink))
       end},
      {"[ERORR] The argument is not a `write_fun/0'",
       fun () ->
-              ?assertError(badarg, logi_builtin_sink_fun:new(hoge)), % not a function
-              ?assertError(badarg, logi_builtin_sink_fun:new(fun lists:map/2))  % not a `write_fun/0' function
+              ?assertError(badarg, logi_builtin_sink_fun:new(id, hoge)), % not a function
+              ?assertError(badarg, logi_builtin_sink_fun:new(id, fun lists:map/2))  % not a `write_fun/0' function
       end}
     ].
 
@@ -30,7 +31,7 @@ write_test_() ->
        fun () ->
                Issuer = self(),
                WriteFun = fun (_, Format, Data) -> Issuer ! {write, Format, Data} end,
-               {ok, _} = logi_channel:install_sink(test, info, logi_builtin_sink_fun:new(WriteFun)),
+               {ok, _} = logi_channel:install_sink(logi_builtin_sink_fun:new(test, WriteFun), info),
                logi:info("hello world"),
                receive
                    {write, "hello world", []} -> ?assert(true)

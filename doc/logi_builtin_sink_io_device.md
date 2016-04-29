@@ -7,9 +7,9 @@
 
 A built-in IO device sink.
 
-Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+Copyright (c) 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 
-__Behaviours:__ [`logi_sink`](logi_sink.md), [`logi_sink_writer`](logi_sink_writer.md).
+__Behaviours:__ [`logi_sink_writer`](logi_sink_writer.md).
 
 <a name="description"></a>
 
@@ -63,30 +63,30 @@ Customizes message layout:
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#new-0">new/0</a></td><td>Equivalent to <a href="#new-1"><tt>new([])</tt></a>.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Creates a new sink instance.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Equivalent to <a href="#new-2"><tt>new(Id, [])</tt></a>.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new sink instance.</td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
 
-<a name="new-0"></a>
-
-### new/0 ###
-
-<pre><code>
-new() -&gt; <a href="logi_sink.md#type-sink">logi_sink:sink()</a>
-</code></pre>
-<br />
-
-Equivalent to [`new([])`](#new-1).
-
 <a name="new-1"></a>
 
 ### new/1 ###
 
 <pre><code>
-new(Options) -&gt; <a href="logi_sink.md#type-sink">logi_sink:sink()</a>
+new(Id::<a href="logi_sink.md#type-id">logi_sink:id()</a>) -&gt; <a href="logi_sink.md#type-sink">logi_sink:sink()</a>
+</code></pre>
+<br />
+
+Equivalent to [`new(Id, [])`](#new-2).
+
+<a name="new-2"></a>
+
+### new/2 ###
+
+<pre><code>
+new(Id::<a href="logi_sink.md#type-id">logi_sink:id()</a>, Options) -&gt; <a href="logi_sink.md#type-sink">logi_sink:sink()</a>
 </code></pre>
 
 <ul class="definitions"><li><code>Options = [Option]</code></li><li><code>Option = {io_device, <a href="io.md#type-device">io:device()</a>} | {layout, <a href="logi_layout.md#type-layout">logi_layout:layout()</a>}</code></li></ul>

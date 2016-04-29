@@ -1,7 +1,8 @@
-%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc Sinks management table
 %% @private
+%% @end
 -module(logi_sink_table).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -22,7 +23,7 @@
 %%----------------------------------------------------------------------------------------------------------------------
 -type table() :: ets:tab().
 
--type select_result() :: [logi_sink:sink()].
+-type select_result() :: [logi_sink_writer:writer()].
 %% A result of {@link select/4} function
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -40,11 +41,11 @@ delete(Table) ->
     ok.
 
 %% @doc Registers an sink
--spec register(table(), logi_sink:id(), logi_sink:sink(), logi_condition:condition(), logi_condition:condition()) -> ok.
-register(Table, SinkId, Sink, NewCondition, OldCondition) ->
+-spec register(table(), logi_sink:id(), logi_sink_writer:writer(), logi_condition:condition(), logi_condition:condition()) -> ok.
+register(Table, SinkId, Writer, NewCondition, OldCondition) ->
     {Added, _, Deleted} = diff(logi_condition:normalize(NewCondition),
                                logi_condition:normalize(OldCondition)),
-    ok = insert_sink(Table, SinkId, Sink),
+    ok = insert_sink(Table, SinkId, Writer),
     ok = index_condition(Table, SinkId, Added),
     ok = deindex_condition(Table, SinkId, Deleted),
     ok.
@@ -91,9 +92,9 @@ diff(A, B) ->
       ordsets:to_list(ordsets:subtract(Bs, As))
     }.
 
--spec insert_sink(table(), logi_sink:id(), logi_sink:sink()) -> ok.
-insert_sink(Table, SinkId, Sink) ->
-    E = {SinkId, Sink},
+-spec insert_sink(table(), logi_sink:id(), logi_sink_writer:writer()) -> ok.
+insert_sink(Table, SinkId, Writer) ->
+    E = {SinkId, Writer},
     _ = ets:insert(Table, E),
     ok.
 

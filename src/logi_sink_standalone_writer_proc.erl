@@ -30,7 +30,7 @@ start_link(Writer) ->
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
 init(Writer) ->
-    ok = logi_sink_proc:send_writer(Writer),
+    ok = logi_sink_proc:send_writer_to_parent(Writer),
     {ok, []}.
 
 %% @private

@@ -10,7 +10,7 @@ new_test_() ->
     [
      {"Creates a new sink instance",
       fun () ->
-              Sink = logi_builtin_sink_io_device:new(),
+              Sink = logi_builtin_sink_io_device:new(id),
               ?assert(logi_sink:is_sink(Sink))
       end}
     ].
@@ -24,8 +24,8 @@ write_test_() ->
        fun () ->
                {ok, Fd} = file:open("test.log", [write]),
                Layout = logi_builtin_layout_fun:new(fun (_, Format, Data) -> io_lib:format(Format, Data) end),
-               Sink = logi_builtin_sink_io_device:new([{io_device, Fd}, {layout, Layout}]),
-               {ok, _} = logi_channel:install_sink(test, info, Sink, [{layout, Layout}]),
+               Sink = logi_builtin_sink_io_device:new(id, [{io_device, Fd}, {layout, Layout}]),
+               {ok, _} = logi_channel:install_sink(Sink, info, [{layout, Layout}]),
                logi:info("hello world"),
                ok = file:close(Fd),
                ?assertEqual({ok, <<"hello world">>}, file:read_file("test.log")),

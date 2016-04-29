@@ -1,4 +1,4 @@
-%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc A built-in sink which consumes log messages by an arbitrary user defined function
 %%
@@ -30,14 +30,14 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
--export([new/1]).
+-export([new/2]).
 
 -export_type([write_fun/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink_writer' Callback API
 %%----------------------------------------------------------------------------------------------------------------------
--export([write/4]).
+-export([write/4, get_writee/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
@@ -51,12 +51,10 @@
 %% @doc Creats a new sink instance
 %%
 %% The default layout is `logi_builtin_layout_default:new()'.
--spec new(write_fun()) -> logi_sink:sink().
-new(Fun) ->
+-spec new(logi_sink:id(), write_fun()) -> logi_sink:sink().
+new(Id, Fun) ->
     _ = erlang:is_function(Fun, 3) orelse error(badarg, [Fun]),
-    logi_sink:from_writer(
-      ?MODULE, % TODO
-      logi_sink_writer:new(?MODULE, Fun)).
+    logi_sink:from_writer(Id, logi_sink_writer:new(?MODULE, Fun)).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'logi_sink_writer' Callback Functions
@@ -64,3 +62,7 @@ new(Fun) ->
 %% @private
 write(Context, Format, Data, Fun) ->
     Fun(Context, Format, Data).
+
+%% @private
+get_writee(_) ->
+    undefined.

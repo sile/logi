@@ -1,3 +1,7 @@
+%% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
+%%
+%% @doc TODO
+%% @end
 -module(logi_sink_writer).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -9,6 +13,7 @@
 -export([get_module/1]).
 -export([get_state/1]).
 -export([write/4]).
+-export([get_writee/1]).
 
 -export_type([writer/0]).
 -export_type([callback_module/0]).
@@ -19,7 +24,7 @@
 %% Behaviour Callbacks
 %%----------------------------------------------------------------------------------------------------------------------
 -callback write(logi_context:context(), io:format(), logi_layout:data(), state()) -> written_data().
-%% -callback get_writee(state()) -> pid() | undefined. % NOTE: 呼び出しのたびに変わるかもしれない
+-callback get_writee(state()) -> pid() | undefined. % NOTE: 呼び出しのたびに変わるかもしれない
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
@@ -55,13 +60,18 @@ is_writer(_)           -> false.
 
 %% @doc Returns `true' if `X' is a module which implements the `writer' behaviour, otherwise `false'
 -spec is_callback_module(X :: (callback_module() | term())) -> boolean().
-is_callback_module(X) -> (is_atom(X) andalso logi_utils:function_exported(X, write, 4)).
+is_callback_module(X) ->
+    (is_atom(X) andalso
+     logi_utils:function_exported(X, write, 4) andalso
+     logi_utils:function_exported(X, get_writee, 1)).
 
 -spec get_module(writer()) -> callback_module().
-get_module({Module, _}) -> Module.
+get_module({Module, _}) ->
+    Module.
 
 -spec get_state(writer()) -> state().
-get_state({_, State}) -> State.
+get_state({_, State}) ->
+    State.
 
 %% @doc Writes a log message
 %%
@@ -69,3 +79,8 @@ get_state({_, State}) -> State.
 -spec write(logi_context:context(), io:format(), logi_layout:data(), writer()) -> written_data().
 write(Context, Format, Data, {Module, State}) ->
     Module:write(Context, Format, Data, State).
+
+%% NOTE: writee==データの送信先プロセス. 不明だったり死んでいる場合にはundefinedとなる
+-spec get_writee(writer()) -> pid() | undefined.
+get_writee({Module, State}) ->
+    Module:get_writee(State).

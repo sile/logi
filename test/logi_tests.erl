@@ -1,4 +1,5 @@
-%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
+%% @end
 -module(logi_tests).
 
 -include_lib("eunit/include/eunit.hrl").
@@ -329,7 +330,7 @@ log_test_() ->
                 Caller = self(),
                 WriteFun = fun (Context, Format, Data) -> Caller ! {'LOGI_MSG', Context, Format, Data} end,
                 {ok, _} = logi_channel:install_sink(
-                            Id, Severity, logi_builtin_sink_fun:new(WriteFun), [{if_exists, supersede} | Optins]),
+                            logi_builtin_sink_fun:new(Id, WriteFun), Severity, [{if_exists, supersede} | Optins]),
                 ok
         end,
     InstallSink = fun (Severity) -> InstallSinkOpt(Severity, [{id, test}]) end,
@@ -457,7 +458,7 @@ log_test_() ->
        fun () ->
                ErroneousWriteFun = fun (_, _, _) -> error(something_wrong) end,
                InstallSinkOpt(info, [{id, sink_0}]),
-               {ok, _} = logi_channel:install_sink(sink_1, info, logi_builtin_sink_fun:new(ErroneousWriteFun)),
+               {ok, _} = logi_channel:install_sink(logi_builtin_sink_fun:new(sink_1, ErroneousWriteFun), info),
                InstallSinkOpt(info, [{id, sink_2}]),
 
                logi:info("hello world"),
