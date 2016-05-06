@@ -66,7 +66,6 @@
 -export_type([id/0]).
 -export_type([install_sink_option/0, install_sink_options/0]).
 -export_type([install_sink_result/0]).
--export_type([uninstall_sink_result/0]).
 -export_type([installed_sink/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -137,11 +136,6 @@
 %%
 %% Otherwise the result value depends on the value of the `if_exists' option
 %% (see the description of `install_sink_option/0' for details).
-
--type uninstall_sink_result() :: {ok, installed_sink()} | error.
-%% The result of {@link uninstall_sink/2}.
-%%
-%% The function returns `{ok, Sink}' if the specified sink exists in the channel, `error' otherwise.
 
 -type installed_sink() ::
         #{
@@ -220,75 +214,63 @@ install_sink_opt(Channel, Sink, Condition, Options) ->
     Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, Args),
     gen_server:call(Pid, {install_sink, {Sink, Condition, IfExists}}).
 
-%% @equiv uninstall_sink(SinkId, [])
--spec uninstall_sink(logi_sink:id()) -> uninstall_sink_result().
-uninstall_sink(SinkId) -> uninstall_sink(SinkId, []).
+%% @equiv uninstall_sink(default_channel(), SinkId)
+-spec uninstall_sink(logi_sink:id()) -> {ok, installed_sink()} | error.
+uninstall_sink(SinkId) ->
+    uninstall_sink(default_channel(), SinkId).
 
 %% @doc Uninstalls the sink which has the identifier `SinkId' from `Channel'
 %%
-%% The default value of the `channel' option is `logi_channel:default_channel()'.
--spec uninstall_sink(logi_sink:id(), Options) -> uninstall_sink_result() when
-      Options :: [{channel, Channel}],
-      Channel :: id().
-uninstall_sink(SinkId, Options) ->
-    _ = is_atom(SinkId) orelse error(badarg, [SinkId, Options]),
-    _ = is_list(Options) orelse error(badarg, [SinkId, Options]),
-
-    Channel = proplists:get_value(channel, Options, default_channel()),
-    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, [SinkId, Options]),
+%% The function returns `{ok, Sink}' if the specified sink exists in the channel, `error' otherwise.
+-spec uninstall_sink(id(), logi_sink:id()) -> {ok, Sink::installed_sink()} | error.
+uninstall_sink(Channel, SinkId) ->
+    _ = is_atom(SinkId) orelse error(badarg, [Channel, SinkId]),
+    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, [Channel, SinkId]),
     gen_server:call(Pid, {uninstall_sink, SinkId}).
 
-%% @equiv set_sink_condition(SinkId, Condition, [])
+%% @equiv set_sink_condition(default_channel(), SinkId, Condition)
 -spec set_sink_condition(logi_sink:id(), logi_condition:condition()) -> {ok, Old::logi_condition:condition()} | error.
 set_sink_condition(SinkId, Condition) ->
-    set_sink_condition(SinkId, Condition, []).
+    set_sink_condition(default_channel(), SinkId, Condition).
 
-%% @doc TODO
--spec set_sink_condition(logi_sink:id(), logi_condition:condition(), Options) -> {ok, Old} | error when
-      Options :: [Option],
-      Option  :: {channel, id()},
-      Old     :: logi_condition:condition().
-set_sink_condition(SinkId, Condition, Options) ->
-    Args = [SinkId, Condition, Options],
+%% @doc Sets the applicable condition of the `SinkId'
+%%
+%% The function returns `{ok, Old}' if the specified sink exists in the channel, `error' otherwise.
+-spec set_sink_condition(id(), logi_sink:id(), logi_condition:condition()) -> {ok, Old} | error when
+      Old :: logi_condition:condition().
+set_sink_condition(Channel, SinkId, Condition) ->
+    Args = [Channel, SinkId, Condition],
     _ = is_atom(SinkId) orelse error(badarg, Args),
     _ = logi_condition:is_condition(Condition) orelse error(badarg, Args),
-    _ = is_list(Options) orelse error(badarg, Args),
 
-    Channel = proplists:get_value(channel, Options, default_channel()),
     Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, Args),
     gen_server:call(Pid, {set_sink_condition, {SinkId, Condition}}).
 
-%% @equiv find_sink(SinkId, [])
+%% @equiv find_sink(default_channel(), SinkId)
 -spec find_sink(logi_sink:id()) -> {ok, Sink :: installed_sink()} | error.
-find_sink(SinkId) -> find_sink(SinkId, []).
+find_sink(SinkId) ->
+    find_sink(default_channel(), SinkId).
 
-%% @doc Searchs for `SinkId' in `Channel'; returns `{ok, Sink}', or `error' if `SinkId' is not present
+%% @doc Searchs for `SinkId' in `Channel'
 %%
-%% The default value of the `channel' option is `logi_channel:default_channel()'.
--spec find_sink(logi_sink:id(), Options) -> {ok, Sink} | error when
-      Options :: [{channel, Channel}],
-      Channel :: id(),
-      Sink    :: installed_sink().
-find_sink(SinkId, Options) ->
-    _ = is_atom(SinkId) orelse error(badarg, [SinkId, Options]),
-    _ = is_list(Options) orelse error(badarg, [SinkId, Options]),
-
-    Channel = proplists:get_value(channel, Options, default_channel()),
-    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, [SinkId, Options]),
+%% The function  returns `{ok, Sink}', or `error' if `SinkId' is not present
+-spec find_sink(id(), logi_sink:id()) -> {ok, Sink :: installed_sink()} | error.
+find_sink(Channel, SinkId) ->
+    _ = is_atom(SinkId) orelse error(badarg, [Channel, SinkId]),
+    Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, [Channel, SinkId]),
     gen_server:call(Pid, {find_sink, SinkId}).
 
-%% @equiv whereis_sink_proc(Path, [])
+%% @equiv whereis_sink_proc(default_channel(), Path)
 -spec whereis_sink_proc([logi_sink:id()]) -> pid() | undefined.
 whereis_sink_proc(Path) ->
-    whereis_sink_proc(Path, []).
+    whereis_sink_proc(default_channel(), Path).
 
 %% TODO: doc
--spec whereis_sink_proc([logi_sink:id()], Options) -> pid() | undefined when
-      Options :: [{channel, id()}].
-whereis_sink_proc([], Options) ->
-    error(badarg, [[], Options]);
-whereis_sink_proc([SinkId | Path], Options) ->
-    case find_sink(SinkId, Options) of
+-spec whereis_sink_proc(id(), [logi_sink:id()]) -> pid() | undefined.
+whereis_sink_proc(Channel, []) ->
+    error(badarg, [Channel, []]);
+whereis_sink_proc(Channel, [SinkId | Path]) ->
+    case find_sink(Channel, SinkId) of
         error      -> undefined;
         {ok, Sink} ->
             (fun Loop (Sup, []) ->
@@ -301,22 +283,14 @@ whereis_sink_proc([SinkId | Path], Options) ->
              end)(maps:get(child_id, Sink), Path)
     end.
 
-%% @equiv which_sinks([])
+%% @equiv which_sinks(default_channel())
 -spec which_sinks() -> [logi_sink:id()].
-which_sinks() -> which_sinks([]).
+which_sinks() ->
+    which_sinks(default_channel()).
 
 %% @doc Returns a list of installed sinks
-%%
-%% The default value of the `channel' option is `logi_channel:default_channel()'.
-%%
-%% TODO: doc: result list includes restarting sinks
--spec which_sinks(Options) -> [logi_sink:id()] when
-      Options :: [{channel, Channel}],
-      Channel :: id().
-which_sinks(Options) ->
-    _ = is_list(Options) orelse error(badarg, [Options]),
-
-    Channel = proplists:get_value(channel, Options, default_channel()),
+-spec which_sinks(id()) -> [logi_sink:id()].
+which_sinks(Channel) ->
     logi_sink_table:which_sinks(Channel).
 
 %%----------------------------------------------------------------------------------------------------------------------

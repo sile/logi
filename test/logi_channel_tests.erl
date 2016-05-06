@@ -150,7 +150,7 @@ select_test_() ->
         end,
     SetCond =
         fun (Id, Condition) ->
-                {ok, _} = logi_channel:set_sink_condition(Id, Condition, [{channel, Channel}]),
+                {ok, _} = logi_channel:set_sink_condition(Channel, Id, Condition),
                 ok
         end,
     Select =
