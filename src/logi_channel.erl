@@ -65,7 +65,6 @@
 
 -export_type([id/0]).
 -export_type([install_sink_option/0, install_sink_options/0]).
--export_type([install_sink_result/0]).
 -export_type([installed_sink/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -125,17 +124,6 @@
 %% &#x20;&#x20;- `ignore': the new sink is ignored. Then the function returns `{ok, ExistingSink}'.
 %% &#x20;&#x20;- `supersede': the new sink supersedes it. Then the function returns `{ok, OldSink}'.
 %% - default: `supersede'
-%% TODO: change default value
-
--type install_sink_result() :: {ok, OldSink :: undefined | installed_sink()}
-                             | {error, {already_installed, installed_sink()} | term()}.
-%% The result of {@link install_sink/2}.
-%%
-%% If there does not exist a sink which has the same identifier with a new one,
-%% the function returns `{ok, undefined}'.
-%%
-%% Otherwise the result value depends on the value of the `if_exists' option
-%% (see the description of `install_sink_option/0' for details).
 
 -type installed_sink() ::
         #{
@@ -186,22 +174,41 @@ delete(Channel)                       -> error(badarg, [Channel]).
 which_channels() -> logi_channel_set_sup:which_children().
 
 %% @equiv install_sink(default_channel(), Sink, Condition)
--spec install_sink(logi_sink:sink(), logi_condition:condition()) -> install_sink_result().
+-spec install_sink(logi_sink:sink(), logi_condition:condition()) -> {ok, Old} | {error, Reason} when
+      Old    :: undefined | installed_sink(),
+      Reason :: {cannot_start, term()}.
 install_sink(Sink, Condition) ->
     install_sink(default_channel(), Sink, Condition).
 
 %% @equiv install_sink_opt(Channel, Sink, Condition, [])
--spec install_sink(id(), logi_sink:sink(), logi_condition:condition()) -> install_sink_result().
+-spec install_sink(id(), logi_sink:sink(), logi_condition:condition()) -> {ok, Old} | {error, Reason} when
+      Old    :: undefined | installed_sink(),
+      Reason :: {cannot_start, term()}.
 install_sink(Channel, Sink, Condition) ->
     install_sink_opt(Channel, Sink, Condition, []).
 
 %% @equiv install_sink_opt(default_channel(), Sink, Condition, Options)
--spec install_sink_opt(logi_sink:sink(), logi_condition:condition(), install_sink_options()) -> install_sink_result().
+-spec install_sink_opt(logi_sink:sink(), logi_condition:condition(), install_sink_options()) ->
+                              {ok, Old} | {error, Reason} when
+      Old    :: undefined | installed_sink(),
+      Reason :: {already_installed, installed_sink()} | {cannot_start, term()}.
 install_sink_opt(Sink, Condition, Options) ->
     install_sink_opt(default_channel(), Sink, Condition, Options).
 
 %% @doc Installs `Sink'
--spec install_sink_opt(id(), logi_sink:sink(), logi_condition:condition(), install_sink_options()) -> install_sink_result().
+%%
+%% If failed to start a sink process specified by `logi_sink:get_spec(Sink)',
+%% the function returns `{cannot_start, FailureReason}'.
+%%
+%% If there does not exist a sink which has the same identifier with a new one,
+%% the function returns `{ok, undefined}'.
+%%
+%% Otherwise the result value depends on the value of the `if_exists' option
+%% (see the description of `install_sink_option/0' for details).
+-spec install_sink_opt(id(), logi_sink:sink(), logi_condition:condition(), install_sink_options()) ->
+                              {ok, Old} | {error, Reason} when
+      Old    :: undefined | installed_sink(),
+      Reason :: {already_installed, installed_sink()} | {cannot_start, term()}.
 install_sink_opt(Channel, Sink, Condition, Options) ->
     Args = [Channel, Sink, Condition, Options],
     _ = logi_condition:is_condition(Condition) orelse error(badarg, Args),
@@ -372,7 +379,7 @@ handle_install_sink({Sink, Condition, IfExists}, State0) ->
             end;
         true ->
             case logi_sink_proc:start_root_child(Sink) of
-                {error, Reason} -> {reply, {error, Reason}, State0};
+                {error, Reason} -> {reply, {error, {cannot_start, Reason}}, State0};
                 {ok, ChildId}   ->
                     Writer = logi_sink_proc:recv_writer_from_child(ChildId, 1000),
                     _ = case Writer =:= undefined of

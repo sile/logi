@@ -99,23 +99,6 @@ install_sink_options() = [<a href="#type-install_sink_option">install_sink_optio
 
 
 
-### <a name="type-install_sink_result">install_sink_result()</a> ###
-
-
-<pre><code>
-install_sink_result() = {ok, OldSink::undefined | <a href="#type-installed_sink">installed_sink()</a>} | {error, {already_installed, <a href="#type-installed_sink">installed_sink()</a>} | term()}
-</code></pre>
-
- The result of [`install_sink/2`](#install_sink-2).
-
-If there does not exist a sink which has the same identifier with a new one,
-the function returns `{ok, undefined}`.
-
-Otherwise the result value depends on the value of the `if_exists` option
-(see the description of `install_sink_option/0` for details).
-
-
-
 ### <a name="type-installed_sink">installed_sink()</a> ###
 
 
@@ -210,9 +193,10 @@ The function  returns `{ok, Sink}`, or `error` if `SinkId` is not present
 ### install_sink/2 ###
 
 <pre><code>
-install_sink(Sink::<a href="logi_sink.md#type-sink">logi_sink:sink()</a>, Condition::<a href="logi_condition.md#type-condition">logi_condition:condition()</a>) -&gt; <a href="#type-install_sink_result">install_sink_result()</a>
+install_sink(Sink::<a href="logi_sink.md#type-sink">logi_sink:sink()</a>, Condition::<a href="logi_condition.md#type-condition">logi_condition:condition()</a>) -&gt; {ok, Old} | {error, Reason}
 </code></pre>
-<br />
+
+<ul class="definitions"><li><code>Old = undefined | <a href="#type-installed_sink">installed_sink()</a></code></li><li><code>Reason = {cannot_start, term()}</code></li></ul>
 
 Equivalent to [`install_sink(default_channel(), Sink, Condition)`](#install_sink-3).
 
@@ -221,9 +205,10 @@ Equivalent to [`install_sink(default_channel(), Sink, Condition)`](#install_sink
 ### install_sink/3 ###
 
 <pre><code>
-install_sink(Channel::<a href="#type-id">id()</a>, Sink::<a href="logi_sink.md#type-sink">logi_sink:sink()</a>, Condition::<a href="logi_condition.md#type-condition">logi_condition:condition()</a>) -&gt; <a href="#type-install_sink_result">install_sink_result()</a>
+install_sink(Channel::<a href="#type-id">id()</a>, Sink::<a href="logi_sink.md#type-sink">logi_sink:sink()</a>, Condition::<a href="logi_condition.md#type-condition">logi_condition:condition()</a>) -&gt; {ok, Old} | {error, Reason}
 </code></pre>
-<br />
+
+<ul class="definitions"><li><code>Old = undefined | <a href="#type-installed_sink">installed_sink()</a></code></li><li><code>Reason = {cannot_start, term()}</code></li></ul>
 
 Equivalent to [`install_sink_opt(Channel, Sink, Condition, [])`](#install_sink_opt-4).
 
@@ -232,9 +217,10 @@ Equivalent to [`install_sink_opt(Channel, Sink, Condition, [])`](#install_sink_o
 ### install_sink_opt/3 ###
 
 <pre><code>
-install_sink_opt(Sink::<a href="logi_sink.md#type-sink">logi_sink:sink()</a>, Condition::<a href="logi_condition.md#type-condition">logi_condition:condition()</a>, Options::<a href="#type-install_sink_options">install_sink_options()</a>) -&gt; <a href="#type-install_sink_result">install_sink_result()</a>
+install_sink_opt(Sink::<a href="logi_sink.md#type-sink">logi_sink:sink()</a>, Condition::<a href="logi_condition.md#type-condition">logi_condition:condition()</a>, Options::<a href="#type-install_sink_options">install_sink_options()</a>) -&gt; {ok, Old} | {error, Reason}
 </code></pre>
-<br />
+
+<ul class="definitions"><li><code>Old = undefined | <a href="#type-installed_sink">installed_sink()</a></code></li><li><code>Reason = {already_installed, <a href="#type-installed_sink">installed_sink()</a>} | {cannot_start, term()}</code></li></ul>
 
 Equivalent to [`install_sink_opt(default_channel(), Sink, Condition,Options)`](#install_sink_opt-4).
 
@@ -243,11 +229,21 @@ Equivalent to [`install_sink_opt(default_channel(), Sink, Condition,Options)`](#
 ### install_sink_opt/4 ###
 
 <pre><code>
-install_sink_opt(Channel::<a href="#type-id">id()</a>, Sink::<a href="logi_sink.md#type-sink">logi_sink:sink()</a>, Condition::<a href="logi_condition.md#type-condition">logi_condition:condition()</a>, Options::<a href="#type-install_sink_options">install_sink_options()</a>) -&gt; <a href="#type-install_sink_result">install_sink_result()</a>
+install_sink_opt(Channel::<a href="#type-id">id()</a>, Sink::<a href="logi_sink.md#type-sink">logi_sink:sink()</a>, Condition::<a href="logi_condition.md#type-condition">logi_condition:condition()</a>, Options::<a href="#type-install_sink_options">install_sink_options()</a>) -&gt; {ok, Old} | {error, Reason}
 </code></pre>
-<br />
+
+<ul class="definitions"><li><code>Old = undefined | <a href="#type-installed_sink">installed_sink()</a></code></li><li><code>Reason = {already_installed, <a href="#type-installed_sink">installed_sink()</a>} | {cannot_start, term()}</code></li></ul>
 
 Installs `Sink`
+
+If failed to start a sink process specified by `logi_sink:get_spec(Sink)`,
+the function returns `{cannot_start, FailureReason}`.
+
+If there does not exist a sink which has the same identifier with a new one,
+the function returns `{ok, undefined}`.
+
+Otherwise the result value depends on the value of the `if_exists` option
+(see the description of `install_sink_option/0` for details).
 
 <a name="set_sink_condition-2"></a>
 
