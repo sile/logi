@@ -1,6 +1,6 @@
 %% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc TODO
+%% @doc Sink Writer Behaviour
 %% @end
 -module(logi_sink_writer).
 
@@ -24,25 +24,26 @@
 %% Behaviour Callbacks
 %%----------------------------------------------------------------------------------------------------------------------
 -callback write(logi_context:context(), io:format(), logi_layout:data(), state()) -> written_data().
--callback get_writee(state()) -> pid() | undefined. % NOTE: 呼び出しのたびに変わるかもしれない
+-callback get_writee(state()) -> pid() | undefined.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
--opaque writer() :: {callback_module(), state()}. % TODO: client(?)
+-opaque writer() :: {callback_module(), state()}.
 %% A writer instance.
 
 -type callback_module() :: module().
-%% A module that implements the `logi_sink' behaviour.
+%% A module that implements the `logi_sink_writer' behaviour.
 
--type state() :: term(). % TODO: client_state (?)
+-type state() :: term().
 %% The value of the fourth arguemnt of the `write/4' callback function.
 %%
 %% NOTE:
-%% This value will be loaded from ETS every time the `write/4' is called.
-%% Therefore, very huge data can cause a performance issue.
+%% This value might be loaded from ETS every time when a log message is issued.
+%% Therefore, very huge state can cause a performance problem.
 
 -type written_data() :: logi_layout:formatted_data().
+%% The data written to a sink
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
@@ -65,22 +66,30 @@ is_callback_module(X) ->
      logi_utils:function_exported(X, write, 4) andalso
      logi_utils:function_exported(X, get_writee, 1)).
 
--spec get_module(writer()) -> callback_module().
+%% @doc Gets the module of `Writer'
+-spec get_module(Writer :: writer()) -> callback_module().
 get_module({Module, _}) ->
     Module.
 
--spec get_state(writer()) -> state().
+%% @doc Gets the state of `Writer'
+-spec get_state(Writer :: writer()) -> state().
 get_state({_, State}) ->
     State.
 
 %% @doc Writes a log message
 %%
 %% If it fails to write, an exception will be raised.
--spec write(logi_context:context(), io:format(), logi_layout:data(), writer()) -> written_data().
+-spec write(logi_context:context(), io:format(), logi_layout:data(), Writer :: writer()) -> written_data().
 write(Context, Format, Data, {Module, State}) ->
     Module:write(Context, Format, Data, State).
 
-%% NOTE: writee==データの送信先プロセス. 不明だったり死んでいる場合にはundefinedとなる
--spec get_writee(writer()) -> pid() | undefined.
+%% @doc Gets the writee process of log messages
+%%
+%% "writee" is the destination process of `written_data()' of {@link write/4}.
+%%
+%% If such process is dead or unknown, the function returns `undefined'.
+%%
+%% The result value might change on every call.
+-spec get_writee(Writer :: writer()) -> pid() | undefined.
 get_writee({Module, State}) ->
     Module:get_writee(State).

@@ -1,10 +1,9 @@
-%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc TODO
+%% @doc Supervisor for logi_sink_sup processes
 %% @private
-%%
-%% TODO: 動作確認用に logi_builtin_sink_composit 的なモジュールを作成する
--module(logi_sink_set_sup). % TODO: rename
+%% @end
+-module(logi_sink_set_sup).
 
 -behaviour(supervisor).
 
@@ -12,8 +11,8 @@
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([start_link/0]).
--export([start_sink_sup/3]).
--export([stop_sink_sup/2]).
+-export([start_child/3]).
+-export([stop_child/2]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'supervisor' Callback API
@@ -28,12 +27,15 @@
 start_link() ->
     supervisor:start_link(?MODULE, [self()]).
 
--spec start_sink_sup(pid(), logi_sink:id(), supervisor:sup_flags()) -> {ok, logi_sink_proc:child_id()} | {error, Reason::term()}.
-start_sink_sup(Sup, SinkId, Flags) ->
+%% @doc Starts a new child (i.e., logi_sink_sup process)
+-spec start_child(pid(), logi_sink:id(), supervisor:sup_flags()) ->
+                         {ok, logi_sink_proc:child_id()} | {error, Reason::term()}.
+start_child(Sup, SinkId, Flags) ->
     supervisor:start_child(Sup, [SinkId, Flags]).
 
--spec stop_sink_sup(pid(), logi_sink_proc:child_id()) -> ok.
-stop_sink_sup(Sup, SinkSup) ->
+%% @doc Stops the child
+-spec stop_child(pid(), logi_sink_proc:child_id()) -> ok.
+stop_child(Sup, SinkSup) ->
     _ = supervisor:terminate_child(Sup, SinkSup),
     ok.
 

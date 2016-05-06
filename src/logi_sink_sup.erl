@@ -1,7 +1,8 @@
-%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc TODO
+%% @doc Supervisor for a sink process and a supervisor of its children
 %% @private
+%% @end
 -module(logi_sink_sup).
 
 -behaviour(supervisor).
@@ -12,7 +13,7 @@
 -export([start_link/2]).
 -export([start_grandchild/3]).
 -export([stop_grandchild/2]).
--export([get_child/1]).
+-export([get_child_sink/1]).
 -export([find_grandchild/2]).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -28,47 +29,54 @@
 start_link(SinkId, Flags) ->
     supervisor:start_link({via, logi_name_server, {sink, self(), SinkId}}, ?MODULE, [Flags]).
 
+%% @doc Starts a new sink process (i.e., grandchild)
+%%
+%% This function also starts a child supervisor
 -spec start_grandchild(pid(), logi_sink:sink(), boolean()) -> {ok, logi_sink_proc:child_id()} | {error, Reason::term()}.
 start_grandchild(Sup, GrandChildSink, IsRoot) ->
-    %% TODO: 用語整理
     GrandChildSup = logi_sink_proc:whereis_grandchildren_sup(Sup),
     Id = case IsRoot of
              false -> logi_sink:get_id(GrandChildSink);
-             true  -> make_ref()
+             true  -> make_ref() % Uses unique ID
          end,
-    case logi_sink_set_sup:start_sink_sup(GrandChildSup, Id, logi_sink:get_sup_flags(GrandChildSink)) of
+    case logi_sink_set_sup:start_child(GrandChildSup, Id, logi_sink:get_sup_flags(GrandChildSink)) of
         {error, Reason} -> {error, Reason};
         {ok, SinkSup}   ->
             try
                 case start_sink(SinkSup, logi_sink:get_spec(GrandChildSink)) of
                     {error, Reson} ->
-                        ok = logi_sink_set_sup:stop_sink_sup(GrandChildSup, SinkSup),
+                        ok = logi_sink_set_sup:stop_child(GrandChildSup, SinkSup),
                         {error, Reson};
                     {ok, _} ->
                         {ok, SinkSup}
                 end
             catch
                 ExClass:ExReason ->
-                    ok = logi_sink_set_sup:stop_sink_sup(GrandChildSup, SinkSup),
+                    ok = logi_sink_set_sup:stop_child(GrandChildSup, SinkSup),
                     erlang:raise(ExClass, ExReason, erlang:get_stacktrace())
             end
     end.
 
+%% @doc Stops the grandchild process
+%%
+%% This function also stops the child supervisor (i.e., the parent of `GrandChildSup')
 -spec stop_grandchild(pid(), logi_sink_proc:child_id()) -> ok.
 stop_grandchild(Sup, GrandChildId) ->
     case logi_sink_proc:whereis_grandchildren_sup(Sup) of
         undefined     -> ok;
-        GrandChildSup -> logi_sink_set_sup:stop_sink_sup(GrandChildSup, GrandChildId)
+        GrandChildSup -> logi_sink_set_sup:stop_child(GrandChildSup, GrandChildId)
     end.
 
--spec get_child(pid()) -> pid() | undefined.
-get_child(Sup) ->
+%% @doc Returns the PID of the child sink process of `Sup'
+-spec get_child_sink(pid()) -> pid() | undefined.
+get_child_sink(Sup) ->
     case [Pid || {Id, Pid, _, _} <- supervisor:which_children(Sup), Id =/= child_sink_set_sup] of
         [P] when is_pid(P) -> P;
         _                  -> undefined
     end.
 
--spec find_grandchild(pid(), logi_sink:id()) -> {ok, pid()} | error.
+%% @doc Finds the grandchild which has the name `SinkId'
+-spec find_grandchild(pid(), logi_sink:id()) -> {ok, logi_sink_proc:child_id()} | error.
 find_grandchild(Sup, SinkId) ->
     case logi_name_server:whereis_name({sink, Sup, SinkId}) of
         undefined -> error;

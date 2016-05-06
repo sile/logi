@@ -1,7 +1,8 @@
-%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc TODO
+%% @doc Supervisor for a logi_channel process and a supervisor of its children
 %% @private
+%% @end
 -module(logi_channel_sup).
 
 -behaviour(supervisor).
@@ -10,7 +11,6 @@
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([start_link/1]).
--export([get_sink_set_sup/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'supervisor' Callback API
@@ -24,12 +24,6 @@
 -spec start_link(logi_channel:id()) -> {ok, pid()} | {error, Reason::term()}.
 start_link(Channel) ->
     supervisor:start_link(?MODULE, [Channel]).
-
-%% TODO: doc
--spec get_sink_set_sup(pid()) -> pid().
-get_sink_set_sup(Sup) ->
-    [SinkSetSup] = [Pid || {sink_set_sup, Pid, _, _} <- supervisor:which_children(Sup), is_pid(Pid)],
-    SinkSetSup.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'supervisor' Callback Functions

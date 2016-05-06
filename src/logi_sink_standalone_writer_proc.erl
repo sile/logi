@@ -1,6 +1,6 @@
 %% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc A noop sink process which sends the passed writer to the parent
+%% @doc A sink process for a standalone writer instance
 %% @private
 %% @end
 -module(logi_sink_standalone_writer_proc).

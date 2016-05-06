@@ -1,8 +1,15 @@
+%% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
+%%
+%% @doc Application Internal Process Name Server
 %% @private
+%% @end
 -module(logi_name_server).
 
 -behaviour(gen_server).
 
+%%----------------------------------------------------------------------------------------------------------------------
+%% Exported API
+%%----------------------------------------------------------------------------------------------------------------------
 -export([start_link/0]).
 -export([register_name/2]).
 -export([unregister_name/1]).
@@ -10,8 +17,14 @@
 
 -export_type([name/0]).
 
+%%----------------------------------------------------------------------------------------------------------------------
+%% 'gen_server' Callback API
+%%----------------------------------------------------------------------------------------------------------------------
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
+%%----------------------------------------------------------------------------------------------------------------------
+%% Macros & Records & Types
+%%----------------------------------------------------------------------------------------------------------------------
 -record(entry,
         {
           name    :: name(),
@@ -27,23 +40,40 @@
         }).
 
 -type name() :: term().
+%% Process Name
 
+%%----------------------------------------------------------------------------------------------------------------------
+%% Exported Functions
+%%----------------------------------------------------------------------------------------------------------------------
+%% @doc Starts the name server process
 -spec start_link() -> {ok, pid()} | {error, Reason::term()}.
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
+%% @doc Locally assocates the name `Name' with a pid `Pid'.
+%%
+%% The function returns `yes' if successful, `no' if it failes.
+%% For example, `no' is returned if an attempt is made to register an already registered process or
+%% to register a process with a name that is already in use.
 -spec register_name(name(), pid()) -> yes | no.
 register_name(Name, Pid) ->
     gen_server:call(?MODULE, {register_name, {Name, Pid}}).
 
+%% @doc Removes the locally registered name `Name'
 -spec unregister_name(name()) -> ok.
 unregister_name(Name) ->
     gen_server:cast(?MODULE, {unregister_name, Name}).
 
+%% @doc Returns the pid with the locally registered name `Name'
+%%
+%% Returns `undefined' if the name is not locally registered.
 -spec whereis_name(name()) -> pid() | undefined.
 whereis_name(Name) ->
     gen_server:call(?MODULE, {whereis_name, Name}).
 
+%%----------------------------------------------------------------------------------------------------------------------
+%% 'gen_server' Callback Functions
+%%----------------------------------------------------------------------------------------------------------------------
 %% @private
 init([]) ->
     State = #?STATE{},
@@ -77,6 +107,9 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
+%%----------------------------------------------------------------------------------------------------------------------
+%% Internal Functions
+%%----------------------------------------------------------------------------------------------------------------------
 -spec handle_register_name({name(), pid()}, #?STATE{}) -> {reply, yes|no, #?STATE{}}.
 handle_register_name({Name, Pid}, State) ->
     case maps:is_key(Name, State#?STATE.names) orelse maps:is_key(Pid, State#?STATE.procs) of

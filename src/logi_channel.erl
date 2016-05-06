@@ -295,7 +295,7 @@ whereis_sink_proc([SinkId | Path], Options) ->
         error      -> undefined;
         {ok, Sink} ->
             (fun Loop (Sup, []) ->
-                     logi_sink_sup:get_child(Sup);
+                     logi_sink_sup:get_child_sink(Sup);
                  Loop (Sup, [NextId | Rest]) ->
                      case logi_sink_sup:find_grandchild(Sup, NextId) of
                          error          -> undefined;
