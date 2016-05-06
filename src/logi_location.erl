@@ -1,4 +1,4 @@
-%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc The location where log message issued
 %%
@@ -30,6 +30,7 @@
 %%   module => erl_eval,
 %%   process => &lt;0.91.0&gt;}
 %% </pre>
+%% @end
 -module(logi_location).
 
 -deprecated({guess_location, 0}).
@@ -81,7 +82,7 @@
 -type line() :: pos_integer() | 0.
 %% A line number
 %%
-%% `0' indicates "Unknown Line"
+%% `0' means "Unknown Line"
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions

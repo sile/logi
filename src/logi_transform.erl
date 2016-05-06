@@ -1,4 +1,4 @@
-%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc A parse_transform module for logi
 %%
@@ -16,6 +16,7 @@
 %%
 %% @see logi:log/4
 %% @see logi_location:guess_location/0
+%% @end
 -module(logi_transform).
 
 %%----------------------------------------------------------------------------------------------------------------------

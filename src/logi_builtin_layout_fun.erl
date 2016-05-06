@@ -1,4 +1,4 @@
-%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc A built-in layout which formats log messages by an arbitrary user defined function
 %%
@@ -26,16 +26,17 @@
 %% A layout used by a sink can be specified at the time of installing the sink:
 %% <pre lang="erlang">
 %% > Layout0 = logi_builtin_layout_fun:new(fun (_, Format, Data) -> io_lib:format("[LAYOUT_0] " ++ Format ++ "\n", Data) end).
-%% > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_io_device:new(), [{id, sink_0}, {layout, Layout0}]).
+%% > {ok, _} = logi_channel:install_sink(logi_builtin_sink_io_device:new(foo, [{layout, Layout0}]), info).
 %% > logi:info("hello world").
 %% [LAYOUT_0] hello world
 %%
 %% > Layout1 = logi_builtin_layout_fun:new(fun (_, Format, Data) -> io_lib:format("[LAYOUT_1] " ++ Format ++ "\n", Data) end).
-%% > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_io_device:new(), [{id, sink_1}, {layout, Layout1}]).
+%% > {ok, _} = logi_channel:install_sink(logi_builtin_sink_io_device:new(bar, [{layout, Layout1}]), info).
 %% > logi:info("hello world").
 %% [LAYOUT_0] hello world
 %% [LAYOUT_1] hello world
 %% </pre>
+%% @end
 -module(logi_builtin_layout_fun).
 
 -behaviour(logi_layout).

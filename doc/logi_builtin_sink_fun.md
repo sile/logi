@@ -37,8 +37,8 @@ And there is no overload protection.
 ```erlang
 
   > error_logger:tty(false). % Suppresses annoying warning outputs for brevity
-  > WriteFun = fun (_, _, Format, Data) -> io:format("[CONSUMED] " ++ Format ++ "\n", Data) end.
-  > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_fun:new(WriteFun)).
+  > WriteFun = fun (_, Format, Data) -> io:format("[CONSUMED] " ++ Format ++ "\n", Data) end.
+  > {ok, _} = logi_channel:install_sink(logi_builtin_sink_fun:new(foo, WriteFun), info).
   > logi:info("hello world").
   [CONSUMED] hello world
 ```
@@ -81,6 +81,4 @@ new(Id::<a href="logi_sink.md#type-id">logi_sink:id()</a>, Fun::<a href="#type-w
 <br />
 
 Creats a new sink instance
-
-The default layout is `logi_builtin_layout_default:new()`.
 

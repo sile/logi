@@ -8,7 +8,7 @@
 
 Logger Interface.
 
-Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+Copyright (c) 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 
 <a name="description"></a>
 
@@ -25,7 +25,7 @@ Basic Usage:
 ```erlang
 
   > error_logger:tty(false). % Suppresses annoying warnings for the sake of brevity
-  > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_io_device:new()). % Installs a sink to the default channel
+  > {ok, _} = logi_channel:install_sink(logi_builtin_sink_io_device:new(foo), info). % Installs a sink to the default channel
   > logi:info("hello world").
   2015-11-09 08:18:34.954 [info] nonode@nohost <0.91.0> erl_eval:do_apply:673 [] hello world
 ```

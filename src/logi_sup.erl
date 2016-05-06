@@ -1,7 +1,8 @@
-%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc The root supervisor module
 %% @private
+%% @end
 -module(logi_sup).
 
 -behaviour(supervisor).

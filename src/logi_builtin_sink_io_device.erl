@@ -16,7 +16,7 @@
 %% <pre lang="erlang">
 %% > error_logger:tty(false). % Suppresses annoying warning outputs for brevity
 %%
-%% > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_io_device:new()).
+%% > {ok, _} = logi_channel:install_sink(logi_builtin_sink_io_device:new(foo), info).
 %% > logi:info("hello world").
 %% 2015-10-21 05:21:52.332 [info] nonode@nohost &lt;0.91.0&gt; erl_eval:do_apply:673 [] hello world
 %% </pre>
@@ -24,7 +24,8 @@
 %% Outputs to a file:
 %% <pre lang="erlang">
 %% > {ok, Fd} = file:open("/tmp/hoge", [write]).
-%% > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_io_device:new(Fd), [{if_exists, supersede}]).
+%% > Sink = logi_builtin_sink_io_device:new(foo, [{io_device, Fd}]).
+%% > {ok, _} = logi_channel:install_sink_opt(Sink, info, [{if_exists, supersede}]).
 %% > logi:info("hello world").
 %% > file:read_file("/tmp/hoge").
 %% {ok,&lt;&lt;"2015-10-21 05:23:19.940 [info] nonode@nohost &lt;0.91.0&gt; erl_eval:do_apply:673 [] hello world\n"&gt;&gt;}
@@ -33,10 +34,12 @@
 %% Customizes message layout:
 %% <pre lang="erlang">
 %% > Layout = logi_builtin_layout_fun:new(fun (_, Format, Data) -> io_lib:format("[my_layout] " ++ Format ++ "\n", Data) end).
-%% > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_io_device:new(), [{layout, Layout}, {if_exists, supersede}]).
+%% > Sink = logi_builtin_sink_io_device:new(foo, [{layout, Layout}]).
+%% > {ok, _} = logi_channel:install_sink_opt(Sink, info, [{if_exists, supersede}]).
 %% > logi:info("hello world").
 %% [my_layout] hello world
 %% </pre>
+%% @end
 -module(logi_builtin_sink_io_device).
 
 -behaviour(logi_sink_writer).
@@ -61,7 +64,10 @@ new(Id) ->
 
 %% @doc Creates a new sink instance
 %%
-%% TODO: doc: default value
+%% === DEFAULT VALUE ===
+%% - io_device: `standard_io'
+%% - layout: `logi_builtin_layout_default:new()'
+%%
 -spec new(logi_sink:id(), Options) -> logi_sink:sink() when
       Options :: [Option],
       Option  :: {io_device, io:device()}

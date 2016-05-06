@@ -1,4 +1,4 @@
-%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc A built-in stateless filter which filters log messages by an arbitrary user defined function
 %%
@@ -12,8 +12,8 @@
 %% <pre lang="erlang">
 %% > error_logger:tty(false). % Suppresses annoying warning outputs for brevity
 %%
-%% > Sink = logi_builtin_sink_fun:new(fun (_, _, Format, Data) -> io:format(Format ++ "\n", Data) end).
-%% > {ok, _} = logi_channel:install_sink(info, Sink).
+%% > Sink = logi_builtin_sink_fun:new(foo, fun (_, Format, Data) -> io:format(Format ++ "\n", Data) end).
+%% > {ok, _} = logi_channel:install_sink(Sink, info).
 %%
 %% > FilterFun = fun (C) -> not maps:get(discard, logi_context:get_metadata(C), false) end.
 %% > Logger = logi:new([{filter, logi_builtin_filter_fun:new(FilterFun)}]).
@@ -25,6 +25,7 @@
 %% > logi:info("hello world", [], [{metadata, #{discard => true}}]). % discarded
 %% % No output: the log message was discarded by the filter
 %% </pre>
+%% @end
 -module(logi_builtin_filter_fun).
 
 -behaviour(logi_filter).

@@ -8,7 +8,7 @@
 
 Log Message Layout Behaviour.
 
-Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+Copyright (c) 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 
 __This module defines the `logi_layout` behaviour.__<br /> Required callback functions: `format/4`.
 
@@ -43,7 +43,7 @@ A more realistic example:
 
   > FormatFun = fun (_, Format, Data) -> lists:flatten(io_lib:format("EXAMPLE: " ++ Format ++ "\n", Data)) end.
   > Layout = logi_builtin_layout_fun:new(FormatFun).
-  > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_io_device:new(), [{layout, Layout}]).
+  > {ok, _} = logi_channel:install_sink(logi_builtin_sink_io_device:new(foo, [{layout, Layout}]), info).
   > logi:info("hello world").
   EXAMPLE: hello world
 ```
@@ -99,6 +99,7 @@ If the `layout()` does not have an explicit `extra_data()`, `undefined` will be 
 formatted_data() = term()
 </code></pre>
 
+ Formatted Data
 
 
 
@@ -117,6 +118,8 @@ __abstract datatype__: `layout(_FormattedData)`
 <pre><code>
 layout() = <a href="#type-layout">layout</a>(<a href="#type-formatted_data">formatted_data()</a>)
 </code></pre>
+
+ An instance of `logi_layout` behaviour implementation module.
 
 <a name="index"></a>
 

@@ -7,7 +7,7 @@
 
 A default layout for built-in sinks.
 
-Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+Copyright (c) 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 
 __Behaviours:__ [`logi_layout`](logi_layout.md).
 
@@ -35,7 +35,7 @@ And no overload protection exists (e.g. if log message is too large, the caller 
 
   > error_logger:tty(false). % Suppresses annoying warning outputs for brevity
   > Layout = logi_builtin_layout_default:new().
-  > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_io_device:new(), [{layout, Layout}]).
+  > {ok, _} = logi_channel:install_sink(logi_builtin_sink_io_device:new(foo, [{layout, Layout}]), info).
   > logi:info("hello world").
   2015-10-21 15:06:42.842 [info] nonode@nohost <0.91.0> erl_eval:do_apply:673 [] hello world
 ```

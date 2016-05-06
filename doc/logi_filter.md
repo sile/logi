@@ -8,7 +8,7 @@
 
 Log Message Filter Behaviour.
 
-Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+Copyright (c) 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 
 __This module defines the `logi_filter` behaviour.__<br /> Required callback functions: `filter/2`.
 
@@ -47,8 +47,8 @@ A more realistic example:
 
 ```erlang
 
-  > WriteFun = fun (_, _, Format, Data) -> io:format(Format ++ "\n", Data) end.
-  > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_fun:new(WriteFun)).
+  > WriteFun = fun (_, Format, Data) -> io:format(Format ++ "\n", Data) end.
+  > {ok, _} = logi_channel:install_sink(logi_builtin_sink_fun:new(foo, WriteFun), info).
   > FilterFun = fun (C) -> not maps:get(discard, logi_context:get_metadata(C), false) end.
   > Logger = logi:new([{filter, logi_builtin_filter_fun:new(FilterFun)}]).
   > logi:save_as_default(Logger).

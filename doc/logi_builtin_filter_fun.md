@@ -8,7 +8,7 @@
 
 A built-in stateless filter which filters log messages by an arbitrary user defined function.
 
-Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+Copyright (c) 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 
 __Behaviours:__ [`logi_filter`](logi_filter.md).
 
@@ -31,8 +31,8 @@ it is recommended to define a specified filter for efficiency reasons.
 ```erlang
 
   > error_logger:tty(false). % Suppresses annoying warning outputs for brevity
-  > Sink = logi_builtin_sink_fun:new(fun (_, _, Format, Data) -> io:format(Format ++ "\n", Data) end).
-  > {ok, _} = logi_channel:install_sink(info, Sink).
+  > Sink = logi_builtin_sink_fun:new(foo, fun (_, Format, Data) -> io:format(Format ++ "\n", Data) end).
+  > {ok, _} = logi_channel:install_sink(Sink, info).
   > FilterFun = fun (C) -> not maps:get(discard, logi_context:get_metadata(C), false) end.
   > Logger = logi:new([{filter, logi_builtin_filter_fun:new(FilterFun)}]).
   > logi:save_as_default(Logger).

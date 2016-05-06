@@ -8,7 +8,7 @@
 
 A parse_transform module for logi.
 
-Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+Copyright (c) 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 
 __See also:__ [logi:log/4](logi.md#log-4), [logi_location:guess_location/0](logi_location.md#guess_location-0).
 

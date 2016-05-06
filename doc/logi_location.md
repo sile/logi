@@ -8,7 +8,7 @@
 
 The location where log message issued.
 
-Copyright (c) 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+Copyright (c) 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 
 <a name="description"></a>
 
@@ -75,7 +75,7 @@ line() = pos_integer() | 0
 
  A line number
 
-`0` indicates "Unknown Line"
+`0` means "Unknown Line"
 
 
 

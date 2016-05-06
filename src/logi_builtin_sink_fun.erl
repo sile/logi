@@ -18,11 +18,12 @@
 %% <pre lang="erlang">
 %% > error_logger:tty(false). % Suppresses annoying warning outputs for brevity
 %%
-%% > WriteFun = fun (_, _, Format, Data) -> io:format("[CONSUMED] " ++ Format ++ "\n", Data) end.
-%% > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_fun:new(WriteFun)).
+%% > WriteFun = fun (_, Format, Data) -> io:format("[CONSUMED] " ++ Format ++ "\n", Data) end.
+%% > {ok, _} = logi_channel:install_sink(logi_builtin_sink_fun:new(foo, WriteFun), info).
 %% > logi:info("hello world").
 %% [CONSUMED] hello world
 %% </pre>
+%% @end
 -module(logi_builtin_sink_fun).
 
 -behaviour(logi_sink_writer).
@@ -49,8 +50,6 @@
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @doc Creats a new sink instance
-%%
-%% The default layout is `logi_builtin_layout_default:new()'.
 -spec new(logi_sink:id(), write_fun()) -> logi_sink:sink().
 new(Id, Fun) ->
     _ = erlang:is_function(Fun, 3) orelse error(badarg, [Fun]),

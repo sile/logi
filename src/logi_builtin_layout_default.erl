@@ -1,4 +1,4 @@
-%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc A default layout for built-in sinks
 %%
@@ -17,10 +17,11 @@
 %% > error_logger:tty(false). % Suppresses annoying warning outputs for brevity
 %%
 %% > Layout = logi_builtin_layout_default:new().
-%% > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_io_device:new(), [{layout, Layout}]).
+%% > {ok, _} = logi_channel:install_sink(logi_builtin_sink_io_device:new(foo, [{layout, Layout}]), info).
 %% > logi:info("hello world").
 %% 2015-10-21 15:06:42.842 [info] nonode@nohost &lt;0.91.0&gt; erl_eval:do_apply:673 [] hello world
 %% </pre>
+%% @end
 -module(logi_builtin_layout_default).
 
 -behaviour(logi_layout).

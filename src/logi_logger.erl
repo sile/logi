@@ -1,7 +1,8 @@
-%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc Logger implementation module
 %% @private
+%% @end
 -module(logi_logger).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -154,9 +155,9 @@ recursive_update(UpdateFun, Logger0) ->
         #?LOGGER{next = Next}      -> Logger1#?LOGGER{next = recursive_update(UpdateFun, Next)}
     end.
 
-%% @doc Prepares the list of log output context and sinks
--spec ready(logger(), logi:severity(), logi_location:location(), logi:log_options()) -> {[ContextAndSinks], logger()} when
-      ContextAndSinks :: {logi_context:context(), logi_sink_table:select_result()}.
+%% @doc Prepares the list of log output context and sink writers
+-spec ready(logger(), logi:severity(), logi_location:location(), logi:log_options()) -> {[ContextAndWriters], logger()} when
+      ContextAndWriters :: {logi_context:context(), logi_sink_table:select_result()}.
 ready(Logger, Severity, DefaultLocation, Options) ->
     Args = [Logger, Severity, DefaultLocation, Options],
     _ = is_list(Options) orelse error(badarg, Args),
@@ -164,23 +165,22 @@ ready(Logger, Severity, DefaultLocation, Options) ->
     Timestamp = proplists:get_value(timestamp, Options, undefined),
     ready(Logger, Severity, Location, undefined, undefined, Timestamp, Options).
 
-%% @doc Writes a log message through the selected sinks
+%% @doc Writes a log message through the selected sink writers
 -spec write(logi_sink_table:select_result(), logi_context:context(), io:format(), [term()]) -> ok.
-write([],                           _Context,_Format,_Data) -> ok;
-write([Sink | Sinks], Context, Format, Data) ->
-    %% An error of a sink does not affect to other sinks. Instead, an error report is emitted.
+write([],                _Context,_Format,_Data) -> ok;
+write([Writer | Writers], Context, Format, Data) ->
+    %% An error of a writer does not affect to other writers. Instead, an error report is emitted.
     _ = try
-            %% TODO: Sink => Writer
-            logi_sink_writer:write(Context, Format, Data, Sink)
+            logi_sink_writer:write(Context, Format, Data, Writer)
         catch
             Class:Reason ->
                 error_logger:error_report(
                   [{pid, self()}, {module, ?MODULE}, {line, ?LINE},
-                   {msg, "logi_sink:write/4 was aborted"},
-                   {mfargs, {logi_sink_writer, write, [Context, Format, Data, Sink]}},
+                   {msg, "logi_sink_writer:write/4 was aborted"},
+                   {mfargs, {logi_sink_writer, write, [Context, Format, Data, Writer]}},
                    {exception, {Class, Reason, erlang:get_stacktrace()}}])
         end,
-    write(Sinks, Context, Format, Data).
+    write(Writers, Context, Format, Data).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
@@ -201,13 +201,13 @@ is_not_undefined(_, _)              -> true.
 
 -spec ready(undefined | logger(), logi:severity(), logi_location:location(),
             undefined | logi:headers(), undefined | logi:metadata(), undefined | erlang:timestamp(), logi:log_options()) ->
-                   {[{logi_context:context(), [logi_sink:sink()]}], undefined | logger()}.
+                   {[{logi_context:context(), [logi_sink_writer:writer()]}], undefined | logger()}.
 ready(undefined, _, _, _, _, _, _) ->
     {[], undefined};
 ready(Logger0, Severity, Location, Headers0, Metadata0, Timestamp0, Options) ->
-    Sinks = logi_channel:select_sink(Logger0#?LOGGER.channel, Severity,
-                                     logi_location:get_application(Location), logi_location:get_module(Location)),
-    case Sinks of
+    Writers = logi_channel:select_sink(Logger0#?LOGGER.channel, Severity,
+                                       logi_location:get_application(Location), logi_location:get_module(Location)),
+    case Writers of
         [] ->
             {Result, Next} = ready(Logger0#?LOGGER.next, Severity, Location, Headers0, Metadata0, Timestamp0, Options),
             {Result, Logger0#?LOGGER{next = Next}};
@@ -237,6 +237,6 @@ ready(Logger0, Severity, Location, Headers0, Metadata0, Timestamp0, Options) ->
             {Result, Next} = ready(Logger0#?LOGGER.next, Severity, Location, Headers1, Metadata1, Timestamp1, Options),
             case apply_filter(Context, Logger0#?LOGGER{next = Next}) of
                 {false, Logger1} -> {Result, Logger1};
-                {true,  Logger1} -> {[{Context, Sinks} | Result], Logger1}
+                {true,  Logger1} -> {[{Context, Writers} | Result], Logger1}
             end
     end.

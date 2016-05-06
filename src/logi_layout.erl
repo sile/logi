@@ -1,4 +1,4 @@
-%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc Log Message Layout Behaviour
 %%
@@ -24,10 +24,11 @@
 %% <pre lang="erlang">
 %% > FormatFun = fun (_, Format, Data) -> lists:flatten(io_lib:format("EXAMPLE: " ++ Format ++ "\n", Data)) end.
 %% > Layout = logi_builtin_layout_fun:new(FormatFun).
-%% > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_io_device:new(), [{layout, Layout}]).
+%% > {ok, _} = logi_channel:install_sink(logi_builtin_sink_io_device:new(foo, [{layout, Layout}]), info).
 %% > logi:info("hello world").
 %% EXAMPLE: hello world
 %% </pre>
+%% @end
 -module(logi_layout).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -52,7 +53,7 @@
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
 -type layout() :: layout(formatted_data()).
-%% TODO: doc
+%% An instance of `logi_layout' behaviour implementation module.
 
 -opaque layout(_FormattedData) :: {callback_module(), extra_data()}
                                 | callback_module().
@@ -72,7 +73,7 @@
 %% This type is an alias of the type of second arguemnt of the {@link io_lib:format/2}
 
 -type formatted_data() :: term().
-%% TODO: doc
+%% Formatted Data
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions

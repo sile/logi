@@ -1,4 +1,4 @@
-%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc Log Message Filter Behaviour
 %%
@@ -26,8 +26,8 @@
 %%
 %% A more realistic example:
 %% <pre lang="erlang">
-%% > WriteFun = fun (_, _, Format, Data) -> io:format(Format ++ "\n", Data) end.
-%% > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_fun:new(WriteFun)).
+%% > WriteFun = fun (_, Format, Data) -> io:format(Format ++ "\n", Data) end.
+%% > {ok, _} = logi_channel:install_sink(logi_builtin_sink_fun:new(foo, WriteFun), info).
 %%
 %% > FilterFun = fun (C) -> not maps:get(discard, logi_context:get_metadata(C), false) end.
 %% > Logger = logi:new([{filter, logi_builtin_filter_fun:new(FilterFun)}]).
@@ -39,6 +39,7 @@
 %% > logi:info("hello world", [], [{metadata, #{discard => true}}]).
 %% % No output: the log message was discarded by the filter
 %% </pre>
+%% @end
 -module(logi_filter).
 
 %%----------------------------------------------------------------------------------------------------------------------
