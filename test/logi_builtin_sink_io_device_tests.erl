@@ -25,7 +25,7 @@ write_test_() ->
                {ok, Fd} = file:open("test.log", [write]),
                Layout = logi_builtin_layout_fun:new(fun (_, Format, Data) -> io_lib:format(Format, Data) end),
                Sink = logi_builtin_sink_io_device:new(id, [{io_device, Fd}, {layout, Layout}]),
-               {ok, _} = logi_channel:install_sink(Sink, info, [{layout, Layout}]),
+               {ok, _} = logi_channel:install_sink(Sink, info),
                logi:info("hello world"),
                ok = file:close(Fd),
                ?assertEqual({ok, <<"hello world">>}, file:read_file("test.log")),

@@ -41,6 +41,7 @@
 %% > logi:info("hello world"). % If `logger' option is omitted, the default channel will be used
 %% % The message is not emitted (no sinks are installed to the default channel).
 %% </pre>
+%% @end
 -module(logi_channel).
 
 -behaviour(gen_server).
@@ -55,7 +56,7 @@
 -export([which_channels/0]).
 
 -export([install_sink/2, install_sink/3]).
-%% TODO: -export([install_sink_opt/3, install_sink_opt/4]).
+-export([install_sink_opt/3, install_sink_opt/4]).
 -export([uninstall_sink/1, uninstall_sink/2]).
 -export([set_sink_condition/2, set_sink_condition/3]).
 -export([find_sink/1,  find_sink/2]).
@@ -117,18 +118,7 @@
 
 -type install_sink_options() :: [install_sink_option()].
 
--type install_sink_option() ::  {channel, id()}
-                              | {if_exists, error | ignore | supersede}.
-%% Let `Sink' be the sink which is subject of the installation.
-%%
-%% `id':
-%% - The identifier of `Sink'
-%% - default: `logi_sink:get_module(Sink)'
-%%
-%% `channel':
-%% - The channel in which `Sink' will be installed
-%% - default: `logi_channel:default_channel()'
-%%
+-type install_sink_option() :: {if_exists, error | ignore | supersede}.
 %% `if_exists':
 %% - The confliction handling policy.
 %% - If a sink with the same identifier already exists,
@@ -136,6 +126,7 @@
 %% &#x20;&#x20;- `ignore': the new sink is ignored. Then the function returns `{ok, ExistingSink}'.
 %% &#x20;&#x20;- `supersede': the new sink supersedes it. Then the function returns `{ok, OldSink}'.
 %% - default: `error'
+%% TODO: change default value
 
 -type install_sink_result() :: {ok, OldSink :: undefined | installed_sink()}
                              | {error, {already_installed, installed_sink()}}.
@@ -200,23 +191,29 @@ delete(Channel)                       -> error(badarg, [Channel]).
 -spec which_channels() -> [id()].
 which_channels() -> logi_channel_set_sup:which_children().
 
-%% TODO: install_sink_opt/3を用意しても良いかもしれない (install_sink/2系は第一引数にチャンネルを取るようにする)
+%% @equiv install_sink(default_channel(), Sink, Condition)
+-spec install_sink(logi_sink:sink(), logi_condition:condition()) -> install_sink_result().
+install_sink(Sink, Condition) ->
+    install_sink(default_channel(), Sink, Condition).
 
-%% %% @equiv install_sink(Condition, Sink, [])
--spec install_sink(logi_sink:sink(), logi_condition:condition()) -> install_sink_result(). % TODO: install_sink_result/0は型にしなくても良い
-install_sink(Sink, Condition) -> install_sink(Sink, Condition, []).
+%% @equiv install_sink_opt(Channel, Sink, Condition, [])
+-spec install_sink(id(), logi_sink:sink(), logi_condition:condition()) -> install_sink_result().
+install_sink(Channel, Sink, Condition) ->
+    install_sink_opt(Channel, Sink, Condition, []).
+
+%% @equiv install_sink_opt(default_channel(), Sink, Condition, Options)
+-spec install_sink_opt(logi_sink:sink(), logi_condition:condition(), install_sink_options()) -> install_sink_result().
+install_sink_opt(Sink, Condition, Options) ->
+    install_sink_opt(default_channel(), Sink, Condition, Options).
 
 %% @doc Installs `Sink'
-%%
-%% TODO: notice: This function may block if instantiate/1 of the Sink blocks
--spec install_sink(logi_sink:sink(), logi_condition:condition(), install_sink_options()) -> install_sink_result().
-install_sink(Sink, Condition, Options) ->
-    Args = [Sink, Condition, Options],
+-spec install_sink_opt(id(), logi_sink:sink(), logi_condition:condition(), install_sink_options()) -> install_sink_result().
+install_sink_opt(Channel, Sink, Condition, Options) ->
+    Args = [Channel, Sink, Condition, Options],
     _ = logi_condition:is_condition(Condition) orelse error(badarg, Args),
     _ = logi_sink:is_sink(Sink) orelse error(badarg, Args),
     _ = is_list(Options) orelse error(badarg, Args),
 
-    Channel  = proplists:get_value(channel, Options, default_channel()),
     IfExists = proplists:get_value(if_exists, Options, error),
     _ = lists:member(IfExists, [error, ignore, supersede]) orelse error(badarg, Args),
 

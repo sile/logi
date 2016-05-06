@@ -106,22 +106,22 @@ sink_test_() ->
 
                  %% if_exists == error
                  ?assertMatch({error, {already_installed, #{sink := NullSink}}},
-                              logi_channel:install_sink(NullSink, debug, [{if_exists, error}])),
+                              logi_channel:install_sink_opt(NullSink, debug, [{if_exists, error}])),
 
                  %% if_exists == ignore
                  ?assertMatch({ok, #{condition := debug, sink := NullSink}},
-                              logi_channel:install_sink(NullSink, info, [{if_exists, ignore}])),
+                              logi_channel:install_sink_opt(NullSink, info, [{if_exists, ignore}])),
 
                  %% if_exists == supersede
                  AnotherSink = logi_builtin_sink_fun:new(null, fun (_, _, _) -> <<"">> end),
                  ?assertMatch({ok, #{condition := debug, sink := NullSink}},
-                              logi_channel:install_sink(AnotherSink, info, [{if_exists, supersede}])),
+                              logi_channel:install_sink_opt(AnotherSink, info, [{if_exists, supersede}])),
                  ?assertNotEqual(NullSink, AnotherSink),
                  ?assertMatch({ok, #{condition := info, sink := AnotherSink}},
                               logi_channel:find_sink(null)),
 
                  %% invalid value
-                 ?assertError(badarg, logi_channel:install_sink(NullSink, debug, [{if_exists, undefined}]))
+                 ?assertError(badarg, logi_channel:install_sink_opt(NullSink, debug, [{if_exists, undefined}]))
          end},
         {"set_sink_condition/2",
          fun () ->
@@ -145,7 +145,7 @@ select_test_() ->
     Install =
         fun (Id, Condition) ->
                 Sink = logi_builtin_sink_fun:new(Id, fun (_, _, _) -> atom_to_list(Id) end),
-                {ok, _} = logi_channel:install_sink(Sink, Condition, [{channel, Channel}]),
+                {ok, _} = logi_channel:install_sink(Channel, Sink, Condition),
                 ok
         end,
     SetCond =
