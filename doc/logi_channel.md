@@ -36,11 +36,11 @@ Basic usage:
   %%
   %% INSTALL SINK
   %%
-  > WriteFun = fun (_, _, Format, Data) -> io:format("[my_sink] " ++ Format ++ "\n", Data) end.
-  > Sink = logi_builtin_sink_fun:new(WriteFun).
-  > {ok, _} = logi_channel:install_sink(info, Sink, [{channel, sample_log}]). % Installs <code>Sink</code> with <code>info</code> level
-  > logi_channel:which_sinks([{channel, sample_log}]).
-  [logi_builtin_sink_fun]
+  > WriteFun = fun (_, Format, Data) -> io:format("[my_sink] " ++ Format ++ "\n", Data) end.
+  > Sink = logi_builtin_sink_fun:new(sample_sink, WriteFun).
+  > {ok, _} = logi_channel:install_sink(sample_log, Sink, info). % Installs <code>Sink</code> with <code>info</code> level
+  > logi_channel:which_sinks(sample_log).
+  [sample_sink]
   %%
   %% OUTPUT LOG MESSAGE
   %%
@@ -103,7 +103,7 @@ install_sink_options() = [<a href="#type-install_sink_option">install_sink_optio
 
 
 <pre><code>
-installed_sink() = #{condition =&gt; <a href="logi_condition.md#type-condition">logi_condition:condition()</a>, sink =&gt; <a href="logi_sink.md#type-sink">logi_sink:sink()</a>, child_id =&gt; <a href="logi_sink_proc.md#type-child_id">logi_sink_proc:child_id()</a>, writer =&gt; <a href="logi_sink_writer.md#type-writer">logi_sink_writer:writer()</a> | undefined}
+installed_sink() = #{sink =&gt; <a href="logi_sink.md#type-sink">logi_sink:sink()</a>, condition =&gt; <a href="logi_condition.md#type-condition">logi_condition:condition()</a>, child_id =&gt; <a href="logi_sink_proc.md#type-child_id">logi_sink_proc:child_id()</a>, writer =&gt; <a href="logi_sink_writer.md#type-writer">logi_sink_writer:writer()</a> | undefined}
 </code></pre>
 
  The information of an installed sink

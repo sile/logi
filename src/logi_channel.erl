@@ -20,11 +20,11 @@
 %% %%
 %% %% INSTALL SINK
 %% %%
-%% > WriteFun = fun (_, _, Format, Data) -> io:format("[my_sink] " ++ Format ++ "\n", Data) end.
-%% > Sink = logi_builtin_sink_fun:new(WriteFun).
-%% > {ok, _} = logi_channel:install_sink(info, Sink, [{channel, sample_log}]). % Installs `Sink' with `info' level
-%% > logi_channel:which_sinks([{channel, sample_log}]).
-%% [logi_builtin_sink_fun]
+%% > WriteFun = fun (_, Format, Data) -> io:format("[my_sink] " ++ Format ++ "\n", Data) end.
+%% > Sink = logi_builtin_sink_fun:new(sample_sink, WriteFun).
+%% > {ok, _} = logi_channel:install_sink(sample_log, Sink, info). % Installs `Sink' with `info' level
+%% > logi_channel:which_sinks(sample_log).
+%% [sample_sink]
 %%
 %% %%
 %% %% OUTPUT LOG MESSAGE
@@ -90,15 +90,6 @@
                      end
         end).
 
--define(STATE, ?MODULE).
-
--record(?STATE,
-        {
-          id         :: id(),
-          table      :: logi_sink_table:table(),
-          sinks = [] :: sinks()
-        }).
-
 -record(sink,
         {
           id        :: logi_sink:id(),
@@ -109,7 +100,13 @@
           monitor   :: reference()
         }).
 
--type sinks() :: [#sink{}].
+-define(STATE, ?MODULE).
+-record(?STATE,
+        {
+          id         :: id(),
+          table      :: logi_sink_table:table(),
+          sinks = [] :: [#sink{}]
+        }).
 
 -type id() :: atom().
 %% The identifier of a channel
@@ -127,8 +124,8 @@
 
 -type installed_sink() ::
         #{
-           condition => logi_condition:condition(),
            sink      => logi_sink:sink(),
+           condition => logi_condition:condition(),
            child_id  => logi_sink_proc:child_id(),
            writer    => logi_sink_writer:writer() | undefined
          }.
@@ -382,11 +379,6 @@ handle_install_sink({Sink, Condition, IfExists}, State0) ->
                 {error, Reason} -> {reply, {error, {cannot_start, Reason}}, State0};
                 {ok, ChildId}   ->
                     Writer = logi_sink_proc:recv_writer_from_child(ChildId, 1000),
-                    _ = case Writer =:= undefined of
-                            true  -> logi_sink_table:deregister(State0#?STATE.table, SinkId, OldCondition);
-                            false -> logi_sink_table:register(State0#?STATE.table, SinkId, Writer, Condition, OldCondition)
-                        end,
-                    ok = release_sink_instance(OldSink, State0),
                     Entry =
                         #sink{
                            id        = SinkId,
@@ -396,6 +388,8 @@ handle_install_sink({Sink, Condition, IfExists}, State0) ->
                            child_id  = ChildId,
                            monitor   = monitor(process, ChildId)
                           },
+                    ok = update_writer(Writer, Entry, OldCondition, State0),
+                    ok = release_sink_instance(OldSink, State0),
                     State1 = State0#?STATE{sinks = [Entry | Sinks]},
                     {reply, {ok, to_installed_sink(OldSink)}, State1}
             end
@@ -444,28 +438,31 @@ handle_down(Ref, State0) ->
     end.
 
 -spec handle_sink_writer(logi_sink_proc:child_id(), logi_sink_writer:writer()|undefined, #?STATE{}) -> {noreply, #?STATE{}}.
-handle_sink_writer(ChildId, Writer, State = #?STATE{table = Table}) ->
+handle_sink_writer(ChildId, Writer, State) ->
     case lists:keytake(ChildId, #sink.child_id, State#?STATE.sinks) of
         false                 -> {noreply, State};
         {value, Sink0, Sinks} ->
-            _ = case Writer =:= undefined of
-                    true  -> logi_sink_table:deregister(Table, Sink0#sink.id, Sink0#sink.condition);
-                    false -> logi_sink_table:register(Table, Sink0#sink.id, Writer, Sink0#sink.condition, Sink0#sink.condition)
-                end,
+            ok = update_writer(Writer, Sink0, Sink0#sink.condition, State),
             Sink1 = Sink0#sink{writer = Writer},
             {noreply, State#?STATE{sinks = [Sink1 | Sinks]}}
     end.
 
--spec to_installed_sink(#sink{} | undefined) -> installed_sink().
+-spec to_installed_sink(#sink{} | undefined) -> installed_sink() | undefined.
 to_installed_sink(undefined) ->
     undefined;
 to_installed_sink(Sink) ->
     #{
-       condition => Sink#sink.condition,
        sink      => Sink#sink.sink,
-       writer    => Sink#sink.writer,
-       child_id  => Sink#sink.child_id
+       condition => Sink#sink.condition,
+       child_id  => Sink#sink.child_id,
+       writer    => Sink#sink.writer
      }.
+
+-spec update_writer(logi_sink_writer:writer() | undefined, #sink{}, logi_condition:condition(), #?STATE{}) -> ok.
+update_writer(undefined, Sink, _OldCondition, #?STATE{table = Table}) ->
+    logi_sink_table:deregister(Table, Sink#sink.id, Sink#sink.condition);
+update_writer(Writer, Sink, OldCondition, #?STATE{table = Table}) ->
+    logi_sink_table:register(Table, Sink#sink.id, Writer, Sink#sink.condition, OldCondition).
 
 -spec release_sink_instance(undefined | #sink{}, #?STATE{}) -> ok.
 release_sink_instance(undefined, _State) ->
