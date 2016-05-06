@@ -25,7 +25,7 @@
 %% <pre lang="erlang">
 %% > {ok, Fd} = file:open("/tmp/hoge", [write]).
 %% > Sink = logi_builtin_sink_io_device:new(foo, [{io_device, Fd}]).
-%% > {ok, _} = logi_channel:install_sink_opt(Sink, info, [{if_exists, supersede}]).
+%% > {ok, _} = logi_channel:install_sink(Sink, info).
 %% > logi:info("hello world").
 %% > file:read_file("/tmp/hoge").
 %% {ok,&lt;&lt;"2015-10-21 05:23:19.940 [info] nonode@nohost &lt;0.91.0&gt; erl_eval:do_apply:673 [] hello world\n"&gt;&gt;}
@@ -35,7 +35,7 @@
 %% <pre lang="erlang">
 %% > Layout = logi_builtin_layout_fun:new(fun (_, Format, Data) -> io_lib:format("[my_layout] " ++ Format ++ "\n", Data) end).
 %% > Sink = logi_builtin_sink_io_device:new(foo, [{layout, Layout}]).
-%% > {ok, _} = logi_channel:install_sink_opt(Sink, info, [{if_exists, supersede}]).
+%% > {ok, _} = logi_channel:install_sink(Sink, info).
 %% > logi:info("hello world").
 %% [my_layout] hello world
 %% </pre>

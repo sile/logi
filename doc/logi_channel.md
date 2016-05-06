@@ -85,7 +85,7 @@ install_sink_option() = {if_exists, error | ignore | supersede}
   - `error`: the function returns an error `{error, {already_installed, ExistingSink}}`.
   - `ignore`: the new sink is ignored. Then the function returns `{ok, ExistingSink}`.
   - `supersede`: the new sink supersedes it. Then the function returns `{ok, OldSink}`.
-- default: `error`
+- default: `supersede`
 
 
 
@@ -103,7 +103,7 @@ install_sink_options() = [<a href="#type-install_sink_option">install_sink_optio
 
 
 <pre><code>
-install_sink_result() = {ok, OldSink::undefined | <a href="#type-installed_sink">installed_sink()</a>} | {error, {already_installed, <a href="#type-installed_sink">installed_sink()</a>}}
+install_sink_result() = {ok, OldSink::undefined | <a href="#type-installed_sink">installed_sink()</a>} | {error, {already_installed, <a href="#type-installed_sink">installed_sink()</a>} | term()}
 </code></pre>
 
  The result of [`install_sink/2`](#install_sink-2).

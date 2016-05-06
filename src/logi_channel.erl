@@ -124,11 +124,11 @@
 %% &#x20;&#x20;- `error': the function returns an error `{error, {already_installed, ExistingSink}}'.
 %% &#x20;&#x20;- `ignore': the new sink is ignored. Then the function returns `{ok, ExistingSink}'.
 %% &#x20;&#x20;- `supersede': the new sink supersedes it. Then the function returns `{ok, OldSink}'.
-%% - default: `error'
+%% - default: `supersede'
 %% TODO: change default value
 
 -type install_sink_result() :: {ok, OldSink :: undefined | installed_sink()}
-                             | {error, {already_installed, installed_sink()}}.
+                             | {error, {already_installed, installed_sink()} | term()}.
 %% The result of {@link install_sink/2}.
 %%
 %% If there does not exist a sink which has the same identifier with a new one,
@@ -208,7 +208,7 @@ install_sink_opt(Channel, Sink, Condition, Options) ->
     _ = logi_sink:is_sink(Sink) orelse error(badarg, Args),
     _ = is_list(Options) orelse error(badarg, Args),
 
-    IfExists = proplists:get_value(if_exists, Options, error),
+    IfExists = proplists:get_value(if_exists, Options, supersede),
     _ = lists:member(IfExists, [error, ignore, supersede]) orelse error(badarg, Args),
 
     Pid = ?VALIDATE_AND_GET_CHANNEL_PID(Channel, Args),
