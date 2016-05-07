@@ -1,6 +1,8 @@
 logi
 ====
 
+[![hex.pm version](https://img.shields.io/hexpm/v/logi.svg)](https://hex.pm/packages/logi)
+
 Erlangでログ出力を行うためのインタフェースを提供するライブラリ。
 
 主にサーバライブラリに対して軽量かつ可搬なログ出力方法を提供するのが目的。

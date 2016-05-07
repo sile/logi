@@ -1,6 +1,8 @@
 logi
 ====
 
+[![hex.pm version](https://img.shields.io/hexpm/v/logi.svg)](https://hex.pm/packages/logi)
+
 A Logger Interface Library for Erlang/OTP.
 
 See [README.ja.md](README.ja.md) for more information.
