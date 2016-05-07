@@ -95,7 +95,7 @@
           id        :: logi_sink:id(),
           condition :: logi_condition:condition(),
           sink      :: logi_sink:sink(),
-          child_id  :: logi_sink_proc:child_id(),
+          sink_sup  :: logi_sink_proc:sink_sup(),
           writer    :: logi_sink_writer:writer() | undefined,
           monitor   :: reference()
         }).
@@ -126,7 +126,7 @@
         #{
            sink      => logi_sink:sink(),
            condition => logi_condition:condition(),
-           child_id  => logi_sink_proc:child_id(),
+           sink_sup  => logi_sink_proc:sink_sup(),
            writer    => logi_sink_writer:writer() | undefined
          }.
 %% The information of an installed sink
@@ -284,7 +284,7 @@ whereis_sink_proc(Channel, [SinkId | Path]) ->
                          error          -> undefined;
                          {ok, ChildSup} -> Loop(ChildSup, Rest)
                      end
-             end)(maps:get(child_id, Sink), Path)
+             end)(maps:get(sink_sup, Sink), Path)
     end.
 
 %% @equiv which_sinks(default_channel())
@@ -385,7 +385,7 @@ handle_install_sink({Sink, Condition, IfExists}, State0) ->
                            condition = Condition,
                            sink      = Sink,
                            writer    = Writer,
-                           child_id  = ChildId,
+                           sink_sup  = ChildId,
                            monitor   = monitor(process, ChildId)
                           },
                     ok = update_writer(Writer, Entry, OldCondition, State0),
@@ -437,9 +437,9 @@ handle_down(Ref, State0) ->
             {noreply, State0#?STATE{sinks = Sinks}}
     end.
 
--spec handle_sink_writer(logi_sink_proc:child_id(), logi_sink_writer:writer()|undefined, #?STATE{}) -> {noreply, #?STATE{}}.
+-spec handle_sink_writer(logi_sink_proc:sink_sup(), logi_sink_writer:writer()|undefined, #?STATE{}) -> {noreply, #?STATE{}}.
 handle_sink_writer(ChildId, Writer, State) ->
-    case lists:keytake(ChildId, #sink.child_id, State#?STATE.sinks) of
+    case lists:keytake(ChildId, #sink.sink_sup, State#?STATE.sinks) of
         false                 -> {noreply, State};
         {value, Sink0, Sinks} ->
             ok = update_writer(Writer, Sink0, Sink0#sink.condition, State),
@@ -454,7 +454,7 @@ to_installed_sink(Sink) ->
     #{
        sink      => Sink#sink.sink,
        condition => Sink#sink.condition,
-       child_id  => Sink#sink.child_id,
+       sink_sup  => Sink#sink.sink_sup,
        writer    => Sink#sink.writer
      }.
 
@@ -469,4 +469,4 @@ release_sink_instance(undefined, _State) ->
     ok;
 release_sink_instance(Sink, _State) ->
     _ = demonitor(Sink#sink.monitor, [flush]),
-    logi_sink_proc:stop_child(Sink#sink.child_id).
+    logi_sink_proc:stop_child(Sink#sink.sink_sup).

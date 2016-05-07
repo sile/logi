@@ -32,7 +32,7 @@ start_link(SinkId, Flags) ->
 %% @doc Starts a new sink process (i.e., grandchild)
 %%
 %% This function also starts a child supervisor
--spec start_grandchild(pid(), logi_sink:sink(), boolean()) -> {ok, logi_sink_proc:child_id()} | {error, Reason::term()}.
+-spec start_grandchild(pid(), logi_sink:sink(), boolean()) -> {ok, logi_sink_proc:sink_sup()} | {error, Reason::term()}.
 start_grandchild(Sup, GrandChildSink, IsRoot) ->
     GrandChildSup = logi_sink_proc:whereis_grandchildren_sup(Sup),
     Id = case IsRoot of
@@ -60,7 +60,7 @@ start_grandchild(Sup, GrandChildSink, IsRoot) ->
 %% @doc Stops the grandchild process
 %%
 %% This function also stops the child supervisor (i.e., the parent of `GrandChildSup')
--spec stop_grandchild(pid(), logi_sink_proc:child_id()) -> ok.
+-spec stop_grandchild(pid(), logi_sink_proc:sink_sup()) -> ok.
 stop_grandchild(Sup, GrandChildId) ->
     case logi_sink_proc:whereis_grandchildren_sup(Sup) of
         undefined     -> ok;
@@ -76,7 +76,7 @@ get_child_sink(Sup) ->
     end.
 
 %% @doc Finds the grandchild which has the name `SinkId'
--spec find_grandchild(pid(), logi_sink:id()) -> {ok, logi_sink_proc:child_id()} | error.
+-spec find_grandchild(pid(), logi_sink:id()) -> {ok, logi_sink_proc:sink_sup()} | error.
 find_grandchild(Sup, SinkId) ->
     case logi_name_server:whereis_name({sink, Sup, SinkId}) of
         undefined -> error;

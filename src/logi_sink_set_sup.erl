@@ -29,12 +29,12 @@ start_link() ->
 
 %% @doc Starts a new child (i.e., logi_sink_sup process)
 -spec start_child(pid(), logi_sink:id(), supervisor:sup_flags()) ->
-                         {ok, logi_sink_proc:child_id()} | {error, Reason::term()}.
+                         {ok, logi_sink_proc:sink_sup()} | {error, Reason::term()}.
 start_child(Sup, SinkId, Flags) ->
     supervisor:start_child(Sup, [SinkId, Flags]).
 
 %% @doc Stops the child
--spec stop_child(pid(), logi_sink_proc:child_id()) -> ok.
+-spec stop_child(pid(), logi_sink_proc:sink_sup()) -> ok.
 stop_child(Sup, SinkSup) ->
     _ = supervisor:terminate_child(Sup, SinkSup),
     ok.

@@ -103,7 +103,7 @@ install_sink_options() = [<a href="#type-install_sink_option">install_sink_optio
 
 
 <pre><code>
-installed_sink() = #{sink =&gt; <a href="logi_sink.md#type-sink">logi_sink:sink()</a>, condition =&gt; <a href="logi_condition.md#type-condition">logi_condition:condition()</a>, child_id =&gt; <a href="logi_sink_proc.md#type-child_id">logi_sink_proc:child_id()</a>, writer =&gt; <a href="logi_sink_writer.md#type-writer">logi_sink_writer:writer()</a> | undefined}
+installed_sink() = #{sink =&gt; <a href="logi_sink.md#type-sink">logi_sink:sink()</a>, condition =&gt; <a href="logi_condition.md#type-condition">logi_condition:condition()</a>, sink_sup =&gt; <a href="logi_sink_proc.md#type-sink_sup">logi_sink_proc:sink_sup()</a>, writer =&gt; <a href="logi_sink_writer.md#type-writer">logi_sink_writer:writer()</a> | undefined}
 </code></pre>
 
  The information of an installed sink
