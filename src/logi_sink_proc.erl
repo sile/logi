@@ -1,6 +1,16 @@
 %% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
-%% @doc TODO
+%% @doc Functions for sink processes
+%%
+%% A sink process manages the lifetime of a sink and a sink writer instance({@link logi_sink_writer}).
+%%
+%% Sink process is spawned at time a sink is installed in a channel ({@link logi_channel:install_sink/2}).
+%%
+%% After spawned, the process should call {@link send_writer_to_parent/1} to
+%% notify available writer instance to the parent.
+%%
+%% If the root sink process exits, the associated sink is uninstalled from the channel.
+%%
 %% @end
 -module(logi_sink_proc).
 
@@ -12,7 +22,7 @@
 -export([send_writer_to_parent/1]).
 -export([recv_writer_from_child/2]).
 
--export_type([child_id/0]).
+-export_type([sink_sup/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Application Internal API
@@ -26,34 +36,45 @@
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types
 %%----------------------------------------------------------------------------------------------------------------------
--type child_id() :: pid().
+-type sink_sup() :: pid().
+%% The supervisor of a sink process
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
--spec start_child(logi_sink:sink()) -> {ok, child_id()} | {error, Reason::term()}.
+%% @doc Starts a new child sink process
+%%
+%% NOTICE: This function can only be invoked in a sink process.
+-spec start_child(logi_sink:sink()) -> {ok, sink_sup()} | {error, Reason::term()}.
 start_child(Sink) ->
     ParentSup = get_parent_sup(),
     _ = is_pid(whereis_child_sink(ParentSup)) orelse register_child_sink(ParentSup, self()),
     logi_sink_sup:start_grandchild(ParentSup, Sink, false).
 
--spec stop_child(child_id()) -> ok.
-stop_child(ChildId) ->
+%% @doc Stops the sink process
+%%
+%% NOTICE: This function can only be invoked in a sink process.
+-spec stop_child(sink_sup()) -> ok.
+stop_child(SinkSup) ->
     ParentSup = get_parent_sup(),
-    logi_sink_sup:stop_grandchild(ParentSup, ChildId).
+    logi_sink_sup:stop_grandchild(ParentSup, SinkSup).
 
+%% @doc Sends `Writer' to the parent sink process
+%%
+%% NOTICE: This function can only be invoked in a sink process.
 -spec send_writer_to_parent(logi_sink_writer:writer() | undefined) -> ok.
 send_writer_to_parent(Writer) ->
     _ = Writer =:= undefined orelse logi_sink_writer:is_writer(Writer) orelse error(badarg, [Writer]),
     Parent = get_parent_sink(),
-    ChildId = get_parent_sup(),
-    _ = Parent ! {sink_writer, ChildId, Writer},
+    SinkSup = get_parent_sup(),
+    _ = Parent ! {sink_writer, SinkSup, Writer},
     ok.
 
--spec recv_writer_from_child(child_id(), timeout()) -> logi_sink_writer:writer() | undefined.
-recv_writer_from_child(ChildId, Timeout) ->
+%% @doc Receives a sink writer instance from the child sink process `SinkSup'
+-spec recv_writer_from_child(sink_sup(), timeout()) -> logi_sink_writer:writer() | undefined.
+recv_writer_from_child(SinkSup, Timeout) ->
     receive
-        {sink_writer, ChildId, Writer} -> Writer
+        {sink_writer, SinkSup, Writer} -> Writer
     after Timeout -> undefined
     end.
 
@@ -61,7 +82,7 @@ recv_writer_from_child(ChildId, Timeout) ->
 %% Application Internal Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
--spec start_root_child(logi_sink:sink()) -> {ok, child_id()} | {error, Reason::term()}.
+-spec start_root_child(logi_sink:sink()) -> {ok, sink_sup()} | {error, Reason::term()}.
 start_root_child(Sink) ->
     ParentSup = get_parent_sup(),
     _ = is_pid(whereis_child_sink(ParentSup)) orelse register_child_sink(ParentSup, self()),

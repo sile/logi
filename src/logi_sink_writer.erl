@@ -1,6 +1,11 @@
 %% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 %%
 %% @doc Sink Writer Behaviour
+%%
+%% A sink writer will write log messages to a destination sink process.
+%%
+%% The main purpose of writers is to write messages to some output devices (e.g., tty, file, socket).
+%%
 %% @end
 -module(logi_sink_writer).
 

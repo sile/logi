@@ -12,6 +12,14 @@ Copyright (c) 2014-2016 Takeru Ohta <phjgt308@gmail.com>
 
 __This module defines the `logi_sink_writer` behaviour.__<br /> Required callback functions: `write/4`, `get_writee/1`.
 
+<a name="description"></a>
+
+## Description ##
+
+A sink writer will write log messages to a destination sink process.
+
+The main purpose of writers is to write messages to some output devices (e.g., tty, file, socket).
+
 <a name="types"></a>
 
 ## Data Types ##
