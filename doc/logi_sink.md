@@ -59,7 +59,7 @@ spec() = <a href="supervisor.md#type-child_spec">supervisor:child_spec()</a>
 
 See official documents of `supervisor` for more information.
 
-NOTE: `restart` field is ignored (always regarded as `temporary`).
+NOTE: `restart` field is ignored (always regarded as `permanent`).
 
 
 

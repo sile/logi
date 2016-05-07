@@ -49,7 +49,7 @@
 %%
 %% See official documents of `supervisor' for more information.
 %%
-%% NOTE: `restart' field is ignored (always regarded as `temporary').
+%% NOTE: `restart' field is ignored (always regarded as `permanent').
 
 -type sup_flags() :: supervisor:sup_flags().
 %% The supervise flags of a sink process.
