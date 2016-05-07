@@ -16,7 +16,6 @@
 -export([new/2]).
 
 -export([get_children/1]).
--export([get_active_writer/1]).
 -export([set_active_writer/2]).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -53,17 +52,13 @@
 -spec new(logi_sink:id(), [logi_sink:sink()]) -> logi_sink:sink().
 new(Id, Children) ->
     _ = is_list(Children) andalso lists:all(fun logi_sink:is_sink/1, Children) orelse error(badarg, [Id, Children]),
+    _ = Children =:= [] andalso error(badarg, [Id, Children]),
     logi_sink:new(#{id => Id, start => {?MODULE, start_link, [Children]}}).
 
 %% @doc Returns a list of children
 -spec get_children(pid()) -> [logi_sink:sink()].
 get_children(Pid) ->
     gen_server:call(Pid, get_children).
-
-%% @doc Gets the active child writer
--spec get_active_writer(pid()) -> logi_sink_writer:writer() | undefined.
-get_active_writer(Pid) ->
-    gen_server:call(Pid, get_active_writer).
 
 %% @doc Sets the `Nth' cihld to be active
 -spec set_active_writer(pid(), pos_integer()) -> ok.
@@ -75,7 +70,7 @@ set_active_writer(Pid, Nth) ->
 %%----------------------------------------------------------------------------------------------------------------------
 %% @private
 -spec start_link([logi_sink:sink()]) -> {ok, pid()} | {error, Reason::term()}.
-start_link(Children = [_|_]) ->
+start_link(Children) ->
     gen_server:start_link(?MODULE, Children, []).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -112,8 +107,6 @@ init(Sinks) ->
 %% @private
 handle_call(get_children, _From, State) ->
     {reply, [C#child.sink || C <- State#?STATE.children], State};
-handle_call(get_active_writer, _From, State) ->
-    {reply, State#?STATE.active, State};
 handle_call(_Request, _From, State) ->
     {noreply, State}.
 

@@ -24,23 +24,12 @@ This module is provided for debuging/testing purposes only.
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_active_writer-1">get_active_writer/1</a></td><td>Gets the active child writer.</td></tr><tr><td valign="top"><a href="#get_children-1">get_children/1</a></td><td>Returns a list of children.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creats a new sink instance.</td></tr><tr><td valign="top"><a href="#set_active_writer-2">set_active_writer/2</a></td><td>Sets the <code>Nth</code> cihld to be active.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_children-1">get_children/1</a></td><td>Returns a list of children.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creats a new sink instance.</td></tr><tr><td valign="top"><a href="#set_active_writer-2">set_active_writer/2</a></td><td>Sets the <code>Nth</code> cihld to be active.</td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
-
-<a name="get_active_writer-1"></a>
-
-### get_active_writer/1 ###
-
-<pre><code>
-get_active_writer(Pid::pid()) -&gt; <a href="logi_sink_writer.md#type-writer">logi_sink_writer:writer()</a> | undefined
-</code></pre>
-<br />
-
-Gets the active child writer
 
 <a name="get_children-1"></a>
 
