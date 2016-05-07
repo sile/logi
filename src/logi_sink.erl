@@ -42,7 +42,7 @@
 -type id() :: term().
 %% The identifier of a sink
 %%
-%% The scope of a identifier is limited in siblings with the same parent.
+%% The scope of an identifier is limited in siblings with the same parent.
 
 -type spec() :: supervisor:child_spec().
 %% The specification of a sink process.

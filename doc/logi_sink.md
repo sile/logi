@@ -35,7 +35,7 @@ id() = term()
 
  The identifier of a sink
 
-The scope of a identifier is limited in siblings with the same parent.
+The scope of an identifier is limited in siblings with the same parent.
 
 
 

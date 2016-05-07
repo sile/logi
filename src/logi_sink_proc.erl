@@ -61,6 +61,8 @@ stop_child(SinkSup) ->
 
 %% @doc Sends `Writer' to the parent sink process
 %%
+%% The message `{sink_writer, sink_sup(), Writer}' is sent to the parent.
+%%
 %% NOTICE: This function can only be invoked in a sink process.
 -spec send_writer_to_parent(logi_sink_writer:writer() | undefined) -> ok.
 send_writer_to_parent(Writer) ->

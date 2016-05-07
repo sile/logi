@@ -73,6 +73,8 @@ send_writer_to_parent(Writer::<a href="logi_sink_writer.md#type-writer">logi_sin
 
 Sends `Writer` to the parent sink process
 
+The message `{sink_writer, sink_sup(), Writer}` is sent to the parent.
+
 NOTICE: This function can only be invoked in a sink process.
 
 <a name="start_child-1"></a>
