@@ -269,8 +269,8 @@ find_sink(Channel, SinkId) ->
 whereis_sink_proc(Path) ->
     whereis_sink_proc(default_channel(), Path).
 
-%% TODO: doc
--spec whereis_sink_proc(id(), [logi_sink:id()]) -> pid() | undefined.
+%% @doc Returns the pid associated with `Path'
+-spec whereis_sink_proc(id(), Path :: [logi_sink:id()]) -> pid() | undefined.
 whereis_sink_proc(Channel, []) ->
     error(badarg, [Channel, []]);
 whereis_sink_proc(Channel, [SinkId | Path]) ->
