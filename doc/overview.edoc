@@ -1,5 +1,5 @@
 @author Takeru Ohta <phjgt308@gmail.com>
-@copyright 2014-2015 Takeru Ohta
+@copyright 2014-2016 Takeru Ohta
 @doc
 
 == Modules ==
@@ -17,11 +17,13 @@
 
 `logi' provides following behaviours:
 
-- {@link logi_sink}
+- {@link logi_sink_writer}
 - {@link logi_filter}
 - {@link logi_layout}
 
 Following modules may be used by behaviour implementation modules:
+- {@link logi_sink}
+- {@link logi_sink_proc}
 - {@link logi_context}
 - {@link logi_location}
 
@@ -29,6 +31,7 @@ Following modules may be used by behaviour implementation modules:
 
 - {@link logi_builtin_sink_io_device}
 - {@link logi_builtin_sink_fun}
+- {@link logi_builtin_sink_composite}
 - {@link logi_builtin_filter_fun}
 - {@link logi_builtin_layout_default}
 - {@link logi_builtin_layout_fun}
