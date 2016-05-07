@@ -24,7 +24,7 @@ This module is provided for debuging/testing purposes only.
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_children-1">get_children/1</a></td><td>Returns a list of children.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creats a new sink instance.</td></tr><tr><td valign="top"><a href="#set_active_writer-2">set_active_writer/2</a></td><td>Sets the <code>Nth</code> cihld to be active.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_children-1">get_children/1</a></td><td>Returns a list of children.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creats a new sink instance.</td></tr><tr><td valign="top"><a href="#set_active_writer-2">set_active_writer/2</a></td><td>Sets the <code>Nth</code> cihld to be active.</td></tr><tr><td valign="top"><a href="#unset_active_writer-1">unset_active_writer/1</a></td><td>Unsets the active child.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -63,4 +63,15 @@ set_active_writer(Pid::pid(), Nth::pos_integer()) -&gt; ok
 <br />
 
 Sets the `Nth` cihld to be active
+
+<a name="unset_active_writer-1"></a>
+
+### unset_active_writer/1 ###
+
+<pre><code>
+unset_active_writer(Pid::pid()) -&gt; ok
+</code></pre>
+<br />
+
+Unsets the active child
 

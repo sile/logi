@@ -17,6 +17,7 @@
 
 -export([get_children/1]).
 -export([set_active_writer/2]).
+-export([unset_active_writer/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Application Internal API
@@ -64,6 +65,11 @@ get_children(Pid) ->
 -spec set_active_writer(pid(), pos_integer()) -> ok.
 set_active_writer(Pid, Nth) ->
     gen_server:cast(Pid, {set_active_writer, Nth}).
+
+%% @doc Unsets the active child
+-spec unset_active_writer(pid()) -> ok.
+unset_active_writer(Pid) ->
+    gen_server:cast(Pid, unset_active_writer).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Application Internal Functions
@@ -115,6 +121,9 @@ handle_cast({set_active_writer, Nth}, State) ->
     Active = (lists:nth(Nth, State#?STATE.children))#child.writer,
     ok = logi_sink_proc:send_writer_to_parent(Active),
     {noreply, State#?STATE{active = Active}};
+handle_cast(unset_active_writer, State) ->
+    ok = logi_sink_proc:send_writer_to_parent(undefined),
+    {noreply, State#?STATE{active = undefined}};
 handle_cast(_Request, State) ->
     {noreply, State}.
 

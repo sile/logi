@@ -42,7 +42,7 @@ composite_test_() ->
                logi:info("hello"),
                receive
                    {hello, Id0} -> ?assertEqual(bar, Id0)
-               after 100 -> ?assert(timeout)
+               after 10 -> ?assert(timeout)
                end,
 
                %% Writes a message via second child
@@ -51,7 +51,16 @@ composite_test_() ->
                logi:info("hello"),
                receive
                    {hello, Id1} -> ?assertEqual(baz, Id1)
-               after 100 -> ?assert(timeout)
+               after 10 -> ?assert(timeout)
+               end,
+
+               %% Unsets the active child
+               logi_builtin_sink_composite:unset_active_writer(SinkPid),
+               timer:sleep(10),
+               logi:info("hello"),
+               receive
+                   _ -> ?assert(unexpected_message)
+               after 10 -> ?assert(true)
                end
        end},
       {"Switches the active child (depth=2)",
@@ -74,7 +83,7 @@ composite_test_() ->
                logi:info("hello"),
                receive
                    {hello, Id0} -> ?assertEqual(bar_a, Id0)
-               after 100 -> ?assert(timeout)
+               after 10 -> ?assert(timeout)
                end,
 
                %% Writes a message via `bar_b' child
@@ -84,7 +93,7 @@ composite_test_() ->
                logi:info("hello"),
                receive
                    {hello, Id1} -> ?assertEqual(bar_b, Id1)
-               after 100 -> ?assert(timeout)
+               after 10 -> ?assert(timeout)
                end,
 
                %% Writes a message via `baz_a' child
@@ -94,7 +103,7 @@ composite_test_() ->
                logi:info("hello"),
                receive
                    {hello, Id2} -> ?assertEqual(baz_a, Id2)
-               after 100 -> ?assert(timeout)
+               after 10 -> ?assert(timeout)
                end
        end},
       {"Start failure",

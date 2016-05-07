@@ -1,4 +1,5 @@
-%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
+%% @end
 -module(logi_channel_tests).
 
 -include_lib("eunit/include/eunit.hrl").
@@ -254,6 +255,70 @@ select_test_() ->
                  ?assertEqual([aaa],      Select(alert,   stdlib, lists))
          end}
        ]}
+     ]}.
+
+whereis_sink_proc_test_() ->
+    {setup,
+     fun () -> ok = application:start(logi) end,
+     fun (_) -> ok = application:stop(logi) end,
+     [
+      {"Lookups sink process with specified path",
+       fun () ->
+               Child1_a = logi_builtin_sink_io_device:new(bar_a),
+               Child1_b = logi_builtin_sink_io_device:new(bar_b),
+               Child2_a = logi_builtin_sink_io_device:new(baz_a),
+               Child2_b = logi_builtin_sink_io_device:new(baz_b),
+               Sink = logi_builtin_sink_composite:new(
+                        foo,
+                        [
+                         logi_builtin_sink_composite:new(bar, [Child1_a, Child1_b]),
+                         logi_builtin_sink_composite:new(baz, [Child2_a, Child2_b])
+                        ]),
+               {ok, _} = logi_channel:install_sink(Sink, info),
+
+               %% Existing pathes
+               lists:foreach(
+                 fun (Path) ->
+                         ?assert(is_pid(logi_channel:whereis_sink_proc(Path)))
+                 end,
+                 [
+                  [foo],
+                  [foo, bar], [foo, bar, bar_a], [foo, bar, bar_b],
+                  [foo, baz], [foo, baz, baz_a], [foo, baz, baz_b]
+                 ]),
+
+               %% Unexisting pathes
+               ?assertEqual(undefined, logi_channel:whereis_sink_proc([bar])),
+               ?assertEqual(undefined, logi_channel:whereis_sink_proc([foo, bar_a]))
+       end},
+      {"Empty path is forbidden",
+       fun () ->
+               ?assertError(badarg, logi_channel:whereis_sink_proc([]))
+       end}
+     ]}.
+
+down_test_() ->
+    {setup,
+     fun () -> ok = application:start(logi) end,
+     fun (_) -> ok = application:stop(logi) end,
+     [
+      {"If a sink process exited, the associated sink is uninstalled from the channel",
+       fun () ->
+               Sink = logi_builtin_sink_io_device:new(foo),
+               {ok, _} = logi_channel:install_sink(Sink, info),
+               ?assertEqual([foo], logi_channel:which_sinks()),
+
+               (fun Loop () ->
+                        case logi_channel:whereis_sink_proc([foo]) of
+                            undefined -> ok;
+                            SinkPid   ->
+                                exit(SinkPid, kill),
+                                timer:sleep(10),
+                                Loop()
+                        end
+                end)(),
+               ?assertEqual([], logi_channel:which_sinks())
+       end}
      ]}.
 
 %%----------------------------------------------------------------------------------------------------------------------
