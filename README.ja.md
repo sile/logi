@@ -8,17 +8,26 @@ Erlangでログ出力を行うためのインタフェースを提供するラ�
 特徴
 ----
 
-TODO:
-
 - ログ出力のためのインターフェース関数のみを提供
-  - ライブラリ側は、ログが実際に、どこに／どのように、出力されるか、を
-- バックエンドの登録／削除が柔軟に行える
-  - 設定切替時のログ損失なし
+  - ライブラリ側は、ログが実際にどのように出力されるか、を気にする必要はない
+  - また、そのような実処理は[logi_stdlib](https://github.com/sile/logi_stdlib)等の外部リポジトリに委譲し、`logi`自体は安定したインタフェースの提供のみに集中している
+    - `logi`も最低限のログ出力を行うための機能は備えているが、動作確認目的であって、実運用に耐え得るものではない
+- 各種設定や構成の更新が動的かつ柔軟に行える
+  - 実行中に簡単かつ安全に、ログレベルの変更等が実施できる
 - ログ出力先の切替が可能
   - e.g., アプリケーションログ と アクセスログ は別々のファイルに出力する
 - ログメッセージの共通ヘッダを設定するための仕組みを提供
   - ログコンテキストオブジェクトを持ち回すことで、gen_event等でハンドラモジュールごとに異なるヘッダの管理が可能
-- (仕組みとしては)スケーラブルに
+- (仕組みとしては)スケーラブル
+  - `logi`レベルでは、極力単一のボトルネックが生じないような設計および実装となっている
+  - 例えば巨大なログ出力によりスローダウンしているプロセスがあったとしても、それによって他のログ出力プロセスが
+  - 最終的には、シンク等の実装モジュール次第ではある
+- ある程度柔軟なカスタマイズが可能
+  - フィルタやレイアウト、シンク(ログ出力)、といったコンポーネントがビヘイビアとして提供されており、独自実装が用意
+- ロガーインスタンスのスコープの自由度が高い
+  - 例えば同じヘッダやフィルタを持つロガーを、複数プロセス間で受け渡す、といったことが可能
+  - 異なる設定のロガーを同一プロセス内で使い分けることも可能
+    - gen_event等のように、同じプロセスに複数のハンドラが相乗りする場合に有用になり得る
 
 ビルド方法
 ----------
@@ -82,9 +91,62 @@ $ rebar3 shell
 登場人物
 --------
 
-TODO
+### ロガー
 
-TODO: ヘッダとメタデータの使い分け
+`logi`モジュール:
+- ログ出力関連の関数をまとめたモジュール
+- 主にロガー(ログ出力クライント)の操作用の関数を提供する
+- 通常のログ出力用途であれば、このモジュールだけを参照すれば大半は事足りる
+- ログメッセージには、ヘッダやメタデータを付与可能:
+  - ヘッダやメタデータをどのように利用するかは、後述のシンク次第
+  - 一般的には、ヘッダには最終的な出力的に含まれる情報を、メタデータにはそれ以外の情報を、設定することが推奨される
+- `logi:set_headers/1`等の関数を使うことで、複数ログ出力に共通のヘッダ等を設定可能
+  - デフォルトではプロセス辞書に保存される (スコープはプロセス単位)
+  - 明示的にロガーインスタンスを持ち回すことも可能
+    - e.g., 複数のロガーを併用したい場合、プロセスを跨いでヘッダ等を持ち回したい場合
+
+`logi_filter`モジュール(ビヘイビア):
+- 各ログメッセージの出力可否を制御するためにビヘイビア
+- ロガー単位で任意のフィルタが設定可能
+
+### チャンネル
+
+`logi_channel`モジュール:
+- ログメッセージの論理的な一次出力先
+- 各チャンネルには、任意個のシンクがインストール可能
+  - 各シンクは`logi_condition`によって指定された適用条件を有する
+- チャンネルに出力されたメッセージは、適用条件を満たしたシンク群に供給される
+  - この処理は、クライアントサイドのみで完結する
+    - ログ出力が集中した場合でも、チャンネルプロセスがボトルネックとなることはない
+    - チャンネル単位のETSに対する読み込み要求は発生する
+
+### シンク
+
+`logi_sink`モジュール:
+- シンク:
+  - 各ログメッセージを、実際にどのように出力するかハンドリングするコンポーネント
+  - 特定のチャンネルにインストールされ、そこに送られたログメッセージ群を受け取り、外部に出力する
+- チャンネルへのインストール時に、対応するプロセスが生成される
+  - このプロセスは、該当シンクや対応するWriterインスタンスの管理を行う
+  - `logi_sink_proc`モジュールや`logi_sink_writer`モジュール(ビヘイビア)も参照
+- Writerインスタンスには、ログ出力の度に、`logi_context`オブジェクトとログメッセージが渡される
+  - `logi_sink_writer`の実装モジュール次第で、それが(例えば)標準出力やファイルに出力されたりする
+- 必須ではないが`logi_layout`ビヘイビアの実装モジュールのインスタンスを、初期化時に受け取るシンクも多い
+  - 各ログメッセージのフォーマット(i.e., 外部出力可能な文字列への変換)を行うのは、このビヘイビアの責務
+- シンク自体やその適用条件は、動的に変更が可能
+
+---
+
+他のOTPアプリケーションから利用されるライブラリでは、基本的にロガー(i.e., `logi`モジュール)のみを利用することが推奨される
+(各ログメッセージが、実際にどのように出力されるのか、には関知しない方が望ましい)。
+
+それらのライブラリ群を利用するルートとなるアプリケーション(システム)では、
+その起動時に、チャンネルおよびシンクのセットアップを行い、各ログメッセージがどのように出力されるべきなのかを指定する。
+
+なお、実システムでの利用に耐え得る、シンクや各種ビヘイビアの実装に関しては
+[logi_stdlib](https://github.com/sile/logi_stdlib)等の外部リポジトリを参照のこと
+(`logi`自体は、サンプル程度のモジュール群しか提供していない)。
+
 
 ログレベルについて
 ------------------
@@ -135,8 +197,8 @@ world() ->
 -export([hello/3]).
 
 hello(Id, Meta, Name) ->
-  %% 後続のログ出力用に、ヘッダとメタデータを設定する (この形式ではプロセス辞書に保存される)。
-  %% これらがどのように用いられるかは、使用されているシンク次第。
+  %% 後続のログ出力用に、ヘッダとメタデータを(デフォルトロガーに)設定する (この形式ではプロセス辞書に保存される)。
+  %% これらがどのように用いられるかは、使用されているフィルタやシンク次第。
   logi:set_headers(#{id => Id}),
   logi:set_metadata(#{meta => Meta}),
 
@@ -144,90 +206,118 @@ hello(Id, Meta, Name) ->
   ok.
 ```
 
-ロガーインスタンスを受け取る場合
+ライブラリプロセスがロガーインスタンスを受け取るようにしておけば、
+利用者側のコンテキスト(e.g., ヘッダやフィルタ、出力先チャンネル)を引き継ぐことが可能。
 
-複数使いたい場合
+```erlang
+-module(hoge_server).
+
+-behaviour(gen_server).
+
+-export([start_link/0, start_link/1]).
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
+
+%% プロセス起動時に、ロガーインスタンスを受け取るようにしておく
+-spec start_link(logi:logger()) -> {ok, pid()} | {error, term()}.
+start_link(Logger) ->
+  gen_server:start_link(?MODULE, [Logger], []).
+
+-spec start_link() -> {ok, pid()} | {error, term()}.
+start_link() ->
+  start_link(logi:default_logger()). % デフォルトロガー
+
+init([Logger]) ->
+  %% デフォルトロガーとして(プロセス辞書に)保存して、明示的なインスタンスの持ち回しの手間を省く
+  logi:save_as_default(Logger),
+  logi:info("Hoge server is started"), % `Logger`に設定されているヘッダ等は、そのまま引き継がれる
+  {ok, []}.
+```
+
+同一プロセス内で複数のロガーを併用したい場合。
+
+```erlang
+-module(hello).
+
+-export([world/0]).
+
+world() ->
+  %% 出力チャンネルを変えたり、ヘッダを変えたり等、複数のロガーを使いたい場合
+  %% (下記のチャンネルは`logi_channel:create/1`によって、既に作成済みのものとする)
+  HelloLogger0 = logi:new([{channel, hello_log}]),
+  WorldLogger0 = logi:new([{channel, world_log}]),
+
+  %% 明示的に持ち回す場合には、ロガーを返す関数の結果を捨てずにハンドリングする必要がある
+  HelloLogger1 = logi:info("Hello", [], [{logger, HelloLogger0}]),
+  WorldLogger1 = logi:info("World!", [], [{logger, WorldLogger0}]),
+
+  %% プロセス辞書に保存することも可能
+  %% (ロガー更新系の関数呼び出し時に、自動で再保存されるので、こちらの方が利便性は高い)
+  logi:save(hello_log, HelloLogger1),
+  logi:save(world_log, WorldLogger1),
+
+  logi:info("Hello", [], [{logger, hello_log}]),
+  logi:info("World!", [], [{logger, world_log}]),
+
+  ok.
+```
 
 使用例: アプリケーションの場合
 ------------------------------
 
-OTP用語ではなく、一般的な
+ここでの「アプリケーション」とは「他に依存(利用)されることなく、システムのルートとなるOTPアプリケーション」のことを指す。
 
-使用方法
---------
-とりあえず現段階での使用方法:
+ログ出力に関しては、基本的には上述のライブラリの場合と同様だが、
+ルートアプリケーションの場合には、以下のようにチャンネルやシンクの構成設定を行い、
+具体的にどのようにログが外部に出力されるのかを指定する必要がある。
 
-rebar.configにlogiおよびlogi_ttyを追加する
 ```erlang
-{deps,
-  [
-    {logi, ".*", {git, "git://github.com/sile/logi.git", {branch, "master"}}},
-    {logi_tty, ".*", {git, "git://github.com/sile/logi_tty.git", {branch, "master"}}}
-  ]}.
+-module(system_boot).
+
+-export([init_log_config/0]).
+-export([update_log_config/0]).
+
+%% 起動時
+init_log_config() ->
+  %% 必要なチャンネルを作成する
+  ok = logi_channel:create(application_log),
+  ok = logi_channel:create(console_log),
+
+  %% チャンネルにシンク(群)を登録する
+  %% (ここでは便宜上、組み込みシンクを利用しているが、実際にはlogi_stdlib等が提供するものを利用するのが望ましい)
+  {ok, Fd} = file:open("/tmp/application.log", [write]),
+  FileSink = logi_builtin_sink_io_device:new(file_sink, [{io_device, Fd}]),
+  {ok, _} = logi_channel:install_sink(application_log, FileSink, info),
+
+  ConsoleSink = logi_builtin_sink_io_device:new(console_sink),
+  {ok, _} = logi_channel:install_sink(console_log, ConsoleSink, debug),
+
+  ok.
+
+%% 設定更新時
+update_log_config() ->
+  %% 保存先ファイルを変更する
+  {ok, Fd} = file:open("/tmp/application_2.log", [write]),
+  FileSink = logi_builtin_sink_io_device:new(file_sink, [{io_device, Fd}]),
+  {ok, _} = logi_channel:install_sink(application_log, FileSink, info),
+
+  %% ログレベルを変更する (`logi_channel:install_sink/3`でも可)
+  {ok, _} = logi_channel:set_sink_condition(console_log, console_sink, alert),
+
+  ok.
 ```
 
-アプケーションの開始および標準出力バックエンドのインストール
-```erlang
-> application:ensure_all_started(logi).
-> application:ensure_all_started(logi_tty).
+シンクの適用条件の指定
+----------------------
 
-%% 標準出力にログが出力されるようにする
-> logi_tty:install(info).
-```
+単純なログレベルによる指定(e.g., "info以上の重大度のもののみ出力する”だけではなく、以下のような、より細かい指定が可能:
+- 特定の重大度のメッセージにのみ適用 (e.g., "alertログにのみ適用")
+- 重大度の範囲指定 (e.g, "debugからnoticeまでに適用")
+- 重大度の個別指定 (e.g, "infoとwarningに適用")
+- 出力元アプリケーションやモジュールの指定 (e.g., "stdlibアプリケーションからのログにのみ適用")
 
-使用例
-------
+詳細は`logi_condition`モジュールのドキュメントを参照のこと。
 
-### 1. 基本的な使用方法
-
-### 2. ログ出力先の変更
-
-### 3. ログコンテキストの制御
-
-### 4. 特定のアプリケーションだけログレベルを変更する方法
-
-メモ
-----
-
-### アドホックかつ詳細なトレースを行いたい場合
-
-- Erlangのトレース機能を使用するべき (ex. recon)
-
-### 想定する構成
-
-- ライブラリ
-  - logiのみ
-- アプリケーション
-  - 必要に応じて、以下を使う
-     - logi_fileやlogi_tty 等の出力用バックエンド
-     - logi_lager, lager_logi, error_logger_logi等の転送用ライブラリ (NOTE: 存在しないものもある)
-
-### バックエンドの適用条件
-
-- min-level, max-level
-- location: application, module, function, line, process
-- header, metadata (?)
-- arbitrary predicate function (??)
-- and, or, not
-
-- 制約は、全体の性能劣化に繋がらないもののみにしたい (関係箇所以外には影響なし)
-  - それ以外は、条件付きで中継するようなバックエンドをdebugレベルで登録すれば実現可能
-  - 組み込みと性能は変わらず、柔軟性は高い
-  - logi_backend_conditionalとか提供しても良い (application, module, funtion, etc...)
-- max_levelはok
-- `sys:replace_state/3`を使って、特定プロセスに直接バックエンドを指定するのはありかもしれない
-
-
-- 推奨: ライブラリがloggerを受け取れるようにして、利用者側が各種設定を制御可能にする
-
-
-```
-        -- logger --- channel --- sink
-        |
-source -|- logger --- channel --- sink
-                   |           |
-source --- logger --           -- sink
-```
+より細かい条件で出力を制御したい場合には、フィルタやシンクで行うこと。
 
 ライセンス
 ----------
