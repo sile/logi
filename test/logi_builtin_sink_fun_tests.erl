@@ -39,3 +39,17 @@ write_test_() ->
                end
        end}
      ]}.
+
+get_writee_test_() ->
+    {foreach,
+     fun () -> {ok, Apps} = application:ensure_all_started(logi), Apps end,
+     fun (Apps) -> lists:foreach(fun application:stop/1, Apps) end,
+     [
+      {"The writee is undefined",
+       fun () ->
+               WriteFun = fun (_, _, _) -> [] end,
+               {ok, _} = logi_channel:install_sink(logi_builtin_sink_fun:new(test, WriteFun), info),
+               {ok, #{writer := Writer}} = logi_channel:find_sink(test),
+               ?assertEqual(undefined, logi_sink_writer:get_writee(Writer))
+       end}
+     ]}.

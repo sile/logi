@@ -92,7 +92,7 @@ write(Context, Format, Data, {Layout, IoDevice}) ->
     FormattedData.
 
 %% @private
-get_writee(IoDevice) when is_pid(IoDevice) ->
+get_writee({_, IoDevice}) when is_pid(IoDevice) ->
     IoDevice;
-get_writee(IoDevice) ->
+get_writee({_, IoDevice}) ->
     whereis(IoDevice).

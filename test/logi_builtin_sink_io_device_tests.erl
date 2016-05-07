@@ -1,4 +1,5 @@
-%% @copyright 2014-2015 Takeru Ohta <phjgt308@gmail.com>
+%% @copyright 2014-2016 Takeru Ohta <phjgt308@gmail.com>
+%% @end
 -module(logi_builtin_sink_io_device_tests).
 
 -include_lib("eunit/include/eunit.hrl").
@@ -30,5 +31,19 @@ write_test_() ->
                ok = file:close(Fd),
                ?assertEqual({ok, <<"hello world">>}, file:read_file("test.log")),
                ok = file:delete("test.log")
+       end}
+     ]}.
+
+get_writee_test_() ->
+    {foreach,
+     fun () -> {ok, Apps} = application:ensure_all_started(logi), Apps end,
+     fun (Apps) -> lists:foreach(fun application:stop/1, Apps) end,
+     [
+      {"Gets the writee process",
+       fun () ->
+               Sink = logi_builtin_sink_io_device:new(id, [{io_device, standard_error}]),
+               {ok, _} = logi_channel:install_sink(Sink, info),
+               {ok, #{writer := Writer}} = logi_channel:find_sink(id),
+               ?assertEqual(whereis(standard_error), logi_sink_writer:get_writee(Writer))
        end}
      ]}.
