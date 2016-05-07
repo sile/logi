@@ -205,8 +205,8 @@ is_not_undefined(_, _)              -> true.
 ready(undefined, _, _, _, _, _, _) ->
     {[], undefined};
 ready(Logger0, Severity, Location, Headers0, Metadata0, Timestamp0, Options) ->
-    Writers = logi_channel:select_sink(Logger0#?LOGGER.channel, Severity,
-                                       logi_location:get_application(Location), logi_location:get_module(Location)),
+    Writers = logi_channel:select_writer(Logger0#?LOGGER.channel, Severity,
+                                         logi_location:get_application(Location), logi_location:get_module(Location)),
     case Writers of
         [] ->
             {Result, Next} = ready(Logger0#?LOGGER.next, Severity, Location, Headers0, Metadata0, Timestamp0, Options),

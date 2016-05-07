@@ -90,7 +90,7 @@ sink_test_() ->
                  ?assertMatch({ok, #{sink := NullSink}}, logi_channel:uninstall_sink(null)),
                  ?assertEqual(error, logi_channel:uninstall_sink(null)),
                  ?assertEqual(error, logi_channel:find_sink(null)),
-                 ?assertEqual([], logi_channel:select_sink(logi_channel:default_channel(), info, hoge, fuga))
+                 ?assertEqual([], logi_channel:select_writer(logi_channel:default_channel(), info, hoge, fuga))
          end},
         {"Uninstalls a sink: Uses the default channel",
          fun () ->
@@ -98,7 +98,7 @@ sink_test_() ->
                  ?assertMatch({ok, #{sink := NullSink}}, logi_channel:uninstall_sink(null)),
                  ?assertEqual(error, logi_channel:uninstall_sink(null)),
                  ?assertEqual(error, logi_channel:find_sink(null)),
-                 ?assertEqual([], logi_channel:select_sink(logi_channel:default_channel(), info, hoge, fuga))
+                 ?assertEqual([], logi_channel:select_writer(logi_channel:default_channel(), info, hoge, fuga))
          end},
         {"INSTALL: `if_exists` option",
          fun () ->
@@ -155,7 +155,8 @@ select_test_() ->
         end,
     Select =
         fun (Severity, Application, Module) ->
-                lists:sort([list_to_atom(F([],[],[])) || {_, F} <- logi_channel:select_sink(Channel, Severity, Application, Module)])
+                lists:sort([list_to_atom(F([],[],[])) ||
+                               {_, F} <- logi_channel:select_writer(Channel, Severity, Application, Module)])
         end,
     {setup,
      fun () -> ok = application:start(logi) end,

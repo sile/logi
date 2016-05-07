@@ -71,7 +71,7 @@
 %% Application Internal API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([start_link/1]).
--export([select_sink/4]).
+-export([select_writer/4]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% 'gen_server' Callback API
@@ -308,13 +308,13 @@ which_sinks(Channel) ->
 start_link(Channel) ->
     gen_server:start_link({local, Channel}, ?MODULE, [Channel], []).
 
-%% @doc Selects sinks that meet the condition
+%% @doc Selects sink writers that meet the condition
 %%
 %% If the channel does not exist, it returns an empty list.
 %%
 %% @private
--spec select_sink(id(), logi:severity(), atom(), module()) -> logi_sink_table:select_result().
-select_sink(Channel, Severity, Application, Module) ->
+-spec select_writer(id(), logi:severity(), atom(), module()) -> logi_sink_table:select_result().
+select_writer(Channel, Severity, Application, Module) ->
     logi_sink_table:select(Channel, Severity, Application, Module).
 
 %%----------------------------------------------------------------------------------------------------------------------
