@@ -78,9 +78,13 @@ get_child_sink(Sup) ->
 %% @doc Finds the grandchild which has the name `SinkId'
 -spec find_grandchild(pid(), logi_sink:id()) -> {ok, logi_sink_proc:sink_sup()} | error.
 find_grandchild(Sup, SinkId) ->
-    case logi_name_server:whereis_name({sink, Sup, SinkId}) of
+    case logi_sink_proc:whereis_grandchildren_sup(Sup) of
         undefined -> error;
-        Pid       -> {ok, Pid}
+        GrandSup  ->
+            case logi_name_server:whereis_name({sink, GrandSup, SinkId}) of
+                undefined -> error;
+                Pid       -> {ok, Pid}
+            end
     end.
 
 %%----------------------------------------------------------------------------------------------------------------------
