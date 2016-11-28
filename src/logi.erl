@@ -575,7 +575,7 @@ delete_metadata(Keys, Options) ->
 %% But the sinks which does not satisfy specified condition (i.e. `logi_sink:condition/0') are ignored.
 %%
 %% <pre lang="erlang">
-%% > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_io_device:new()). % Installs a sink to the default channel
+%% > {ok, _} = logi_channel:install_sink(logi_builtin_sink_io_device:new(sample), info). % Installs a sink to the default channel
 %% > logi:log(debug, "hello world", [], []). % There are no applicable sinks (the severity is too low)
 %% > logi:log(info, "hello world", [], []). % The log message is consumed by the above sink
 %% 2015-10-22 13:16:37.003 [info] nonode@nohost &lt;0.91.0&gt; erl_eval:do_apply:673 [] hello world
