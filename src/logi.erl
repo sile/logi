@@ -584,7 +584,7 @@ delete_metadata(Keys, Options) ->
 %% If the logger has nested loggers, the function is applied to them recursively.
 %%
 %% <pre lang="erlang">
-%% > {ok, _} = logi_channel:install_sink(info, logi_builtin_sink_io_device:new()). % Installs a sink to the default channel
+%% > {ok, _} = logi_channel:install_sink(logi_builtin_sink_io_device:new(sample), info). % Installs a sink to the default channel
 %% > Logger = logi:from_list([logi:new([{headers, #{id => hoge}}]), logi:new([{headers, #{id => fuga}}])]).
 %% > logi:log(info, "hello world", [], [{logger, Logger}]).
 %% 2015-10-22 13:28:10.332 [info] nonode@nohost &lt;0.91.0&gt; erl_eval:do_apply:673 [id=hoge] hello world
