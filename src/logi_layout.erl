@@ -5,8 +5,7 @@
 %% This module defines the standard interface to format log messages issued by `logi' functions
 %% (e.g. {@link logi:info/3}, {@link logi:warning/3}, etc).
 %%
-%% A layout instance will be installed into a channel along with an associated sink.
-%% (See the description of the `layout' option of {@link logi_channel:install_sink/2})
+%% A layout instance may be installed into a channel along with an associated sink.
 %%
 %% == EXAMPLE ==
 %% Usage example of a layout instance:
