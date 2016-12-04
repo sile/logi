@@ -35,9 +35,9 @@
 %%
 %% === EXAMPLE ===
 %% <pre lang="erlang">
-%% > [emergency,alert]     = logi_sink:normalize_condition(alert).                % level
-%% > [warning,notice,info] = logi_sink:normalize_condition({info, warning}).      % range
-%% > [alert,debug,info]    = logi_sink:normalize_condition([debug, info, alert]). % list
+%% > [emergency,alert]     = logi_condition:normalize(alert).                % level
+%% > [warning,notice,info] = logi_condition:normalize({info, warning}).      % range
+%% > [alert,debug,info]    = logi_condition:normalize([debug, info, alert]). % list
 %% </pre>
 
 -type location_condition() ::
@@ -54,12 +54,12 @@
 %%
 %% === EXAMPLE ===
 %% <pre lang="erlang">
-%% > logi_sink:is_condition(#{application => stdlib}).                          % application
-%% > logi_sink:is_condition(#{application => [stdlib, kernel]}).                % applications
-%% > logi_sink:is_condition(#{module => lists}).                                % module
-%% > logi_sink:is_condition(#{module => [lists, dict]}).                        % modules
-%% > logi_sink:is_condition(#{application => kernel, module => [lists, dict]}). % application and modules
-%% > logi_sink:is_condition(#{severity => [info, alert], module => lists}).     % severity and module
+%% > logi_condition:is_condition(#{application => stdlib}).                          % application
+%% > logi_condition:is_condition(#{application => [stdlib, kernel]}).                % applications
+%% > logi_condition:is_condition(#{module => lists}).                                % module
+%% > logi_condition:is_condition(#{module => [lists, dict]}).                        % modules
+%% > logi_condition:is_condition(#{application => kernel, module => [lists, dict]}). % application and modules
+%% > logi_condition:is_condition(#{severity => [info, alert], module => lists}).     % severity and module
 %% </pre>
 
 -type normalized_condition() :: [logi:severity() |
@@ -68,7 +68,7 @@
 %% The normalized form of a `condition/0'.
 %%
 %% <pre lang="erlang">
-%% > Normalize = fun (C) -> lists:sort(logi_sink:normalize_condition(C)) end.
+%% > Normalize = fun (C) -> lists:sort(logi_condition:normalize(C)) end.
 %%
 %% > Normalize(info).
 %% [alert,critical,emergency,error,info,notice,warning]
