@@ -19,7 +19,7 @@
 %% > Logger = logi:new([{filter, logi_builtin_filter_fun:new(FilterFun)}]).
 %% > logi:save_as_default(Logger).
 %%
-%% > logi:info("hello world", [], [{messages, #{discard => false}}]). % passed
+%% > logi:info("hello world", [], [{metadata, #{discard => false}}]). % passed
 %% hello world
 %%
 %% > logi:info("hello world", [], [{metadata, #{discard => true}}]). % discarded
