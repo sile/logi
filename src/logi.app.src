@@ -1,17 +1,12 @@
-%% vim: set ft=erlang : -*- erlang -*-
-{application, logi,
- [
-  {description, "A Logger Interface Library"},
-  {vsn, "0.5.0"},
-  {registered, [logi_sup, logi_channel_set_sup, logi_name_server, logi_default_log]},
-  {applications, [kernel, stdlib]},
-  {mod, {logi_app, []}},
-  {env,
-   [
-    {warnings_as_errors, false},
-    {warn_no_parse_transform, true}
-   ]},
-  {maintainers,["Takeru Ohta"]},
-  {licenses,["MIT"]},
-  {links,[{"GitHub","https://github.com/sile/logi"}]}
- ]}.
+{application,logi,
+             [{description,"A Logger Interface Library"},
+              {vsn,"0.5.1"},
+              {registered,[logi_sup,logi_channel_set_sup,logi_name_server,
+                           logi_default_log]},
+              {applications,[kernel,stdlib]},
+              {mod,{logi_app,[]}},
+              {env,[{warnings_as_errors,false},
+                    {warn_no_parse_transform,true}]},
+              {maintainers,["Takeru Ohta"]},
+              {licenses,["MIT"]},
+              {links,[{"GitHub","https://github.com/sile/logi"}]}]}.
