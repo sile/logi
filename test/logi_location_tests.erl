@@ -43,8 +43,15 @@ guess_test_() ->
      [
       {"Guesses the location",
        fun () ->
-               L = logi_location:new(self(), undefined, logi_location_tests, '-guess_test_/0-fun-2-', 47),
-               ?assertEqual(L, logi_location:guess_location())
+               Pid = self(),
+               ?assertMatch(
+                  #{
+                     process     := Pid,
+                     application := undefined,
+                     module      := ?MODULE,
+                     line        := 54
+                   },
+                  logi_location:to_map(logi_location:guess_location()))
        end},
       {"Guesses the application",
        fun () ->
