@@ -108,12 +108,12 @@
 %% `filter' and `next' fields are optional
 %% (e.g. If a logger has no filter, the `filter' field is omitted from the corresponding map).
 
--type headers() :: #{}.
+-type headers() :: map().
 %% The headers of a log message.
 %%
 %% Headers are intended to be included in the outputs written by sinks.
 
--type metadata() :: #{}.
+-type metadata() :: map().
 %% The metadata of a log message
 %%
 %% Metadata are not intended to be included directly in the outputs written by sinks.

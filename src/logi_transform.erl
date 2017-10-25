@@ -37,7 +37,8 @@
 
 -type expr() :: expr_call_remote()
               | expr_var()
-              | erl_parse:abstract_expr().
+              | erl_parse:abstract_expr()
+              | term().
 
 -type expr_call_remote() :: {call, line(), {remote, line(), expr(), expr()}, [expr()]}.
 -type expr_var() :: {var, line(), atom()}.
@@ -60,7 +61,8 @@
 parse_transform(AbstractForms, Options) ->
     Loc = #location{
              application = logi_transform_utils:guess_application(AbstractForms, Options),
-             module      = logi_transform_utils:get_module(AbstractForms)
+             module      = logi_transform_utils:get_module(AbstractForms),
+             line        = 0
             },
     walk_forms(AbstractForms, Loc).
 
@@ -83,14 +85,18 @@ walk_clauses(Clauses, Loc) ->
 
 -spec walk_expr(expr(), #location{}) -> expr().
 walk_expr({call, Line, {remote, _, {atom, _, M}, {atom, _, F}}, _} = C0, Loc) ->
-    C1 = list_to_tuple(walk_expr(tuple_to_list(C0), Loc)),
+    C1 = list_to_tuple(walk_expr_parts(tuple_to_list(C0), Loc)),
     transform_call(M, F, C1, Loc#location{line = Line});
 walk_expr(Expr, Loc) when is_tuple(Expr) ->
-    list_to_tuple(walk_expr(tuple_to_list(Expr), Loc));
+    list_to_tuple(walk_expr_parts(tuple_to_list(Expr), Loc));
 walk_expr(Expr, Loc) when is_list(Expr) ->
     [walk_expr(E, Loc) || E <- Expr];
 walk_expr(Expr, _Loc) ->
     Expr.
+
+-spec walk_expr_parts([term()], #location{}) -> [term()].
+walk_expr_parts(Parts, Loc) ->
+    [walk_expr(MaybeExpr, Loc) || MaybeExpr <- Parts].
 
 -spec transform_call(module(), atom(), expr_call_remote(), #location{}) -> expr().
 transform_call(logi_location, guess_location, _, Loc) ->
