@@ -231,7 +231,6 @@ select_test_() ->
                  ok = Install(ccc, alert),
                  ok = Install(ddd, emergency),
 
-                 random:seed(os:timestamp()),
                  Applications = applications(),
                  Modules = modules(),
                  lists:foreach(
@@ -327,7 +326,7 @@ down_test_() ->
 -spec random_condition([atom()], [module()]) -> logi_sink:condition().
 random_condition(Applications, Modules) ->
     Severities = logi:severities(),
-    case random:uniform(3) of
+    case rand:uniform(3) of
         1 -> subshuffle(Severities);
         2 -> #{severity => subshuffle(Severities), application => subshuffle(Applications)};
         3 -> #{severity => subshuffle(Severities), application => subshuffle(Applications), module => subshuffle(Modules)}
@@ -335,8 +334,8 @@ random_condition(Applications, Modules) ->
 
 -spec subshuffle(list()) -> list().
 subshuffle(List) ->
-    lists:sublist([X || {_, X} <- lists:sort([{random:uniform(), X} || X <- List])],
-                  random:uniform(max(20, length(List))) -1).
+    lists:sublist([X || {_, X} <- lists:sort([{rand:uniform(), X} || X <- List])],
+                  rand:uniform(max(20, length(List))) -1).
 
 -spec applications() -> [atom()].
 applications() ->
