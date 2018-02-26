@@ -19,6 +19,7 @@
 -export([recursive_update/2]).
 
 -export([get_channel/1, get_headers/1, get_metadata/1, get_filter/1, get_next/1]).
+-export([set_filter/2]).
 
 -export([ready/4]).
 -export([write/4]).
@@ -117,6 +118,11 @@ get_metadata(#?LOGGER{metadata = Metadata}) -> Metadata.
 -spec get_filter(Logger :: logger()) -> {ok, logi_filter:filter()} | error.
 get_filter(#?LOGGER{filter = undefined}) -> error;
 get_filter(#?LOGGER{filter = Filter})    -> {ok, Filter}.
+
+%% NOTE: v0.0.12との互換性維持用関数
+-spec set_filter(logger(), logi_filter:filter()) -> logger().
+set_filter(Logger, Filter) ->
+    Logger#?LOGGER{filter = Filter}.
 
 %% @doc Gets the next logger of `Logger'
 %%

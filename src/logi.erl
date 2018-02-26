@@ -51,6 +51,7 @@
 %%----------------------------------------------------------
 -export([log/4]).
 -export([debug/1, debug/2, debug/3]).
+-export([verbose/1, verbose/2, verbose/3]).
 -export([info/1, info/2, info/3]).
 -export([notice/1, notice/2, notice/3]).
 -export([warning/1, warning/2, warning/3]).
@@ -58,6 +59,7 @@
 -export([critical/1, critical/2, critical/3]).
 -export([alert/1, alert/2, alert/3]).
 -export([emergency/1, emergency/2, emergency/3]).
+-export([debug_opt/3, verbose_opt/3, info_opt/3, notice_opt/3, warning_opt/3]).
 
 %%----------------------------------------------------------
 %% Types
@@ -152,7 +154,16 @@
                     | {location, logi_location:location()}
                     | {headers, headers()}
                     | {metadata, metadata()}
-                    | {timestamp, erlang:timestamp()}.
+                    | {timestamp, erlang:timestamp()}
+
+                      %% NOTE: v0.0.12との互換性維持用オプション
+                    | {frequency, frequency_policy()}.
+
+-type frequency_policy() :: always
+                          | once
+                          | {once_in_times, Times::pos_integer()}
+                          | {interval, MilliSeconds::non_neg_integer()}.
+
 %% [logger]
 %% - The logger of interest
 %% - Default: `logi:default_logger()'
@@ -428,7 +439,7 @@ erase(LoggerId) ->
 which_loggers() -> [LoggerId || {?PD_LOGGER_KEY(LoggerId), _} <- get()].
 
 %% @equiv set_headers(Headers, [])
--spec set_headers(headers()) -> logger_instance().
+-spec set_headers(headers()|list()) -> logger_instance().
 set_headers(Headers) -> set_headers(Headers, []).
 
 %% @doc Sets headers of the logger
@@ -457,10 +468,13 @@ set_headers(Headers) -> set_headers(Headers, []).
 %% > true = #{a => 0,  b => 20, c => 30} =:= Set(#{a => 0, c => 30}, overwrite).
 %% > true = #{a => 10, b => 20, c => 30} =:= Set(#{a => 0, c => 30}, ignore).
 %% </pre>
--spec set_headers(headers(), Options) -> logger_instance() when
+-spec set_headers(headers()|list(), Options) -> logger_instance() when
       Options :: [Option],
       Option  :: {logger, logger()}
                | {if_exists, ignore | overwrite | supersede}.
+set_headers(Headers, Options) when is_list(Headers) ->
+    %% NOTE: v0.0.12との互換性維持用コード
+    set_headers(maps:from_list(Headers), Options);
 set_headers(Headers, Options) ->
     _ = is_list(Options) orelse erlang:error(badarg, [Headers, Options]),
     IfExists = proplists:get_value(if_exists, Options, overwrite),
@@ -629,6 +643,36 @@ log(Severity, Format, Data, Options) ->
     _ = '_write'(Result, Format, Data),
     Logger1.
 
+%% @equiv debug(Format, Data, Options)
+%%
+%% NOTE: v0.0.12との互換性維持用関数
+-spec debug_opt(io:format(), [term()], log_options()) -> logger_instance().
+debug_opt(Format, Data, Options) -> debug(Format, Data, Options).
+
+%% @equiv debug(Format, Data, Options)
+%%
+%% NOTE: v0.0.12との互換性維持用関数
+-spec verbose_opt(io:format(), [term()], log_options()) -> logger_instance().
+verbose_opt(Format, Data, Options) -> debug(Format, Data, Options).
+
+%% @equiv info(Format, Data, Options)
+%%
+%% NOTE: v0.0.12との互換性維持用関数
+-spec info_opt(io:format(), [term()], log_options()) -> logger_instance().
+info_opt(Format, Data, Options) -> debug(Format, Data, Options).
+
+%% @equiv notice(Format, Data, Options)
+%%
+%% NOTE: v0.0.12との互換性維持用関数
+-spec notice_opt(io:format(), [term()], log_options()) -> logger_instance().
+notice_opt(Format, Data, Options) -> notice(Format, Data, Options).
+
+%% @equiv warning(Format, Data, Options)
+%%
+%% NOTE: v0.0.12との互換性維持用関数
+-spec warning_opt(io:format(), [term()], log_options()) -> logger_instance().
+warning_opt(Format, Data, Options) -> warning(Format, Data, Options).
+
 %% @equiv debug(Format, [])
 -spec debug(io:format()) -> logger_instance().
 debug(Format) -> debug(Format, []).
@@ -640,6 +684,24 @@ debug(Format, Data) -> debug(Format, Data, []).
 %% @equiv log(debug, Format, Data, Options)
 -spec debug(io:format(), [term()], log_options()) -> logger_instance().
 debug(Format, Data, Options) -> log(debug, Format, Data, Options).
+
+%% @equiv verbose(Format, [])
+%%
+%% NOTE: v0.0.12との互換性維持用関数
+-spec verbose(io:format()) -> logger_instance().
+verbose(Format) -> verbose(Format, []).
+
+%% @equiv verbose(Format, Data, [])
+%%
+%% NOTE: v0.0.12との互換性維持用関数
+-spec verbose(io:format(), [term()]) -> logger_instance().
+verbose(Format, Data) -> verbose(Format, Data, []).
+
+%% @equiv log(debug, Format, Data, Options)
+%%
+%% NOTE: v0.0.12との互換性維持用関数
+-spec verbose(io:format(), [term()], log_options()) -> logger_instance().
+verbose(Format, Data, Options) -> log(debug, Format, Data, Options).
 
 %% @equiv info(Format, [])
 -spec info(io:format()) -> logger_instance().
@@ -728,13 +790,31 @@ emergency(Format, Data, Options) -> log(emergency, Format, Data, Options).
 %%----------------------------------------------------------------------------------------------------------------------
 %% Application Internal Functions
 %%----------------------------------------------------------------------------------------------------------------------
+%% NOTE: v0.0.12との互換性維持用関数
+-spec enable_frequency_filter(logi:logger(), integer(), integer()) -> {logi:logger(), logi:metadata()}.
+enable_frequency_filter(Logger, MaxCount, Period) ->
+    Metadata = #{frequency_filter_enabled => true},
+    case logi_logger:get_filter(Logger) of
+        error ->
+            Filter = logi_builtin_filter_frequency:new([{max_count, MaxCount}, {period, Period}]),
+            {logi_logger:set_filter(Logger, Filter), Metadata};
+        _ ->
+            {Logger, Metadata}
+    end.
+
 %% @private
 -spec '_ready'(severity(), logi_location:location(), log_options()) ->
                       {logger_instance(), [{logi_context:context(), logi_sink_table:select_result()}]}.
 '_ready'(Severity, DefaultLocation, Options) ->
     {Need, Logger0} = load_if_need(proplists:get_value(logger, Options, default_logger())),
-    {Result, Logger1} = logi_logger:ready(Logger0, Severity, DefaultLocation, Options),
-    {save_if_need(Need, Logger1), Result}.
+    {Logger1, Metadata} =
+        case lists:keyfind(frequency, 1, Options) of
+            false       -> {Logger0, #{}};
+            {_, always} -> {Logger0, #{}};
+            {_, _}      -> enable_frequency_filter(Logger0, 1, 60 * 1000)
+        end,
+    {Result, Logger2} = logi_logger:ready(Logger1, Severity, DefaultLocation, [{metadata, Metadata} | Options]),
+    {save_if_need(Need, Logger2), Result}.
 
 %% @private
 -spec '_write'([{logi_context:context(), logi_sink_table:select_result()}], io:format(), [term()]) -> ok.
