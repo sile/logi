@@ -807,12 +807,13 @@ enable_frequency_filter(Logger, MaxCount, Period) ->
                       {logger_instance(), [{logi_context:context(), logi_sink_table:select_result()}]}.
 '_ready'(Severity, DefaultLocation, Options) ->
     {Need, Logger0} = load_if_need(proplists:get_value(logger, Options, default_logger())),
-    {Logger1, Metadata} =
+    {Logger1, Metadata0} =
         case lists:keyfind(frequency, 1, Options) of
             false       -> {Logger0, #{}};
             {_, always} -> {Logger0, #{}};
             {_, _}      -> enable_frequency_filter(Logger0, 1, 60 * 1000)
         end,
+    Metadata = maps:merge(proplists:get_value(metadata, Options, #{}), Metadata0),
     {Result, Logger2} = logi_logger:ready(Logger1, Severity, DefaultLocation, [{metadata, Metadata} | Options]),
     {save_if_need(Need, Logger2), Result}.
 
