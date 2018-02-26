@@ -645,30 +645,35 @@ log(Severity, Format, Data, Options) ->
 
 %% @equiv debug(Format, Data, Options)
 %%
+%% @end
 %% NOTE: v0.0.12との互換性維持用関数
 -spec debug_opt(io:format(), [term()], log_options()) -> logger_instance().
 debug_opt(Format, Data, Options) -> debug(Format, Data, Options).
 
 %% @equiv debug(Format, Data, Options)
 %%
+%% @end
 %% NOTE: v0.0.12との互換性維持用関数
 -spec verbose_opt(io:format(), [term()], log_options()) -> logger_instance().
 verbose_opt(Format, Data, Options) -> debug(Format, Data, Options).
 
 %% @equiv info(Format, Data, Options)
 %%
+%% @end
 %% NOTE: v0.0.12との互換性維持用関数
 -spec info_opt(io:format(), [term()], log_options()) -> logger_instance().
 info_opt(Format, Data, Options) -> debug(Format, Data, Options).
 
 %% @equiv notice(Format, Data, Options)
 %%
+%% @end
 %% NOTE: v0.0.12との互換性維持用関数
 -spec notice_opt(io:format(), [term()], log_options()) -> logger_instance().
 notice_opt(Format, Data, Options) -> notice(Format, Data, Options).
 
 %% @equiv warning(Format, Data, Options)
 %%
+%% @end
 %% NOTE: v0.0.12との互換性維持用関数
 -spec warning_opt(io:format(), [term()], log_options()) -> logger_instance().
 warning_opt(Format, Data, Options) -> warning(Format, Data, Options).
@@ -687,18 +692,21 @@ debug(Format, Data, Options) -> log(debug, Format, Data, Options).
 
 %% @equiv verbose(Format, [])
 %%
+%% @end
 %% NOTE: v0.0.12との互換性維持用関数
 -spec verbose(io:format()) -> logger_instance().
 verbose(Format) -> verbose(Format, []).
 
 %% @equiv verbose(Format, Data, [])
 %%
+%% @end
 %% NOTE: v0.0.12との互換性維持用関数
 -spec verbose(io:format(), [term()]) -> logger_instance().
 verbose(Format, Data) -> verbose(Format, Data, []).
 
 %% @equiv log(debug, Format, Data, Options)
 %%
+%% @end
 %% NOTE: v0.0.12との互換性維持用関数
 -spec verbose(io:format(), [term()], log_options()) -> logger_instance().
 verbose(Format, Data, Options) -> log(debug, Format, Data, Options).
