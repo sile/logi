@@ -101,7 +101,8 @@ walk_expr_parts(Parts, Loc) ->
 -spec transform_call(module(), atom(), expr_call_remote(), #location{}) -> expr().
 transform_call(logi_location, guess_location, _, Loc) ->
     logi_location_expr(Loc);
-transform_call(logi, Severity, {_, _, _, Args} = Call, Loc = #location{line = Line}) ->
+transform_call(logi, Severity0, {_, _, _, Args} = Call, Loc = #location{line = Line}) ->
+    Severity = normalize_severity(Severity0),
     case logi:is_severity(Severity) of
         false -> Call;
         true  ->
@@ -145,3 +146,11 @@ logi_call_expr(Severity, FormatExpr, DataExpr, OptionsExpr, Loc = #location{line
        [logi_transform_utils:make_call_remote(Line, logi, '_write', [ResultVar, FormatExpr, DataExpr]),
         LoggerVar]}
      ]}.
+
+-spec normalize_severity(atom()) -> atom().
+normalize_severity(debug_opt) -> debug;
+normalize_severity(verbose_opt) -> debug;
+normalize_severity(info_opt) -> info;
+normalize_severity(notice_opt) -> notice;
+normalize_severity(warning_opt) -> warning;
+normalize_severity(Other) -> Other.
