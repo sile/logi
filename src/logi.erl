@@ -46,6 +46,11 @@
 -export([erase/0, erase/1]).
 -export([which_loggers/0]).
 
+%% For maintaining compatibility with v0.0.12
+-export([make_context/0]).
+-export([save_context/1]).
+-export([load_context/0]).
+
 %%----------------------------------------------------------
 %% Logging
 %%----------------------------------------------------------
@@ -240,6 +245,12 @@ new() -> new([]).
 -spec new(new_options()) -> logger_instance().
 new(Options) -> logi_logger:new(Options).
 
+%% @equiv new().
+%%
+%% This is provided only for maintaining compatibility with v0.0.12
+-spec make_context() -> logger_instance().
+make_context() -> new().
+
 %% @doc Returns `true' if `X' is a logger, otherwise `false'
 -spec is_logger(X :: (logger() | term())) -> boolean().
 is_logger(X) -> is_atom(X) orelse logi_logger:is_logger(X).
@@ -335,6 +346,12 @@ from_list(Loggers) ->
 -spec save_as_default(logger()) -> logger_instance() | undefined.
 save_as_default(Logger) -> save(default_logger(), Logger).
 
+%% @equiv save_as_default(Logger)
+%%
+%% This is provided only for maintaining compatibility with v0.0.12
+-spec save_context(logger()) -> logger_instance() | undefined.
+save_context(Logger) -> save_as_default(Logger).
+
 %% @doc Saves `Logger' with the ID `LoggerId' to the process dictionary
 %%
 %% If `LoggerId' already exists, the old logger instance is deleted and replaced by `Logger'
@@ -381,6 +398,8 @@ load(LoggerId) ->
         Logger    -> {ok, Logger}
     end.
 
+
+
 %% @doc Returns the logger instance associated to `Logger'
 %%
 %% <pre lang="erlang">
@@ -397,6 +416,12 @@ load(LoggerId) ->
 -spec ensure_to_be_instance(logger()) -> logger_instance().
 ensure_to_be_instance(Logger) when is_atom(Logger) -> load_or_new(Logger);
 ensure_to_be_instance(Logger)                      -> Logger.
+
+%% @equiv ensure_to_be_instance(default_logger())
+%%
+%% This is provided only for maintaining compatibility with v0.0.12
+-spec load_context() -> logger_instance().
+load_context() -> ensure_to_be_instance(default_logger()).
 
 %% @doc Returns the saved loggers and deletes them from the process dictionary.
 %%
