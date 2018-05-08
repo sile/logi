@@ -1,6 +1,6 @@
 {application,logi,
              [{description,"A Logger Interface Library"},
-              {vsn,"0.5.2"},
+              {vsn,"0.5.3"},
               {registered,[logi_sup,logi_channel_set_sup,logi_name_server,
                            logi_default_log]},
               {applications,[kernel,stdlib]},
