@@ -245,7 +245,8 @@ new() -> new([]).
 -spec new(new_options()) -> logger_instance().
 new(Options) -> logi_logger:new(Options).
 
-%% @equiv new().
+%% @equiv new()
+%% @end
 %%
 %% This is provided only for maintaining compatibility with v0.0.12
 -spec make_context() -> logger_instance().
@@ -347,6 +348,7 @@ from_list(Loggers) ->
 save_as_default(Logger) -> save(default_logger(), Logger).
 
 %% @equiv save_as_default(Logger)
+%% @end
 %%
 %% This is provided only for maintaining compatibility with v0.0.12
 -spec save_context(logger()) -> logger_instance() | undefined.
@@ -418,6 +420,7 @@ ensure_to_be_instance(Logger) when is_atom(Logger) -> load_or_new(Logger);
 ensure_to_be_instance(Logger)                      -> Logger.
 
 %% @equiv ensure_to_be_instance(default_logger())
+%% @end
 %%
 %% This is provided only for maintaining compatibility with v0.0.12
 -spec load_context() -> logger_instance().
