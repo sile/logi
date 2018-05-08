@@ -107,6 +107,17 @@ transform_call(logi, Severity0, {_, _, _, Args} = Call, Loc = #location{line = L
         false -> Call;
         true  ->
             case Args of
+                %% For maintaining compatibility with v0.0.12
+                [Logger, {string, _, _} = Fmt] ->
+                    Opts = {cons, Line, {tuple, Line, [{atom, Line, logger}, Logger]}, {nil, Line}},
+                    logi_call_expr(Severity, Fmt, {nil, Line}, Opts, Loc);
+                [Logger, {string, _, _} = Fmt, {nil, Line} = Data] ->
+                    Opts = {cons, Line, {tuple, Line, [{atom, Line, logger}, Logger]}, {nil, Line}},
+                    logi_call_expr(Severity, Fmt, Data, Opts, Loc);
+                [Logger, {string, _, _} = Fmt, {cons, _, _, _} = Data] ->
+                    Opts = {cons, Line, {tuple, Line, [{atom, Line, logger}, Logger]}, {nil, Line}},
+                    logi_call_expr(Severity, Fmt, Data, Opts, Loc);
+
                 [Fmt]             -> logi_call_expr(Severity, Fmt, {nil, Line}, {nil, Line}, Loc);
                 [Fmt, Data]       -> logi_call_expr(Severity, Fmt, Data,        {nil, Line}, Loc);
                 [Fmt, Data, Opts] -> logi_call_expr(Severity, Fmt, Data,        Opts,        Loc);

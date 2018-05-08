@@ -47,7 +47,7 @@
 -export([which_loggers/0]).
 
 %% For maintaining compatibility with v0.0.12
--export([make_context/0]).
+-export([make_context/0, make_context/1]).
 -export([save_context/1]).
 -export([load_context/0]).
 
@@ -77,6 +77,9 @@
 -export_type([headers/0, metadata/0]).
 -export_type([log_option/0, log_options/0]).
 
+%% For maintaining compatibility with v0.0.12
+-export_type([context/0, context_ref/0]).
+
 %%----------------------------------------------------------------------------------------------------------------------
 %% Application Internal API
 %%----------------------------------------------------------------------------------------------------------------------
@@ -98,6 +101,12 @@
 %%
 %% If such a logger instance does not exist,
 %% the ID will be regarded as an alias of the expression `new([{channel, LoggerId}])'.
+
+-type context() :: logger_instance().
+%% This is provided only for maintaining compatibility with v0.0.12
+
+-type context_ref() :: logger().
+%% This is provided only for maintaining compatibility with v0.0.12
 
 -opaque logger_instance() :: logi_logger:logger().
 %% A logger instance
@@ -251,6 +260,13 @@ new(Options) -> logi_logger:new(Options).
 %% This is provided only for maintaining compatibility with v0.0.12
 -spec make_context() -> logger_instance().
 make_context() -> new().
+
+%% @equiv new([{channel, ChannelId}])
+%% @end
+%%
+%% This is provided only for maintaining compatibility with v0.0.12
+-spec make_context(logi_channel:id()) -> logger_instance().
+make_context(ChannelId) -> new([{channel, ChannelId}]).
 
 %% @doc Returns `true' if `X' is a logger, otherwise `false'
 -spec is_logger(X :: (logger() | term())) -> boolean().
@@ -496,13 +512,18 @@ set_headers(Headers) -> set_headers(Headers, []).
 %% > true = #{a => 0,  b => 20, c => 30} =:= Set(#{a => 0, c => 30}, overwrite).
 %% > true = #{a => 10, b => 20, c => 30} =:= Set(#{a => 0, c => 30}, ignore).
 %% </pre>
--spec set_headers(headers()|list(), Options) -> logger_instance() when
+-spec set_headers(headers() | V0_0_12_Compatible, Options) -> logger_instance() when
       Options :: [Option],
       Option  :: {logger, logger()}
-               | {if_exists, ignore | overwrite | supersede}.
+               | {if_exists, ignore | overwrite | supersede}
+               | V0_0_12_Compatible,
+      V0_0_12_Compatible :: term().
 set_headers(Headers, Options) when is_list(Headers) ->
     %% NOTE: v0.0.12との互換性維持用コード
     set_headers(maps:from_list(Headers), Options);
+set_headers(Logger, Headers) when is_tuple(Logger); is_atom(Logger) ->
+    %% NOTE: v0.0.12との互換性維持用コード
+    set_headers(maps:from_list(Headers), [{logger, Logger}]);
 set_headers(Headers, Options) ->
     _ = is_list(Options) orelse erlang:error(badarg, [Headers, Options]),
     IfExists = proplists:get_value(if_exists, Options, overwrite),
