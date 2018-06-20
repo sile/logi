@@ -22,6 +22,17 @@
 -export([init/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
+%% Macros & Records & Types
+%%----------------------------------------------------------------------------------------------------------------------
+-ifdef('FUN_STACKTRACE').
+-define(CAPTURE_STACKTRACE, ).
+-define(GET_STACKTRACE, erlang:get_stacktrace()).
+-else.
+-define(CAPTURE_STACKTRACE, :__StackTrace).
+-define(GET_STACKTRACE, __StackTrace).
+-endif.
+
+%%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @doc Starts a supervisor
@@ -51,9 +62,9 @@ start_grandchild(Sup, GrandChildSink, IsRoot) ->
                         {ok, SinkSup}
                 end
             catch
-                ExClass:ExReason ->
+                ExClass:ExReason ?CAPTURE_STACKTRACE ->
                     ok = logi_sink_set_sup:stop_child(GrandChildSup, SinkSup),
-                    erlang:raise(ExClass, ExReason, erlang:get_stacktrace())
+                    erlang:raise(ExClass, ExReason, ?GET_STACKTRACE)
             end
     end.
 
