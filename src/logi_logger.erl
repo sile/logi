@@ -56,6 +56,14 @@
 -opaque logger() :: #?LOGGER{}.
 %% A logger instance
 
+-ifdef('FUN_STACKTRACE').
+-define(CAPTURE_STACKTRACE, ).
+-define(GET_STACKTRACE, erlang:get_stacktrace()).
+-else.
+-define(CAPTURE_STACKTRACE, :__StackTrace).
+-define(GET_STACKTRACE, __StackTrace).
+-endif.
+
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
@@ -179,12 +187,12 @@ write([Writer | Writers], Context, Format, Data) ->
     _ = try
             logi_sink_writer:write(Context, Format, Data, Writer)
         catch
-            Class:Reason ->
+            Class:Reason ?CAPTURE_STACKTRACE ->
                 error_logger:error_report(
                   [{pid, self()}, {module, ?MODULE}, {line, ?LINE},
                    {msg, "logi_sink_writer:write/4 was aborted"},
                    {mfargs, {logi_sink_writer, write, [Context, Format, Data, Writer]}},
-                   {exception, {Class, Reason, erlang:get_stacktrace()}}])
+                   {exception, {Class, Reason, ?GET_STACKTRACE}}])
         end,
     write(Writers, Context, Format, Data).
 
