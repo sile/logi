@@ -4,6 +4,8 @@
 %% @private
 -module(logi_condition).
 
+-include("../include/logi_internal.hrl").
+
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%------------------------------------------------------------------------------------------------------------------------
@@ -78,11 +80,11 @@ is_satisfied({match, {M, F, Arg}}, Location, Headers, MetaData) ->
             false -> false
         end
     catch
-        Class:Reason ->
+        Class:Reason ?CAPTURE_STACKTRACE ->
             error_logger:error_report(
               [{location, [{module, ?MODULE}, {line, ?LINE}, {pid, self()}]},
                {mfargs, {M, F, [Arg, Location, Headers, MetaData]}},
-               {exception, {Class, Reason, erlang:get_stacktrace()}}])
+               {exception, {Class, Reason, ?GET_STACKTRACE}}])
     end.
 
 %%------------------------------------------------------------------------------------------------------------------------

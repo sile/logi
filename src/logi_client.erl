@@ -4,6 +4,8 @@
 %% @private
 -module(logi_client).
 
+-include("../include/logi_internal.hrl").
+
 %%------------------------------------------------------------------------------------------------------------------------
 %% Exported API
 %%------------------------------------------------------------------------------------------------------------------------
@@ -53,11 +55,11 @@ write(Context, Backends, Location, MsgInfo, Format, Args) ->
                    try
                        _ = Module:write(Backend, Location, MsgInfo, Format, Args)
                    catch
-                       Class:Reason ->
+                       Class:Reason ?CAPTURE_STACKTRACE ->
                            error_logger:error_report(
                              [{location, [{module, ?MODULE}, {line, ?LINE}, {pid, self()}]},
                               {mfargs, {Module, write, [Backend, Location, MsgInfo, Format, Args]}},
-                              {exception, {Class, Reason, erlang:get_stacktrace()}}])
+                              {exception, {Class, Reason, ?GET_STACKTRACE}}])
                    end
            end,
            Backends),

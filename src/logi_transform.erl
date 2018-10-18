@@ -28,7 +28,7 @@
           application :: atom(),
           module      :: module(),
           function    :: atom(),
-          line        :: pos_integer()
+          line = 1    :: pos_integer()
         }).
 
 %% @private

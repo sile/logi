@@ -5,14 +5,12 @@
 %%------------------------------------------------------------------------------------------------------------------------
 %% Macros
 %%------------------------------------------------------------------------------------------------------------------------
--define(ASSERT_PRED_FUN(M, F, Arg),
-        case M:F(Arg) of
-            true  -> true;
-            false -> error({assertion_failed, {mfarsg, {M, F, [Arg]}}})
-        end).
-
--define(ASSERT_PRED_FUN(F, Arg),
-        case F(Arg) of
-            true  -> true;
-            false -> error({assertion_failed, {mfarsg, {?MODULE, F, Arg}}})
-        end).
+-ifdef('OTP_RELEASE').
+%% The 'OTP_RELEASE' macro introduced at OTP-21,
+%% so we can use it for detecting whether the Erlang compiler supports new try/catch syntax or not.
+-define(CAPTURE_STACKTRACE, :__StackTrace).
+-define(GET_STACKTRACE, __StackTrace).
+-else.
+-define(CAPTURE_STACKTRACE, ).
+-define(GET_STACKTRACE, erlang:get_stacktrace()).
+-endif.

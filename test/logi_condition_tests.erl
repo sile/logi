@@ -1,4 +1,3 @@
-%% coding: latin-1
 %% @copyright 2014 Takeru Ohta <phjgt308@gmail.com>
 -module(logi_condition_tests).
 
@@ -44,7 +43,7 @@ make_test_() ->
               %% OK
               Spec1 = info, % ログレベルのみ指定
               ?assertCond(logi_condition:make(Spec1)),
-              
+
               Spec2 = {debug, {match, {module_name, function_name, ["hoge"]}}}, % マッチ条件を指定
               ?assertCond(logi_condition:make(Spec2)),
 
@@ -52,7 +51,7 @@ make_test_() ->
               ?assertCond(logi_condition:make(Spec3)),
 
               ?assertCond(logi_condition:make([])), % 空リストもok
-              
+
               %% NG
               ?assertError(badarg, logi_condition:make(erlang)),            % 存在しないログレベル
               ?assertError(badarg, logi_condition:make({info, always, 3})), % 不正なサイズのタプル

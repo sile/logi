@@ -1,4 +1,3 @@
-%% coding: latin-1
 %% @copyright 2014 Takeru Ohta <phjgt308@gmail.com>
 -module(logi_backend_table_tests).
 
@@ -129,9 +128,9 @@ select_backends_test_() ->
                ok = logi_backend_table:register_backend(test, Condition3, Backend3),
 
                Location = logi_location:make(logi, log, 100),
-               
+
                %%%% 選択
-               
+
                %% severity=info, metadata=[]
                ?assertEqual([Backend1],
                             logi_backend_table:select_backends(test, info, Location, [], [])),
@@ -160,7 +159,7 @@ select_backends_test_() ->
                Backend1 = logi_backend:make(backend1, ?BACKEND_PROCESS_NAME, ?MODULE, []),
                ok = logi_backend_table:register_backend(test, Condition1, Backend1),
                ?assertEqual([Backend1], logi_backend_table:select_backends(test, info, Location, [], [])), % infoでヒットする
-                            
+
                Condition2 = logi_condition:make(alert),
                Backend2 = logi_backend:make(backend1, ?BACKEND_PROCESS_NAME, ?MODULE, []),
                ok = logi_backend_table:register_backend(test, Condition2, Backend2),
