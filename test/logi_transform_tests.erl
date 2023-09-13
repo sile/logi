@@ -54,7 +54,10 @@ log_test_() ->
 
                %% [NO ERROR] transformed call
                Logger = logi:info("hello world"),
-               ?assertLog("hello world", [], fun (C) -> ?assertEqual(info, logi_context:get_severity(C)) end),
+               ?assertLog("hello world", [], fun (C) ->
+                   ?assertEqual(info, logi_context:get_severity(C)),
+                   ?assertEqual(56, logi_location:get_line(logi_context:get_location(C)))
+               end),
                ?assert(logi:is_logger(Logger))
        end},
       {"`Data` arugment will not be evaluated if it is unnecessary",
