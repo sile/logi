@@ -59,3 +59,18 @@ guess_test_() ->
                ?assertEqual(undefined, logi_location:guess_application('UNDEFINED_MODULE'))
        end}
      ]}.
+
+anno_test_() ->
+    [
+     {"Creates a new location object",
+      fun () ->
+              L = logi_location:new(lists, map, erl_anno:new({12, 10})),
+              ?assert(logi_location:is_location(L)),
+              ?assertEqual(12, logi_location:get_line(L))
+      end},
+     {"Converts to a map without anno",
+      fun () ->
+              L = logi_location:new(lists, map, erl_anno:new({12, 10})),
+              ?assertMatch(#{line := 12}, logi_location:to_map(L))
+      end}
+    ].
