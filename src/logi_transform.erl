@@ -23,16 +23,16 @@
 %% Exported API
 %%----------------------------------------------------------------------------------------------------------------------
 -export([parse_transform/2]).
--export_type([form/0, line_or_anno/0, expr/0, expr_call_remote/0, expr_var/0]).
+-export_type([form/0, line/0, expr/0, expr_call_remote/0, expr_var/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Types & Records
 %%----------------------------------------------------------------------------------------------------------------------
--type form() :: {attribute, line_or_anno(), atom(), term()}
-              | {function, line_or_anno(), atom(), non_neg_integer(), [clause()]}
+-type form() :: {attribute, line(), atom(), term()}
+              | {function, line(), atom(), non_neg_integer(), [clause()]}
               | erl_parse:abstract_form().
 
--type clause() :: {clause, line_or_anno(), [term()], [term()], [expr()]}
+-type clause() :: {clause, line(), [term()], [term()], [expr()]}
                 | erl_parse:abstract_clause().
 
 -type expr() :: expr_call_remote()
@@ -40,17 +40,17 @@
               | erl_parse:abstract_expr()
               | term().
 
--type expr_call_remote() :: {call, line_or_anno(), {remote, line_or_anno(), expr(), expr()}, [expr()]}.
--type expr_var() :: {var, line_or_anno(), atom()}.
+-type expr_call_remote() :: {call, line(), {remote, line(), expr(), expr()}, [expr()]}.
+-type expr_var() :: {var, line(), atom()}.
 
--type line_or_anno() :: non_neg_integer() | erl_anno:anno().
+-type line() :: non_neg_integer().
 
 -record(location,
         {
-          application  :: atom(),
-          module       :: module(),
-          function     :: atom(),
-          line_or_anno :: line_or_anno()
+          application :: atom(),
+          module      :: module(),
+          function    :: atom(),
+          line        :: line()
         }).
 
 %%----------------------------------------------------------------------------------------------------------------------
@@ -60,9 +60,9 @@
 -spec parse_transform([form()], [compile:option()]) -> [form()].
 parse_transform(AbstractForms, Options) ->
     Loc = #location{
-             application         = logi_transform_utils:guess_application(AbstractForms, Options),
-             module              = logi_transform_utils:get_module(AbstractForms),
-             line_or_anno        = 0
+             application = logi_transform_utils:guess_application(AbstractForms, Options),
+             module      = logi_transform_utils:get_module(AbstractForms),
+             line        = 0
             },
     walk_forms(AbstractForms, Loc).
 
@@ -79,14 +79,14 @@ walk_forms(Forms, Loc) ->
 -spec walk_clauses([clause()], #location{}) -> [clause()].
 walk_clauses(Clauses, Loc) ->
     [case Clause of
-         {clause, LineOrAnno, Args, Guards, Body} -> {clause, LineOrAnno, Args, Guards, [walk_expr(E, Loc) || E <- Body]};
-         _                                        -> Clause
+         {clause, Line, Args, Guards, Body} -> {clause, Line, Args, Guards, [walk_expr(E, Loc) || E <- Body]};
+         _                                  -> Clause
      end || Clause <- Clauses].
 
 -spec walk_expr(expr(), #location{}) -> expr().
-walk_expr({call, LineOrAnno, {remote, _, {atom, _, M}, {atom, _, F}}, _} = C0, Loc) ->
+walk_expr({call, Line, {remote, _, {atom, _, M}, {atom, _, F}}, _} = C0, Loc) ->
     C1 = list_to_tuple(walk_expr_parts(tuple_to_list(C0), Loc)),
-    transform_call(M, F, C1, Loc#location{line_or_anno = LineOrAnno});
+    transform_call(M, F, C1, Loc#location{line = Line});
 walk_expr(Expr, Loc) when is_tuple(Expr) ->
     list_to_tuple(walk_expr_parts(tuple_to_list(Expr), Loc));
 walk_expr(Expr, Loc) when is_list(Expr) ->
@@ -101,7 +101,7 @@ walk_expr_parts(Parts, Loc) ->
 -spec transform_call(module(), atom(), expr_call_remote(), #location{}) -> expr().
 transform_call(logi_location, guess_location, _, Loc) ->
     logi_location_expr(Loc);
-transform_call(logi, Severity0, {_, _, _, Args} = Call, Loc = #location{line_or_anno = LineOrAnno}) ->
+transform_call(logi, Severity0, {_, _, _, Args} = Call, Loc = #location{line = Line}) ->
     Severity = normalize_severity(Severity0),
     case logi:is_severity(Severity) of
         false -> Call;
@@ -109,17 +109,17 @@ transform_call(logi, Severity0, {_, _, _, Args} = Call, Loc = #location{line_or_
             case Args of
                 %% For maintaining compatibility with v0.0.12
                 [Logger, {string, _, _} = Fmt] ->
-                    Opts = {cons, LineOrAnno, {tuple, LineOrAnno, [{atom, LineOrAnno, logger}, Logger]}, {nil, LineOrAnno}},
-                    logi_call_expr(Severity, Fmt, {nil, LineOrAnno}, Opts, Loc);
-                [Logger, {string, _, _} = Fmt, {nil, LineOrAnno} = Data] ->
-                    Opts = {cons, LineOrAnno, {tuple, LineOrAnno, [{atom, LineOrAnno, logger}, Logger]}, {nil, LineOrAnno}},
+                    Opts = {cons, Line, {tuple, Line, [{atom, Line, logger}, Logger]}, {nil, Line}},
+                    logi_call_expr(Severity, Fmt, {nil, Line}, Opts, Loc);
+                [Logger, {string, _, _} = Fmt, {nil, Line} = Data] ->
+                    Opts = {cons, Line, {tuple, Line, [{atom, Line, logger}, Logger]}, {nil, Line}},
                     logi_call_expr(Severity, Fmt, Data, Opts, Loc);
                 [Logger, {string, _, _} = Fmt, {cons, _, _, _} = Data] ->
-                    Opts = {cons, LineOrAnno, {tuple, LineOrAnno, [{atom, LineOrAnno, logger}, Logger]}, {nil, LineOrAnno}},
+                    Opts = {cons, Line, {tuple, Line, [{atom, Line, logger}, Logger]}, {nil, Line}},
                     logi_call_expr(Severity, Fmt, Data, Opts, Loc);
 
-                [Fmt]             -> logi_call_expr(Severity, Fmt, {nil, LineOrAnno}, {nil, LineOrAnno}, Loc);
-                [Fmt, Data]       -> logi_call_expr(Severity, Fmt, Data,        {nil, LineOrAnno}, Loc);
+                [Fmt]             -> logi_call_expr(Severity, Fmt, {nil, Line}, {nil, Line}, Loc);
+                [Fmt, Data]       -> logi_call_expr(Severity, Fmt, Data,        {nil, Line}, Loc);
                 [Fmt, Data, Opts] -> logi_call_expr(Severity, Fmt, Data,        Opts,        Loc);
                 _                 -> Call
             end
@@ -128,33 +128,33 @@ transform_call(_, _, Call, _Loc) ->
     Call.
 
 -spec logi_location_expr(#location{}) -> expr().
-logi_location_expr(Loc = #location{line_or_anno = LineOrAnno}) ->
+logi_location_expr(Loc = #location{line = Line}) ->
     logi_transform_utils:make_call_remote(
-      LineOrAnno, logi_location, unsafe_new,
+      Line, logi_location, unsafe_new,
       [
-       {call, LineOrAnno, {atom, LineOrAnno, self}, []},
-       {atom, LineOrAnno, Loc#location.application},
-       {atom, LineOrAnno, Loc#location.module},
-       {atom, LineOrAnno, Loc#location.function},
-       {integer, LineOrAnno, LineOrAnno}
+       {call, Line, {atom, Line, self}, []},
+       {atom, Line, Loc#location.application},
+       {atom, Line, Loc#location.module},
+       {atom, Line, Loc#location.function},
+       {integer, Line, Line}
       ]).
 
 -spec logi_call_expr(logi:severity(), expr(), expr(), expr(), #location{}) -> expr().
-logi_call_expr(Severity, FormatExpr, DataExpr, OptionsExpr, Loc = #location{line_or_anno = LineOrAnno}) ->
+logi_call_expr(Severity, FormatExpr, DataExpr, OptionsExpr, Loc = #location{line = Line}) ->
     LocationExpr = logi_location_expr(Loc),
-    LoggerVar = logi_transform_utils:make_var(LineOrAnno, "__Logger"),
-    ResultVar = logi_transform_utils:make_var(LineOrAnno, "__Result"),
+    LoggerVar = logi_transform_utils:make_var(Line, "__Logger"),
+    ResultVar = logi_transform_utils:make_var(Line, "__Result"),
     LogiReadyCall = logi_transform_utils:make_call_remote(
-                      LineOrAnno, logi, '_ready', [{atom, LineOrAnno, Severity}, LocationExpr, OptionsExpr]),
-    {'case', LineOrAnno, LogiReadyCall,
+                      Line, logi, '_ready', [{atom, Line, Severity}, LocationExpr, OptionsExpr]),
+    {'case', Line, LogiReadyCall,
      [
       %% {Logger, []} -> Logger
-      {clause, LineOrAnno, [{tuple, LineOrAnno, [LoggerVar, {nil, LineOrAnno}]}], [],
+      {clause, Line, [{tuple, Line, [LoggerVar, {nil, Line}]}], [],
        [LoggerVar]},
 
       %% {Logger, Result} -> logi:'_write'(Result, Format, Data), Logger
-      {clause, LineOrAnno, [{tuple, LineOrAnno, [LoggerVar, ResultVar]}], [],
-       [logi_transform_utils:make_call_remote(LineOrAnno, logi, '_write', [ResultVar, FormatExpr, DataExpr]),
+      {clause, Line, [{tuple, Line, [LoggerVar, ResultVar]}], [],
+       [logi_transform_utils:make_call_remote(Line, logi, '_write', [ResultVar, FormatExpr, DataExpr]),
         LoggerVar]}
      ]}.
 

@@ -32,20 +32,20 @@ guess_application(Forms, Options) ->
     find_app_file([Dir || Dir <- [OutDir, SrcDir], Dir =/= undefined]).
 
 %% @doc Makes a abstract term for variable
--spec make_var(logi_transform:line_or_anno(), string()) -> logi_transform:expr_var().
-make_var(LineOrAnno, Prefix) ->
+-spec make_var(logi_transform:line(), string()) -> logi_transform:expr_var().
+make_var(Line, Prefix) ->
     Seq = case get({?MODULE, seq}) of
               undefined -> 0;
               Seq0      -> Seq0
           end,
     _ = put({?MODULE, seq}, Seq + 1),
-    Name = list_to_atom(Prefix ++ "_line" ++ line_or_anno_to_string(LineOrAnno) ++ "_" ++ integer_to_list(Seq)),
-    {var, LineOrAnno, Name}.
+    Name = list_to_atom(Prefix ++ "_line" ++ integer_to_list(Line) ++ "_" ++ integer_to_list(Seq)),
+    {var, Line, Name}.
 
 %% @doc Makes a abstract term for external function call
--spec make_call_remote(logi_transform:line_or_anno(), module(), atom(), [logi_transform:expr()]) -> logi_transform:expr_call_remote().
-make_call_remote(LineOrAnno, Module, Function, ArgsExpr) ->
-    {call, LineOrAnno, {remote, LineOrAnno, {atom, LineOrAnno, Module}, {atom, LineOrAnno, Function}}, ArgsExpr}.
+-spec make_call_remote(logi_transform:line(), module(), atom(), [logi_transform:expr()]) -> logi_transform:expr_call_remote().
+make_call_remote(Line, Module, Function, ArgsExpr) ->
+    {call, Line, {remote, Line, {atom, Line, Module}, {atom, Line, Function}}, ArgsExpr}.
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
@@ -61,9 +61,3 @@ find_app_file([Dir | Dirs]) ->
             end;
         _ -> find_app_file(Dirs)
     end.
-
--spec line_or_anno_to_string(logi_transform:line_or_anno()) -> string().
-line_or_anno_to_string(LineOrAnno) when is_integer(LineOrAnno)
-    -> integer_to_list(LineOrAnno);
-line_or_anno_to_string(LineOrAnno)
-    -> integer_to_list(erl_anno:line(LineOrAnno)).
