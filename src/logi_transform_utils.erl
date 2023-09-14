@@ -12,6 +12,7 @@
 -export([get_module/1]).
 -export([make_var/2]).
 -export([make_call_remote/4]).
+-export([line_or_anno_to_line/1]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
@@ -32,20 +33,26 @@ guess_application(Forms, Options) ->
     find_app_file([Dir || Dir <- [OutDir, SrcDir], Dir =/= undefined]).
 
 %% @doc Makes a abstract term for variable
--spec make_var(logi_transform:line(), string()) -> logi_transform:expr_var().
-make_var(Line, Prefix) ->
+-spec make_var(logi_transform:line_or_anno(), string()) -> logi_transform:expr_var().
+make_var(LineOrAnno, Prefix) ->
     Seq = case get({?MODULE, seq}) of
               undefined -> 0;
               Seq0      -> Seq0
           end,
     _ = put({?MODULE, seq}, Seq + 1),
-    Name = list_to_atom(Prefix ++ "_line" ++ integer_to_list(Line) ++ "_" ++ integer_to_list(Seq)),
-    {var, Line, Name}.
+    Name = list_to_atom(Prefix ++ "_line" ++ integer_to_list(line_or_anno_to_line(LineOrAnno)) ++ "_" ++ integer_to_list(Seq)),
+    {var, LineOrAnno, Name}.
 
 %% @doc Makes a abstract term for external function call
--spec make_call_remote(logi_transform:line(), module(), atom(), [logi_transform:expr()]) -> logi_transform:expr_call_remote().
-make_call_remote(Line, Module, Function, ArgsExpr) ->
-    {call, Line, {remote, Line, {atom, Line, Module}, {atom, Line, Function}}, ArgsExpr}.
+-spec make_call_remote(logi_transform:line_or_anno(), module(), atom(), [logi_transform:expr()]) -> logi_transform:expr_call_remote().
+make_call_remote(LineOrAnno, Module, Function, ArgsExpr) ->
+    {call, LineOrAnno, {remote, LineOrAnno, {atom, LineOrAnno, Module}, {atom, LineOrAnno, Function}}, ArgsExpr}.
+
+-spec line_or_anno_to_line(logi_transform:line_or_anno()) -> integer().
+line_or_anno_to_line(LineOrAnno) when is_integer(LineOrAnno)
+    -> LineOrAnno;
+line_or_anno_to_line(LineOrAnno)
+    -> erl_anno:line(LineOrAnno).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Internal Functions
