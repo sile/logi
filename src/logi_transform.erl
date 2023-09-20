@@ -111,7 +111,7 @@ transform_call(logi, Severity0, {_, _, _, Args} = Call, Loc = #location{line_or_
                 [Logger, {string, _, _} = Fmt] ->
                     Opts = {cons, LineOrAnno, {tuple, LineOrAnno, [{atom, LineOrAnno, logger}, Logger]}, {nil, LineOrAnno}},
                     logi_call_expr(Severity, Fmt, {nil, LineOrAnno}, Opts, Loc);
-                [Logger, {string, _, _} = Fmt, {nil, LineOrAnno} = Data] ->
+                [Logger, {string, _, _} = Fmt, {nil, _} = Data] ->
                     Opts = {cons, LineOrAnno, {tuple, LineOrAnno, [{atom, LineOrAnno, logger}, Logger]}, {nil, LineOrAnno}},
                     logi_call_expr(Severity, Fmt, Data, Opts, Loc);
                 [Logger, {string, _, _} = Fmt, {cons, _, _, _} = Data] ->
@@ -136,7 +136,7 @@ logi_location_expr(Loc = #location{line_or_anno = LineOrAnno}) ->
        {atom, LineOrAnno, Loc#location.application},
        {atom, LineOrAnno, Loc#location.module},
        {atom, LineOrAnno, Loc#location.function},
-       {integer, LineOrAnno, LineOrAnno}
+       {integer, LineOrAnno, logi_transform_utils:line_or_anno_to_line(LineOrAnno)}
       ]).
 
 -spec logi_call_expr(logi:severity(), expr(), expr(), expr(), #location{}) -> expr().

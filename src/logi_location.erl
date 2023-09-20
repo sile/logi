@@ -47,7 +47,7 @@
 
 -export_type([location/0]).
 -export_type([map_form/0]).
--export_type([application/0, line/0, line_or_anno/0]).
+-export_type([application/0, line/0]).
 
 %%----------------------------------------------------------------------------------------------------------------------
 %% Macros & Records & Types
@@ -56,11 +56,11 @@
 
 -record(?LOCATION,
         {
-          process      :: pid(),
-          application  :: application(),
-          module       :: module(),
-          function     :: atom(),
-          line_or_anno :: line_or_anno()
+          process     :: pid(),
+          application :: application(),
+          module      :: module(),
+          function    :: atom(),
+          line        :: line()
         }).
 
 -opaque location() :: #?LOCATION{}.
@@ -84,41 +84,34 @@
 %%
 %% `0' means "Unknown Line"
 
--type line_or_anno() :: line() | erl_anno:anno().
-%% A line number or an erl_anno:anno()
-%%
-%% Starting from OTP 23, the abstract format uses annos instead of line numbers.
-%% This type absorbs the change.
-%% See: https://www.erlang.org/docs/23/apps/erts/absform.html
-
 %%----------------------------------------------------------------------------------------------------------------------
 %% Exported Functions
 %%----------------------------------------------------------------------------------------------------------------------
 %% @equiv new(self(), guess_application(Module), Module, Function, Line)
--spec new(module(), atom(), line_or_anno()) -> location().
-new(Module, Function, LineOrAnno) ->
-    new(self(), guess_application(Module), Module, Function, LineOrAnno).
+-spec new(module(), atom(), line()) -> location().
+new(Module, Function, Line) ->
+    new(self(), guess_application(Module), Module, Function, Line).
 
 %% @doc Creates a new location object
--spec new(pid(), application(), module(), atom(), line_or_anno()) -> location().
-new(Pid, Application, Module, Function, LineOrAnno) ->
-    Args = [Pid, Application, Module, Function, LineOrAnno],
+-spec new(pid(), application(), module(), atom(), line()) -> location().
+new(Pid, Application, Module, Function, Line) ->
+    Args = [Pid, Application, Module, Function, Line],
     _ = is_pid(Pid) orelse error(badarg, Args),
     _ = is_atom(Application) orelse error(badarg, Args),
     _ = is_atom(Module) orelse error(badarg, Args),
     _ = is_atom(Function) orelse error(badarg, Args),
-    _ = (is_integer(LineOrAnno) andalso LineOrAnno >= 0) orelse erl_anno:is_anno(LineOrAnno) orelse error(badarg, Args),
-    unsafe_new(Pid, Application, Module, Function, LineOrAnno).
+    _ = (is_integer(Line) andalso Line >= 0) orelse error(badarg, Args),
+    unsafe_new(Pid, Application, Module, Function, Line).
 
 %% @doc Equivalent to {@link new/5} except omission of the arguments validation
--spec unsafe_new(pid(), application(), module(), atom(), line_or_anno()) -> location().
-unsafe_new(Pid, Application, Module, Function, LineOrAnno) ->
+-spec unsafe_new(pid(), application(), module(), atom(), line()) -> location().
+unsafe_new(Pid, Application, Module, Function, Line) ->
     #?LOCATION{
-        process      = Pid,
-        application  = Application,
-        module       = Module,
-        function     = Function,
-        line_or_anno = LineOrAnno
+        process     = Pid,
+        application = Application,
+        module      = Module,
+        function    = Function,
+        line        = Line
        }.
 
 %% @doc Returns `true' if `X' is a location object, `false' otherwise.
@@ -152,11 +145,11 @@ from_map(Map) ->
 -spec to_map(Location :: location()) -> map_form().
 to_map(L) ->
     #{
-       process     => get_process(L),
-       application => get_application(L),
-       module      => get_module(L),
-       function    => get_function(L),
-       line        => get_line(L)
+       process     => L#?LOCATION.process,
+       application => L#?LOCATION.application,
+       module      => L#?LOCATION.module,
+       function    => L#?LOCATION.function,
+       line        => L#?LOCATION.line
      }.
 
 %% @doc Guesses the location where the function is called (parse transformation fallback)
@@ -225,5 +218,4 @@ get_function(#?LOCATION{function = Function}) -> Function.
 
 %% @doc Gets the line of `Location'
 -spec get_line(Location :: location()) -> line().
-get_line(#?LOCATION{line_or_anno = LineOrAnno}) when is_integer(LineOrAnno) -> LineOrAnno;
-get_line(#?LOCATION{line_or_anno = LineOrAnno}) -> erl_anno:line(LineOrAnno).
+get_line(#?LOCATION{line = Line}) -> Line.

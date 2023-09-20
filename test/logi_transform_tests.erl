@@ -60,6 +60,21 @@ log_test_() ->
                end),
                ?assert(logi:is_logger(Logger))
        end},
+      {"`logi:Severity/Arity` with logger is transformed",
+       fun () ->
+               InstallSink(info),
+
+               %% [ERROR] function call
+               ?assertError(_, apply(logi, info, [logi:new([]), "hello world", []])),
+
+               %% [NO ERROR] transformed call
+               Logger = logi:info(logi:new([]), "hello world", []),
+               ?assertLog("hello world", [], fun (C) ->
+                   ?assertEqual(info, logi_context:get_severity(C)),
+                   ?assertEqual(71, logi_location:get_line(logi_context:get_location(C)))
+               end),
+               ?assert(logi:is_logger(Logger))
+       end},
       {"`Data` arugment will not be evaluated if it is unnecessary",
        fun () ->
                InstallSink(info),
